@@ -1,0 +1,34 @@
+// firestore.rules
+// Cole isto em: Firebase Console > Firestore Database > Regras > Publicar
+//
+// Lógica: por padrão tudo é bloqueado (o que você já configurou). Aqui abrimos
+// só o necessário: qualquer um pode CRIAR um rascunho de página (o quiz em /criar
+// roda no navegador do cliente, sem login), mas ninguém pelo navegador pode
+// marcar a própria página como "paga" — isso só o Admin SDK do webhook pode fazer,
+// porque o Admin SDK ignora essas regras.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /pages/{slug} {
+      // Leitura pública: necessária pra /[slug] poder ser aberta por qualquer
+      // pessoa que recebeu o link (mesmo sem estar logada).
+      allow read: if true;
+
+      // Criação: o quiz cria o rascunho. Bloqueamos que o campo "status" já
+      // chegue como "pago" — isso fecha a brecha óbvia de alguém tentar se
+      // auto-liberar direto pelo navegador sem pagar.
+      allow create: if request.resource.data.status == "pendente";
+
+      // Atualização: só permite editar um documento que AINDA está pendente,
+      // e nunca permite que a atualização mude o campo "status" pra "pago"
+      // (esse "pulo" só o webhook, via Admin SDK, pode dar).
+      allow update: if resource.data.status == "pendente"
+                    && request.resource.data.status == "pendente";
+
+      allow delete: if false;
+    }
+  }
+}

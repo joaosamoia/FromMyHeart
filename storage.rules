@@ -1,0 +1,19 @@
+// storage.rules
+// Cole isto em: Firebase Console > Storage > Regras > Publicar
+//
+// Permite upload de fotos SÓ dentro da pasta de uma página específica
+// (pages/<slug>/...), com limite de tamanho por arquivo (10 MB) e só imagens.
+// Qualquer um pode LER (necessário pra exibir a foto na página pública).
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /pages/{slug}/{fileName} {
+      allow read: if true;
+
+      allow write: if request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+  }
+}
