@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getAdminDb } from "@/lib/firebase-admin";
 import type { CouplePageDoc } from "@/types/page";
-import PageContent from "./PageContent";
+import CouplePageContent from "@/components/CouplePageContent";
 
 // Força renderização dinâmica: esta página lê dados que mudam (status de
 // pagamento), então nunca deve ser cacheada estaticamente pelo Next.js.
@@ -80,5 +80,5 @@ export default async function CouplePage({
     );
   }
 
-  return <PageContent page={page} />;
+  return <CouplePageContent page={page} />;
 }
