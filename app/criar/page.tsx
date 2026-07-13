@@ -23,14 +23,14 @@ import { emptyCouplePageDoc } from "@/types/page";
 // aqui no quiz, sem risco de descompasso com uma segunda tela de decisão da
 // Kiwify. A chave de cada link segue o padrão "plano[-astral][-qr]".
 const KIWIFY_CHECKOUT: Record<string, string> = {
-  "1dia": "https://pay.kiwify.com.br/SEU-LINK-1DIA",
-  "1dia-astral": "https://pay.kiwify.com.br/SEU-LINK-1DIA-ASTRAL",
-  "1dia-qr": "https://pay.kiwify.com.br/SEU-LINK-1DIA-QR",
-  "1dia-astral-qr": "https://pay.kiwify.com.br/SEU-LINK-1DIA-ASTRAL-QR",
-  eterno: "https://pay.kiwify.com.br/SEU-LINK-ETERNO",
-  "eterno-astral": "https://pay.kiwify.com.br/SEU-LINK-ETERNO-ASTRAL",
-  "eterno-qr": "https://pay.kiwify.com.br/SEU-LINK-ETERNO-QR",
-  "eterno-astral-qr": "https://pay.kiwify.com.br/SEU-LINK-ETERNO-ASTRAL-QR",
+  "1dia": "https://pay.kiwify.com.br/CY7GbkU",
+  "1dia-astral": "https://pay.kiwify.com.br/a9ZQfh5",
+  "1dia-qr": "https://pay.kiwify.com.br/zzKOQJ2",
+  "1dia-astral-qr": "https://pay.kiwify.com.br/nnHxMtk",
+  eterno: "https://pay.kiwify.com.br/b0clBFL",
+  "eterno-astral": "https://pay.kiwify.com.br/K9ItEIY",
+  "eterno-qr": "https://pay.kiwify.com.br/ooq0qgi",
+  "eterno-astral-qr": "https://pay.kiwify.com.br/Fv11z3Z",
 };
 
 // Preços-base pra exibir o total (o valor real cobrado é o que você configurar
