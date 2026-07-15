@@ -21,6 +21,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getAdminDb } from "@/lib/firebase-admin";
+import { sendPageReadyEmail } from "@/lib/email";
 
 // Verificação de assinatura por HMAC-SHA256 (padrão usado por Kiwify, Stripe, GitHub etc).
 // A Kiwify pode enviar a assinatura num header (ex: "x-kiwify-signature") OU
@@ -117,12 +118,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, ignored: true });
   }
 
-  await getAdminDb().collection("pages").doc(slug).set(
+  const docRef = getAdminDb().collection("pages").doc(slug);
+  const existing = await docRef.get();
+  const existingData = existing.data();
+
+  await docRef.set(
     {
       status: "pago",
       paidAt: Date.now(),
       astral: hasAstralBump, // só libera o Mapa Estelar se o webhook confirmou a compra do addon
       qrPaid: hasQrBump, // idem pro QR Code Personalizado
+      // O e-mail do payload da Kiwify é o mais confiável pra correspondência
+      // com o comprador de verdade; usamos o que já estava no rascunho do
+      // quiz como fallback, caso o payload não traga esse campo.
       ...(buyerEmail ? { buyerEmail } : {}),
     },
     { merge: true }
@@ -132,5 +140,21 @@ export async function POST(req: NextRequest) {
     `Kiwify webhook: página "${slug}" liberada com sucesso.` +
       `${hasAstralBump ? " (+ Mapa Estelar)" : ""}${hasQrBump ? " (+ QR Personalizado)" : ""}`
   );
+
+  // Dispara o e-mail com o link da página — é a forma confiável de entrega,
+  // independente do que acontecer na sessão do navegador do cliente.
+  const finalEmail = buyerEmail || existingData?.buyerEmail;
+  if (finalEmail) {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+    await sendPageReadyEmail({
+      to: finalEmail,
+      buyerName: existingData?.buyerName || "amor",
+      pageTitle: existingData?.title || "Sua página",
+      pageUrl: `${siteUrl}/${slug}`,
+    });
+  } else {
+    console.warn(`Kiwify webhook: sem e-mail disponível pra "${slug}" — confirmação não enviada.`);
+  }
+
   return NextResponse.json({ ok: true });
 }

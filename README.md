@@ -69,6 +69,19 @@ sem precisar de um ID por combinação.
    `app/api/webhooks/kiwify/route.ts` se os nomes dos campos forem diferentes
    do que o código já espera (isso está bem comentado no arquivo).
 
+### 5. E-mail de confirmação (Resend)
+Sem isso, o cliente paga e não recebe automaticamente o link da página — ele
+teria que lembrar o slug que digitou no quiz. O webhook já dispara esse
+e-mail sozinho, só falta configurar a conta:
+1. Cria conta grátis em [resend.com](https://resend.com) (3.000 e-mails/mês,
+   sem cartão de crédito).
+2. Gera uma API key em **API Keys → Create API Key**.
+3. Cola em `RESEND_API_KEY` no `.env.local` e na Vercel.
+4. Pra lançar rápido, deixe `RESEND_FROM_EMAIL=onboarding@resend.dev` — funciona
+   sem nenhuma configuração de DNS. Depois, se quiser enviar de
+   `contato@seudominio.com`, verifique seu domínio em **Domains** no painel
+   do Resend (leva alguns minutos, exige adicionar registros DNS).
+
 ### 5. Deploy na Vercel
 ```bash
 npm install -g vercel   # ou use o site vercel.com
