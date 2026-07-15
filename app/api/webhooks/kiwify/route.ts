@@ -112,6 +112,17 @@ export async function POST(req: NextRequest) {
   const slugFromQuery = url.searchParams.get("s");
 
   const secret = process.env.KIWIFY_WEBHOOK_SECRET;
+
+  // 🔍 LOG DE DIAGNÓSTICO TEMPORÁRIO — remova depois de confirmar o formato certo.
+  // Mostra tudo que chegou, pra descobrir onde a Kiwify realmente coloca o token.
+  console.log("=== DIAGNÓSTICO WEBHOOK KIWIFY ===");
+  console.log("URL completa:", req.url);
+  console.log("Query params:", Object.fromEntries(url.searchParams.entries()));
+  console.log("Headers:", Object.fromEntries(req.headers.entries()));
+  console.log("Body (primeiros 500 caracteres):", rawBody.slice(0, 500));
+  console.log("Secret configurado (Vercel):", secret ? `"${secret}" (${secret.length} caracteres)` : "NÃO CONFIGURADO");
+  console.log("===================================");
+
   if (secret) {
     const valid = verifyWebhook(rawBody, req, url, secret);
     if (!valid) {
