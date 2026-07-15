@@ -23,14 +23,46 @@ import crypto from "crypto";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { sendPageReadyEmail } from "@/lib/email";
 
-// Verificação de assinatura por HMAC-SHA256 (padrão usado por Kiwify, Stripe, GitHub etc).
-// A Kiwify pode enviar a assinatura num header (ex: "x-kiwify-signature") OU
-// como query param "?signature=" na URL configurada no painel — suportamos os dois.
-function verifySignature(rawBody: string, signature: string | null, secret: string): boolean {
-  if (!signature) return false;
-  const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+// Verificação do webhook. A Kiwify chama esse campo simplesmente de "Token"
+// (não especifica se é uma chave de HMAC ou um valor comparado diretamente),
+// então aceitamos as DUAS possibilidades — o que vier certo, valida:
+//   (a) HMAC-SHA256 do corpo inteiro, usando o token como chave (padrão
+//       usado por Stripe/GitHub/etc quando o campo se chama "secret")
+//   (b) o próprio token enviado em texto puro (header, query param ou no
+//       corpo), comparado diretamente — padrão mais simples, comum quando
+//       o campo se chama só "Token"
+// Depois de clicar em "Testar Webhook" na Kiwify, vale olhar "Ver logs" pra
+// confirmar qual dos dois formatos está realmente chegando.
+function verifyWebhook(rawBody: string, req: NextRequest, url: URL, secret: string): boolean {
+  const headerSig = req.headers.get("x-kiwify-signature");
+  const querySig = url.searchParams.get("signature");
+  const queryToken = url.searchParams.get("token");
+  const headerToken = req.headers.get("x-kiwify-token");
+
+  // (a) HMAC-SHA256
+  const expectedHmac = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+  for (const candidate of [headerSig, querySig]) {
+    if (candidate && safeEqual(candidate, expectedHmac)) return true;
+  }
+
+  // (b) token em texto puro
+  for (const candidate of [queryToken, headerToken]) {
+    if (candidate && safeEqual(candidate, secret)) return true;
+  }
+
+  // (b-alternativo) token dentro do próprio corpo JSON
   try {
-    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+    const parsed = JSON.parse(rawBody);
+    const bodyToken = parsed?.token ?? parsed?.Token ?? parsed?.webhook_token;
+    if (bodyToken && safeEqual(String(bodyToken), secret)) return true;
+  } catch {}
+
+  return false;
+}
+
+function safeEqual(a: string, b: string): boolean {
+  try {
+    return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
   } catch {
     return false; // tamanhos diferentes = não bate mesmo
   }
@@ -78,19 +110,17 @@ export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   const url = new URL(req.url);
   const slugFromQuery = url.searchParams.get("s");
-  const signature =
-    req.headers.get("x-kiwify-signature") ?? url.searchParams.get("signature");
 
   const secret = process.env.KIWIFY_WEBHOOK_SECRET;
   if (secret) {
-    const valid = verifySignature(rawBody, signature, secret);
+    const valid = verifyWebhook(rawBody, req, url, secret);
     if (!valid) {
-      console.warn("Kiwify webhook: assinatura inválida, requisição rejeitada.");
-      return NextResponse.json({ error: "assinatura inválida" }, { status: 401 });
+      console.warn("Kiwify webhook: token/assinatura inválida, requisição rejeitada.");
+      return NextResponse.json({ error: "token inválido" }, { status: 401 });
     }
   } else {
     console.warn(
-      "KIWIFY_WEBHOOK_SECRET não configurada — aceitando webhook SEM verificar assinatura. " +
+      "KIWIFY_WEBHOOK_SECRET não configurada — aceitando webhook SEM verificar token. " +
         "Configure o secret antes de ir pra produção."
     );
   }
