@@ -50,9 +50,11 @@ Personalizado** (+R$4,90) — combinados com os 2 planos, dando até 8 produtos:
 | Plano Eterno + Mapa Estelar | R$ 49,90 |
 | Plano Eterno + QR Personalizado | R$ 44,80 |
 | Plano Eterno + Mapa Estelar + QR | R$ 54,80 |
+| **Date** (convite interativo "aceita um date?") | **R$ 9,90** |
 
-Em `app/criar/page.tsx`, procure `KIWIFY_CHECKOUT` e troque pelos 8 links reais
-(Painel Kiwify → Produtos → Link de pagamento de cada um).
+Em `app/criar/page.tsx`, procure `KIWIFY_CHECKOUT` e troque pelos 9 links reais
+(Painel Kiwify → Produtos → Link de pagamento de cada um) — os 8 primeiros já
+descritos acima, mais o produto "Date" (chave `date` no objeto).
 
 No `.env.local`, preencha `KIWIFY_PRODUCT_IDS_ASTRAL` e `KIWIFY_PRODUCT_IDS_QR`
 com os IDs dos produtos que incluem cada addon (um produto "combo" entra nas

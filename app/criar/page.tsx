@@ -14,13 +14,14 @@ import { ref as sRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
   Heart, ArrowRight, ArrowLeft, Eye, ChevronDown, ChevronUp, Rocket, Sparkles, X,
   Palette, Check, Calendar, Upload, Image as ImageIcon, Wand2, Search, Music,
-  Trash2, Plus, Crown, ShieldCheck, Zap, Star, EyeOff,
+  Trash2, Plus, Crown, ShieldCheck, Zap, Star, EyeOff, LayoutTemplate, MessageCircle,
 } from "lucide-react";
 import { db, storage } from "@/lib/firebase";
 import { emptyCouplePageDoc, type CoupleMoment } from "@/types/page";
 import CouplePageContent, { THEMES, getTheme, MOMENT_ICONS } from "@/components/CouplePageContent";
+import DatePage from "@/components/DatePage";
 
-// ⚠️ Troque pelos links reais dos seus 8 produtos na Kiwify.
+// ⚠️ Troque pelos links reais dos seus produtos na Kiwify.
 const KIWIFY_CHECKOUT: Record<string, string> = {
   "1dia": "https://pay.kiwify.com.br/SEU-LINK-1DIA",
   "1dia-astral": "https://pay.kiwify.com.br/SEU-LINK-1DIA-ASTRAL",
@@ -30,9 +31,10 @@ const KIWIFY_CHECKOUT: Record<string, string> = {
   "eterno-astral": "https://pay.kiwify.com.br/SEU-LINK-ETERNO-ASTRAL",
   "eterno-qr": "https://pay.kiwify.com.br/SEU-LINK-ETERNO-QR",
   "eterno-astral-qr": "https://pay.kiwify.com.br/SEU-LINK-ETERNO-ASTRAL-QR",
+  date: "https://pay.kiwify.com.br/SEU-LINK-DATE",
 };
 
-const PRICES = { "1dia": 24.9, eterno: 39.9, astral: 10, qr: 4.9 };
+const PRICES = { "1dia": 24.9, eterno: 39.9, astral: 10, qr: 4.9, date: 9.9 };
 const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const P = {
@@ -41,8 +43,10 @@ const P = {
   card: "#ffffff", cardBorder: "#f2e0e9", gold: "#c08a2d",
 };
 
-const STEPS = ["Tema", "Nome", "Data", "Mensagem", "Fotos", "Música", "Timeline", "Finalizar"] as const;
-const EMOJI: Record<string, string> = { Tema: "🎨", Nome: "📝", Data: "📅", Mensagem: "💌", Fotos: "📷", Música: "🎵", Timeline: "🕰️", Finalizar: "✨" };
+const STEPS_FULL = ["Estilo", "Tema", "Nome", "Mensagem", "Fotos", "Música", "Timeline", "Finalizar"] as const;
+const STEPS_DATE = ["Estilo", "Date", "Finalizar"] as const;
+const getSteps = (style: string) => (style === "date" ? STEPS_DATE : STEPS_FULL);
+const EMOJI: Record<string, string> = { Estilo: "✦", Tema: "🎨", Nome: "📝", Mensagem: "💌", Fotos: "📷", Música: "🎵", Timeline: "🕰️", Date: "🐧", Finalizar: "✨" };
 const CHEER = (p: number) =>
   p >= 100 ? "Tudo pronto! ♥" : p >= 72 ? "Reta final!" : p >= 45 ? "Metade do caminho!" : p >= 22 ? "Está ficando lindo!" : p > 0 ? "Ótimo começo!" : "Vamos começar!";
 
@@ -65,14 +69,16 @@ export default function CriarPage() {
   const set = (k: keyof typeof d) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setD((s) => ({ ...s, [k]: e.target.value }));
 
-  const progress = Math.round((step / (STEPS.length - 1)) * 100);
-  const last = step === STEPS.length - 1;
-  const name = STEPS[step];
+  const STEPS = getSteps(d.style);
+  const stepC = Math.min(step, STEPS.length - 1);
+  const progress = Math.round((stepC / (STEPS.length - 1)) * 100);
+  const last = stepC === STEPS.length - 1;
+  const name = STEPS[stepC];
 
   const canNext = () => {
-    if (name === "Nome") return d.title.trim() !== "" && d.slug.trim() !== "";
-    if (name === "Data") return d.startDate !== "";
+    if (name === "Nome") return d.title.trim() !== "" && d.slug.trim() !== "" && d.startDate !== "";
     if (name === "Mensagem") return d.message.trim() !== "";
+    if (name === "Date") return (d.whatsapp ?? "").replace(/\D/g, "").length >= 10 && d.slug.trim() !== "";
     return true;
   };
   const ok = canNext();
@@ -106,7 +112,7 @@ export default function CriarPage() {
         </div>
 
         <div className="scr" style={{ flex: 1, overflowY: "auto", padding: "32px 28px 20px" }}>
-          <div key={step} className="qi">
+          <div key={stepC} className="qi">
             <StepBody
               name={name}
               d={d}
@@ -124,18 +130,18 @@ export default function CriarPage() {
         {!last && (
           <div style={{ borderTop: `1px solid ${P.cardBorder}`, background: "rgba(255,255,255,0.6)", backdropFilter: "blur(6px)", padding: "12px 20px" }}>
             <div style={{ textAlign: "center", fontSize: 12, color: P.sub, marginBottom: 10 }}>
-              {EMOJI[name]} {name} · etapa {step + 1} de {STEPS.length}
+              {EMOJI[name]} {name} · etapa {stepC + 1} de {STEPS.length}
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <button
                 onClick={() => setStep((s) => Math.max(0, s - 1))}
-                disabled={step === 0}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", color: step === 0 ? "#cbbcd0" : P.sub, fontSize: 14, cursor: step === 0 ? "default" : "pointer" }}
+                disabled={stepC === 0}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", color: stepC === 0 ? "#cbbcd0" : P.sub, fontSize: 14, cursor: stepC === 0 ? "default" : "pointer" }}
               >
-                {step === 0 ? <X size={16} /> : <ArrowLeft size={16} />} {step === 0 ? "Cancelar" : "Voltar"}
+                {stepC === 0 ? <X size={16} /> : <ArrowLeft size={16} />} {stepC === 0 ? "Cancelar" : "Voltar"}
               </button>
               <button
-                onClick={() => ok && setStep((s) => s + 1)}
+                onClick={() => ok && setStep(stepC + 1)}
                 disabled={!ok}
                 style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 26px", borderRadius: 99, border: "none", cursor: ok ? "pointer" : "default", fontSize: 14, fontWeight: 600, color: "#fff", opacity: ok ? 1 : 0.55, background: "linear-gradient(135deg,#f871a8,#ec4b93)", boxShadow: ok ? "0 6px 16px rgba(236,75,147,0.28)" : "none" }}
               >
@@ -160,7 +166,7 @@ export default function CriarPage() {
           <div style={{ position: "relative", borderRadius: 34, overflow: "hidden", height: 540 }}>
             <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 74, height: 20, background: "#0f0f12", borderRadius: 99, zIndex: 3 }} />
             <div className="scr" style={{ position: "absolute", inset: 0, overflowY: "auto" }}>
-              <CouplePageContent page={d} compact />
+              {d.style === "date" ? <DatePage whatsapp={d.whatsapp} nickname={d.nickname} /> : <CouplePageContent page={d} compact />}
             </div>
           </div>
         </div>
@@ -180,6 +186,38 @@ export default function CriarPage() {
 
 // ───────────────── etapas ─────────────────
 function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBack }: any) {
+  if (name === "Estilo")
+    return (
+      <>
+        <Head title="Escolha o estilo do presente" sub="Como você quer surpreender quem você ama?" />
+        <div style={{ display: "grid", gap: 12 }}>
+          {[
+            { id: "classica", Icon: Heart, name: "Clássica", desc: "Contador, fotos, timeline e mensagem", price: "a partir de R$ 24,90" },
+            { id: "date", Icon: LayoutTemplate, name: "Date", desc: "Convite interativo: \"Aceita um date?\" 🐧💙", price: "R$ 9,90" },
+          ].map((s) => {
+            const active = d.style === s.id;
+            return (
+              <button
+                key={s.id}
+                onClick={() => setD((x: any) => ({ ...x, style: s.id }))}
+                style={{ position: "relative", textAlign: "left", display: "flex", alignItems: "center", gap: 14, padding: 16, borderRadius: 16, cursor: "pointer", background: active ? P.pinkSoft : P.card, border: `1.5px solid ${active ? P.pinkBorder : P.cardBorder}`, transition: "all .2s" }}
+              >
+                <span style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 12, background: active ? "#fff" : P.pinkSoft, display: "grid", placeItems: "center" }}>
+                  <s.Icon size={20} color={P.pink} />
+                </span>
+                <span style={{ flex: 1 }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: P.ink }}>{s.name}</div>
+                  <div style={{ fontSize: 13, color: P.sub, marginTop: 1 }}>{s.desc}</div>
+                  <div style={{ fontSize: 12, color: P.pink, fontWeight: 600, marginTop: 4 }}>{s.price}</div>
+                </span>
+                {active && <Check size={18} color={P.pink} />}
+              </button>
+            );
+          })}
+        </div>
+      </>
+    );
+
   if (name === "Tema")
     return (
       <>
@@ -221,7 +259,7 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
   if (name === "Nome")
     return (
       <>
-        <Head title="Vamos criar seu presente!" sub="Escolha o link e o título da página especial." />
+        <Head title="Vamos criar seu presente!" sub="Link, título e a data que marca o início de tudo." />
         <label style={lbl}>
           <span style={lblTxt}>Link da sua página</span>
           <div style={{ display: "flex", alignItems: "center", border: `1.5px solid ${P.cardBorder}`, borderRadius: 12, background: P.card }}>
@@ -239,16 +277,11 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
           <span style={lblTxt}>Título da página</span>
           <input className="qinput" value={d.title} onChange={set("title")} placeholder="Ex: Para o amor da minha vida" style={inp} />
         </label>
-        <Hint>Este título aparece no topo da sua página.</Hint>
-      </>
-    );
-
-  if (name === "Data")
-    return (
-      <>
-        <Head title="Quando essa história começou?" sub="A data que marca o início de tudo." />
-        <input className="qinput" type="date" value={d.startDate} onChange={set("startDate")} style={{ ...inp, textAlign: "center", fontSize: 16, colorScheme: "light", cursor: "pointer" }} />
-        <Hint>O contador mostrará quanto tempo vocês estão juntos.</Hint>
+        <label style={lbl}>
+          <span style={lblTxt}>Quando essa história começou?</span>
+          <input className="qinput" type="date" value={d.startDate} onChange={set("startDate")} style={{ ...inp, textAlign: "center", colorScheme: "light", cursor: "pointer" }} />
+        </label>
+        <Hint>O título aparece no topo da página, e a data alimenta o contador ao vivo.</Hint>
       </>
     );
 
@@ -271,6 +304,50 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
   if (name === "Fotos") return <FotosStep d={d} setD={setD} />;
   if (name === "Música") return <MusicStep d={d} setD={setD} />;
   if (name === "Timeline") return <TimelineStep d={d} setD={setD} />;
+
+  if (name === "Date") {
+    const phoneMask = (v: string) => {
+      const n = v.replace(/\D/g, "").slice(0, 11);
+      if (n.length <= 2) return n.length ? `(${n}` : "";
+      if (n.length <= 6) return `(${n.slice(0, 2)}) ${n.slice(2)}`;
+      if (n.length <= 10) return `(${n.slice(0, 2)}) ${n.slice(2, 6)}-${n.slice(6)}`;
+      return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`;
+    };
+    return (
+      <>
+        <Head title="Configure seu convite" sub="Só o essencial pra enviar seu 'aceita um date?' 🐧" />
+        <label style={lbl}>
+          <span style={lblTxt}>Seu WhatsApp (onde chega a resposta)</span>
+          <input
+            className="qinput"
+            value={d.whatsapp ?? ""}
+            onChange={(e) => setD((s: any) => ({ ...s, whatsapp: phoneMask(e.target.value) }))}
+            placeholder="(41) 99999-9999"
+            style={inp}
+          />
+        </label>
+        <label style={lbl}>
+          <span style={lblTxt}>Apelido carinhoso (opcional)</span>
+          <input className="qinput" value={d.nickname ?? ""} onChange={set("nickname")} placeholder="Ex: gata, amor, princesa" style={inp} />
+        </label>
+        <label style={lbl}>
+          <span style={lblTxt}>Link da página</span>
+          <div style={{ display: "flex", alignItems: "center", border: `1.5px solid ${P.cardBorder}`, borderRadius: 12, background: P.card }}>
+            <span style={{ padding: "12px 4px 12px 14px", color: P.sub, fontSize: 14 }}>seusite.com/</span>
+            <input
+              className="qinput"
+              value={d.slug}
+              onChange={(e) => setD((s: any) => ({ ...s, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") }))}
+              placeholder="aceita-um-date"
+              style={{ flex: 1, border: "none", outline: "none", padding: "12px 14px 12px 0", fontSize: 14, background: "transparent" }}
+            />
+          </div>
+        </label>
+        <Hint>A pessoa recebe o convite, aceita, escolhe data/comida/vibe — e a resposta cai direto no seu WhatsApp. 💌</Hint>
+      </>
+    );
+  }
+
   return <FinalStep d={d} setD={setD} saving={saving} setSaving={setSaving} error={error} setError={setError} onBack={onBack} />;
 }
 
@@ -506,6 +583,20 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
     setError("");
     setSaving(true);
     try {
+      if (d.style === "date") {
+        await setDoc(doc(db, "pages", d.slug), {
+          ...d,
+          plan: "date",
+          astral: false,
+          qrStyle: "simples",
+          qrPaid: false,
+          status: "pendente",
+          createdAt: Date.now(),
+          paidAt: null,
+        });
+        window.location.href = `${KIWIFY_CHECKOUT["date"]}?s=${encodeURIComponent(d.slug)}`;
+        return;
+      }
       await setDoc(doc(db, "pages", d.slug), {
         ...d,
         plan,
@@ -554,7 +645,29 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
       </>
     );
 
-  // FASE 1 — planos + addons
+  // FASE 1 — planos + addons (ou confirmação simples, se for o estilo Date)
+  if (d.style === "date")
+    return (
+      <>
+        <div style={{ textAlign: "center", marginBottom: 6 }}>
+          <span style={{ fontSize: 40 }}>🐧💙</span>
+        </div>
+        <h2 style={{ ...h2, textAlign: "center" }}>Seu convite está pronto!</h2>
+        <p style={{ ...subTxt, textAlign: "center" }}>
+          Um "aceita um date?" interativo, com resposta direto no seu WhatsApp.
+        </p>
+        <div style={{ padding: "16px 18px", borderRadius: 14, background: P.pinkSoft, border: `1px solid ${P.cardBorder}`, marginTop: 18, textAlign: "center" }}>
+          <div style={{ fontSize: 13, color: P.sub }}>Total</div>
+          <div style={{ fontSize: 32, fontWeight: 700, color: P.ink, fontFamily: "'Playfair Display', Georgia, serif" }}>{fmtBRL(PRICES.date)}</div>
+        </div>
+        {error && <p style={{ color: "#c0392b", fontSize: 13, textAlign: "center", marginTop: 10 }}>{error}</p>}
+        {bigBtn(saving ? "Salvando..." : "Ir para o pagamento", finish, saving)}
+        <button onClick={() => setPhase(0)} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", color: P.sub, fontSize: 14, cursor: "pointer", marginTop: 12 }}>
+          <ArrowLeft size={15} /> Voltar
+        </button>
+      </>
+    );
+
   return (
     <>
       <h2 style={{ ...h2, textAlign: "center" }}>

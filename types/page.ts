@@ -14,6 +14,7 @@ export interface CoupleMoment {
 
 export interface CouplePageDoc {
   slug: string;
+  style: "classica" | "date"; // qual produto/template esta página usa
   title: string;
   startDate: string; // yyyy-mm-dd
   message: string;
@@ -22,6 +23,10 @@ export interface CouplePageDoc {
   moments: CoupleMoment[];
   theme: string; // id do tema (branco-rosa, rosa, oceano, ...)
 
+  // usados só quando style === "date"
+  whatsapp?: string; // número de quem está convidando (onde chega a resposta)
+  nickname?: string; // apelido carinhoso usado no convite
+
   // dados de contato do comprador (não exibidos na página pública)
   buyerName: string;
   buyerEmail: string;
@@ -29,8 +34,8 @@ export interface CouplePageDoc {
 
   // controle de acesso / pagamento
   status: PageStatus;
-  plan: "1dia" | "eterno" | null;
-  astral: boolean; // addon do mapa estelar (liberado só pelo webhook)
+  plan: "1dia" | "eterno" | "date" | null;
+  astral: boolean; // addon do mapa estelar (liberado só pelo webhook, só pra "classica")
 
   // QR Code personalizado: "qrStyle" é só a escolha estética (cosmética, sem
   // custo diferente entre os dois designs pagos), guardada já no rascunho.
@@ -48,6 +53,7 @@ export const emptyCouplePageDoc = (): Omit<
   CouplePageDoc,
   "slug" | "createdAt" | "status" | "plan" | "paidAt" | "qrPaid"
 > => ({
+  style: "classica",
   title: "",
   startDate: "",
   message: "",
@@ -55,6 +61,8 @@ export const emptyCouplePageDoc = (): Omit<
   photos: [],
   moments: [],
   theme: "branco-rosa",
+  whatsapp: "",
+  nickname: "",
   buyerName: "",
   buyerEmail: "",
   buyerPhone: "",

@@ -8,6 +8,7 @@ import type { Metadata } from "next";
 import { getAdminDb } from "@/lib/firebase-admin";
 import type { CouplePageDoc } from "@/types/page";
 import CouplePageContent from "@/components/CouplePageContent";
+import DatePage from "@/components/DatePage";
 
 // Força renderização dinâmica: esta página lê dados que mudam (status de
 // pagamento), então nunca deve ser cacheada estaticamente pelo Next.js.
@@ -76,6 +77,14 @@ export default async function CouplePage({
             Assim que o pagamento for confirmado, ela é liberada automaticamente.
           </p>
         </div>
+      </div>
+    );
+  }
+
+  if (page.style === "date") {
+    return (
+      <div style={{ minHeight: "100vh" }}>
+        <DatePage whatsapp={page.whatsapp} nickname={page.nickname} big />
       </div>
     );
   }
