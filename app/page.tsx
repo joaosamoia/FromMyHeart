@@ -36,6 +36,13 @@ export default function Home() {
       >
         Criar minha página →
       </Link>
+
+      <p style={{ color: "#a493ad", fontSize: 13.5, marginTop: 28 }}>
+        Quer só chamar alguém pra sair?{" "}
+        <Link href="/date" style={{ color: "#ec4b93", fontWeight: 600 }}>
+          Faça um convite de date 🐧
+        </Link>
+      </p>
     </div>
   );
 }
