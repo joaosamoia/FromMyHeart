@@ -8,7 +8,8 @@
 // redireciona pro checkout certo da Kiwify (8 combinações de plano × addons)
 // → o webhook confirma o pagamento e libera a página.
 
-import { useState, useRef } from "react";
+import { useState, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { doc, setDoc } from "firebase/firestore";
 import { ref as sRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
@@ -34,7 +35,7 @@ const KIWIFY_CHECKOUT: Record<string, string> = {
   date: "https://pay.kiwify.com.br/1tedzUy",
 };
 
-const PRICES = { "1dia": 24.9, eterno: 39.9, astral: 10, qr: 4.9, date: 9.9 };
+const PRICES = { "1dia": 24.9, eterno: 39.9, astral: 10, qr: 4.9, date: 19.9 };
 const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const P = {
@@ -59,13 +60,31 @@ const SUGGESTIONS = [
   { cat: "MPB & NACIONAIS", songs: ["Trem-Bala - Ana Vilela", "Velha Infância - Tribalistas", "Sozinho - Caetano Veloso"] },
 ];
 
+// useSearchParams exige um limite de Suspense no App Router — por isso o
+// componente real fica separado, e o export default só o envolve.
 export default function CriarPage() {
-  const [step, setStep] = useState(0);
+  return (
+    <Suspense fallback={<div style={{ minHeight: "100vh", background: P.bg }} />}>
+      <CriarInner />
+    </Suspense>
+  );
+}
+
+function CriarInner() {
+  // Quem chega pela landing do Date (/date) vem com ?estilo=date — já entra no
+  // fluxo certo, sem passar pela tela de escolha de estilo.
+  const veioDaLandingDate = useSearchParams().get("estilo") === "date";
+
+  const [step, setStep] = useState(veioDaLandingDate ? 1 : 0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [immersive, setImmersive] = useState(false);
 
-  const [d, setD] = useState({ ...emptyCouplePageDoc(), slug: "" });
+  const [d, setD] = useState({
+    ...emptyCouplePageDoc(),
+    slug: "",
+    ...(veioDaLandingDate ? { style: "date" as const } : {}),
+  });
   const set = (k: keyof typeof d) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setD((s) => ({ ...s, [k]: e.target.value }));
 
@@ -193,7 +212,7 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
         <div style={{ display: "grid", gap: 12 }}>
           {[
             { id: "classica", Icon: Heart, name: "Clássica", desc: "Contador, fotos, timeline e mensagem", price: "a partir de R$ 24,90" },
-            { id: "date", Icon: LayoutTemplate, name: "Date", desc: "Convite interativo: \"Aceita um date?\" 🐧💙", price: "R$ 9,90" },
+            { id: "date", Icon: LayoutTemplate, name: "Date", desc: "Convite interativo: \"Aceita um date?\" 🐧💙", price: "R$ 19,90" },
           ].map((s) => {
             const active = d.style === s.id;
             return (
