@@ -34,7 +34,7 @@ const KIWIFY_CHECKOUT: Record<string, string> = {
   date: "https://pay.kiwify.com.br/1tedzUy",
 };
 
-const PRICES = { "1dia": 24.9, eterno: 39.9, astral: 10, qr: 4.9, date: 9.9 };
+const PRICES = { "1dia": 24.9, eterno: 39.9, astral: 10, qr: 4.9, date: 19.9 };
 const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const P = {
@@ -193,7 +193,7 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
         <div style={{ display: "grid", gap: 12 }}>
           {[
             { id: "classica", Icon: Heart, name: "Clássica", desc: "Contador, fotos, timeline e mensagem", price: "a partir de R$ 24,90" },
-            { id: "date", Icon: LayoutTemplate, name: "Date", desc: "Convite interativo: \"Aceita um date?\" 🐧💙", price: "R$ 9,90" },
+            { id: "date", Icon: LayoutTemplate, name: "Date", desc: "Convite interativo: \"Aceita um date?\" 🐧💙", price: "R$ 19,90" },
           ].map((s) => {
             const active = d.style === s.id;
             return (
