@@ -12,6 +12,10 @@ type Tokens = {
   titleSpacing: number; titleShadow: string; optionCols: number; colorScheme: "dark" | "light";
   emojiHero: string; emojiSim: string; emojiFim: string; confete: string[]; coracao: string;
   heroImg?: string; simImg?: string; sadImg?: string;
+  // true = as imagens são prints (têm fundo sólido). O modo de mesclagem
+  // "multiply" some com fundos claros sobre o laranja. Depois de recortar o
+  // fundo de verdade (remove.bg), troque para false.
+  imgComFundo?: boolean;
 };
 
 export const DATE_TEMPLATES: Record<DateTemplateId, Tokens> = {
@@ -29,6 +33,7 @@ export const DATE_TEMPLATES: Record<DateTemplateId, Tokens> = {
     emojiHero: "🐧", emojiSim: "🥰", emojiFim: "🐧",
     confete: ["💙", "🖤", "🤎", "❤️", "💜"], coracao: "💙",
     heroImg: "/date/penguin-flower.png", simImg: "/date/flirty-rose.png", sadImg: "/date/sad-please.png",
+    imgComFundo: true,
   },
   docinho: {
     nome: "Docinho", descricao: "Pastel claro, ursinho e clima fofo",
@@ -66,8 +71,8 @@ export default function DatePage({
     size: 16 + ((i * 5) % 14), e: T.confete[i % T.confete.length],
   }));
 
-  const foods = [["🍔", "Hambúrguer"], ["🍣", "Sushi"], ["🍝", "Massas"], ["🌮", "Tacos"], ["🍕", "Pizza"], ["🍦", "Sorvete"]];
-  const vibes = [["⛳", "Golfe"], ["🚶", "Caminhada"], ["🎬", "Cinema"], ["💃", "Dança"], ["🎢", "Parque"], ["🏖️", "Praia"]];
+  const foods = [["🍔","Hambúrguer"],["🍣","Sushi"],["🍝","Massas"],["🌮","Tacos"],["🍕","Pizza"],["🍦","Sorvete"]];
+  const vibes = [["⛳","Golfe"],["🚶","Caminhada"],["🎬","Cinema"],["💃","Dança"],["🎢","Parque"],["🏖️","Praia"]];
   const meses = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
   const fmt = (v: string) => {
     if (!v) return "—";
@@ -111,25 +116,25 @@ export default function DatePage({
     boxShadow: sel ? `0 0 0 3px ${T.accentSoft}` : "none",
   });
 
-  // Hero (abertura e final): imagem própria se o template tiver (sunset tem o
-  // pinguim), senão cai no emoji — assim o "docinho" continua funcionando
-  // sem precisar de imagem nenhuma.
-  const HeroArt = () =>
-    T.heroImg ? (
+  // Personagem grande no topo. Se o template não tiver imagem, cai no emoji —
+  // por isso o "docinho" segue funcionando sem precisar de arquivo nenhum.
+  const Personagem = ({ src, emoji, tamanho }: { src?: string; emoji: string; tamanho: number }) =>
+    src ? (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={T.heroImg} alt="" width={90 * s} height={90 * s}
-        style={{ animation: "bobD 3s ease-in-out infinite", filter: "drop-shadow(0 10px 14px rgba(0,0,0,.3))", objectFit: "contain" }} />
+      <img
+        src={src}
+        alt=""
+        width={tamanho * s}
+        height={tamanho * s}
+        style={{
+          objectFit: "contain",
+          animation: "bobD 3s ease-in-out infinite",
+          filter: "drop-shadow(0 10px 16px rgba(0,0,0,.35))",
+          ...(T.imgComFundo ? { mixBlendMode: "multiply" as const } : {}),
+        }}
+      />
     ) : (
-      <div style={{ fontSize: 70 * s, lineHeight: 1, animation: "bobD 3s ease-in-out infinite" }}>{T.emojiHero}</div>
-    );
-
-  const SimArt = () =>
-    T.simImg ? (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={T.simImg} alt="" width={80 * s} height={80 * s}
-        style={{ animation: "bobD 3s ease-in-out infinite", filter: "drop-shadow(0 10px 14px rgba(0,0,0,.3))", objectFit: "contain" }} />
-    ) : (
-      <div style={{ fontSize: 70 * s, lineHeight: 1, animation: "bobD 3s ease-in-out infinite" }}>{T.emojiSim}</div>
+      <div style={{ fontSize: tamanho * s, lineHeight: 1, animation: "bobD 3s ease-in-out infinite" }}>{emoji}</div>
     );
 
   return (
@@ -155,22 +160,22 @@ export default function DatePage({
       </div>
 
       <div key={screen} style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 430,
-        display: "flex", flexDirection: "column", alignItems: "center", gap: 16 * s,
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 14 * s,
         textAlign: "center", animation: "popD .45s cubic-bezier(.2,.8,.2,1.05)" }}>
 
         {screen === "s1" && (
           <>
-            <HeroArt />
+            <Personagem src={T.heroImg} emoji={T.emojiHero} tamanho={175} />
             <div style={card}>
               <h1 style={h1}>Você aceitaria ir a<br />um date comigo?</h1>
-              <SimNao T={T} big={big} onSim={() => setScreen("s2")} />
+              <SimNao T={T} big={big} s={s} onSim={() => setScreen("s2")} />
             </div>
           </>
         )}
 
         {screen === "s2" && (
           <>
-            <SimArt />
+            <Personagem src={T.simImg} emoji={T.emojiSim} tamanho={160} />
             <div style={card}>
               <h1 style={h1}>Você disse sim? 🥺</h1>
               <p style={sub}>Eu já sabia que não tinha como dizer não kkkk</p>
@@ -233,7 +238,7 @@ export default function DatePage({
 
         {screen === "s6" && (
           <>
-            <HeroArt />
+            <Personagem src={T.heroImg} emoji={T.emojiFim} tamanho={175} />
             <div style={card}>
               <h1 style={h1}>Tô contigo, {nickShow}. {T.coracao}</h1>
               <p style={sub}>Fica pronta que eu vou te buscar 🚗</p>
@@ -254,10 +259,7 @@ export default function DatePage({
   );
 }
 
-// A brincadeira do sim/não — o "NÃO" foge do cursor/dedo. Depois de 3
-// tentativas ele desiste, mostrando a carinha triste (se o template tiver
-// uma) em vez de deixar a piada sem desfecho.
-export function SimNao({ T, big = false, onSim }: { T: Tokens; big?: boolean; onSim: () => void }) {
+export function SimNao({ T, big = false, s = 1, onSim }: { T: Tokens; big?: boolean; s?: number; onSim: () => void }) {
   const [dodges, setDodges] = useState(0);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const zone = useRef<HTMLDivElement>(null);
@@ -281,15 +283,17 @@ export function SimNao({ T, big = false, onSim }: { T: Tokens; big?: boolean; on
   return (
     <>
       {desistiu && (
-        T.sadImg ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 12 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={T.sadImg} alt="" width={44} height={44} style={{ objectFit: "contain" }} />
-            <p style={{ fontSize: big ? 15 : 13, color: T.muted, fontWeight: 800, margin: 0 }}>POR FAVOR 🥺</p>
-          </div>
-        ) : (
-          <p style={{ fontSize: big ? 15 : 13, color: T.muted, fontWeight: 800, margin: "10px 0 0" }}>POR FAVOR 🥺👉👈</p>
-        )
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, marginTop: 14 }}>
+          {T.sadImg && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={T.sadImg} alt="" width={110 * s} height={110 * s}
+              style={{ objectFit: "contain", filter: "drop-shadow(0 8px 12px rgba(0,0,0,.3))",
+                ...(T.imgComFundo ? { mixBlendMode: "multiply" as const } : {}) }} />
+          )}
+          <p style={{ fontSize: big ? 15 : 13, color: T.muted, fontWeight: 800, margin: 0 }}>
+            POR FAVOR {T.sadImg ? "" : "🥺👉👈"}
+          </p>
+        </div>
       )}
       <div ref={zone} style={{ position: "relative", display: "flex", gap: 12, marginTop: 16, alignItems: "center", minHeight: big ? 56 : 46 }}>
         <button style={{ ...base, color: T.btnText, background: T.btnBg, boxShadow: T.btnShadow }} onClick={onSim}>SIM</button>
