@@ -10,7 +10,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import DatePage from "@/components/DatePage";
+import DatePage, { DATE_TEMPLATES, type DateTemplateId } from "@/components/DatePage";
 
 const C = {
   ember: "#F94C12",
@@ -260,14 +260,42 @@ function ComoFunciona() {
 
 // ───────── DEMO AO VIVO ─────────
 function DemoAoVivo() {
+  const [tpl, setTpl] = useState<DateTemplateId>("sunset");
+
   return (
     <section style={{ padding: "20px 20px 64px", textAlign: "center" }}>
       <h2 className="dl-sec" style={{ fontFamily: "'Anton', Impact, sans-serif", lineHeight: 1, margin: "0 0 10px", letterSpacing: -0.3 }}>
         EXPERIMENTA AÍ
       </h2>
-      <p style={{ fontSize: 14.5, color: C.peach, margin: "0 0 30px" }}>
-        É exatamente isso que a pessoa vai ver.
+      <p style={{ fontSize: 14.5, color: C.peach, margin: "0 0 22px" }}>
+        Dois visuais pra escolher. É isso que a pessoa vai ver.
       </p>
+
+      <div style={{ display: "inline-flex", gap: 8, marginBottom: 26, padding: 5, borderRadius: 99, background: "rgba(0,0,0,.3)" }}>
+        {(Object.keys(DATE_TEMPLATES) as DateTemplateId[]).map((id) => {
+          const ativo = tpl === id;
+          return (
+            <button
+              key={id}
+              onClick={() => setTpl(id)}
+              style={{
+                padding: "10px 20px",
+                borderRadius: 99,
+                border: "none",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                fontWeight: 700,
+                fontSize: 14,
+                color: ativo ? C.scorch : C.peach,
+                background: ativo ? C.cream : "transparent",
+                transition: "all .2s",
+              }}
+            >
+              {DATE_TEMPLATES[id].emojiHero} {DATE_TEMPLATES[id].nome}
+            </button>
+          );
+        })}
+      </div>
 
       <div
         style={{
@@ -295,7 +323,7 @@ function DemoAoVivo() {
               zIndex: 3,
             }}
           />
-          <DatePage nickname="gata" />
+          <DatePage key={tpl} nickname="gata" template={tpl} />
         </div>
       </div>
     </section>
