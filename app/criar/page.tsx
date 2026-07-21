@@ -20,7 +20,7 @@ import {
 import { db, storage } from "@/lib/firebase";
 import { emptyCouplePageDoc, type CoupleMoment } from "@/types/page";
 import CouplePageContent, { THEMES, getTheme, MOMENT_ICONS } from "@/components/CouplePageContent";
-import DatePage from "@/components/DatePage";
+import DatePage, { DATE_TEMPLATES } from "@/components/DatePage";
 
 // ⚠️ Troque pelos links reais dos seus produtos na Kiwify.
 const KIWIFY_CHECKOUT: Record<string, string> = {
@@ -185,7 +185,7 @@ function CriarInner() {
           <div style={{ position: "relative", borderRadius: 34, overflow: "hidden", height: 540 }}>
             <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 74, height: 20, background: "#0f0f12", borderRadius: 99, zIndex: 3 }} />
             <div className="scr" style={{ position: "absolute", inset: 0, overflowY: "auto" }}>
-              {d.style === "date" ? <DatePage whatsapp={d.whatsapp} nickname={d.nickname} /> : <CouplePageContent page={d} compact />}
+              {d.style === "date" ? <DatePage whatsapp={d.whatsapp} nickname={d.nickname} template={d.dateTemplate} /> : <CouplePageContent page={d} compact />}
             </div>
           </div>
         </div>
@@ -334,7 +334,43 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
     };
     return (
       <>
-        <Head title="Configure seu convite" sub="Só o essencial pra enviar seu 'aceita um date?' 🐧" />
+        <Head title="Configure seu convite" sub="Só o essencial pra enviar seu 'aceita um date?'" />
+
+        <span style={lblTxt}>Escolha o visual do convite</span>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
+          {(Object.keys(DATE_TEMPLATES) as (keyof typeof DATE_TEMPLATES)[]).map((id) => {
+            const t = DATE_TEMPLATES[id];
+            const active = (d.dateTemplate ?? "sunset") === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setD((s: any) => ({ ...s, dateTemplate: id }))}
+                style={{
+                  position: "relative",
+                  padding: "16px 12px",
+                  borderRadius: 16,
+                  cursor: "pointer",
+                  textAlign: "center",
+                  background: t.bg,
+                  color: t.text,
+                  border: `2px solid ${active ? P.pinkBorder : "transparent"}`,
+                  boxShadow: active ? `0 0 0 3px ${P.pinkSoft}` : "0 2px 8px rgba(120,40,90,0.12)",
+                  transition: "all .18s",
+                }}
+              >
+                {active && (
+                  <span style={{ position: "absolute", top: 7, right: 7, width: 20, height: 20, borderRadius: "50%", background: P.pink, display: "grid", placeItems: "center" }}>
+                    <Check size={13} color="#fff" strokeWidth={3} />
+                  </span>
+                )}
+                <div style={{ fontSize: 30, lineHeight: 1 }}>{t.emojiHero}</div>
+                <div style={{ fontSize: 13, fontWeight: 800, marginTop: 8 }}>{t.nome}</div>
+                <div style={{ fontSize: 10.5, opacity: 0.85, marginTop: 2, lineHeight: 1.3 }}>{t.descricao}</div>
+              </button>
+            );
+          })}
+        </div>
+
         <label style={lbl}>
           <span style={lblTxt}>Seu WhatsApp (onde chega a resposta)</span>
           <input
