@@ -26,7 +26,7 @@ export interface CouplePageDoc {
   // usados só quando style === "date"
   whatsapp?: string; // número de quem está convidando (onde chega a resposta)
   nickname?: string; // apelido carinhoso usado no convite
-  dateTemplate?: "sunset" | "docinho"; // qual dos dois layouts do convite
+  dateTemplate?: "sunset" | "ultravioleta"; // qual dos dois layouts do convite
 
   // dados de contato do comprador (não exibidos na página pública)
   buyerName: string;
