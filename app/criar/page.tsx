@@ -36,6 +36,9 @@ const KIWIFY_CHECKOUT: Record<string, string> = {
 };
 
 const PRICES = { "1dia": 24.9, eterno: 39.9, astral: 10, qr: 4.9, date: 19.9 };
+// Preço "de" do Date. Pra isso não ser propaganda enganosa, cadastre R$39,90
+// como preço cheio na Kiwify e R$19,90 como promocional — aí a âncora é real.
+const PRECO_CHEIO_DATE = 39.9;
 const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const P = {
@@ -114,6 +117,19 @@ function CriarInner() {
         .drop:hover { border-color:${P.pinkBorder} !important; background:${P.pinkSoft} !important; }
         .scr::-webkit-scrollbar{ width:0; }
         @media (max-width: 900px) { .preview-col { display:none; } }
+        /* No celular a coluna de preview não cabe, mas o preview é justamente
+           o que vende — então em vez de esconder e pronto, damos um botão
+           flutuante que abre a versão em tela cheia. */
+        .preview-mobile { display: none; }
+        @media (max-width: 900px) {
+          .preview-mobile {
+            display: inline-flex;
+            position: fixed;
+            right: 16px;
+            bottom: 92px;
+            z-index: 50;
+          }
+        }
       `}</style>
 
       {/* ───────── ESQUERDA: QUIZ ───────── */}
@@ -199,6 +215,28 @@ function CriarInner() {
       </div>
 
       {immersive && <ImmersivePreview d={d} onClose={() => setImmersive(false)} />}
+
+      <button
+        className="preview-mobile"
+        onClick={() => setImmersive(true)}
+        aria-label="Ver preview em tela cheia"
+        style={{
+          alignItems: "center",
+          gap: 8,
+          padding: "12px 18px",
+          borderRadius: 99,
+          border: "none",
+          background: "linear-gradient(135deg,#f871a8,#ec4b93)",
+          color: "#fff",
+          fontSize: 13.5,
+          fontWeight: 700,
+          fontFamily: "inherit",
+          cursor: "pointer",
+          boxShadow: "0 10px 24px -8px rgba(236,75,147,.6)",
+        }}
+      >
+        <Eye size={16} /> Ver preview
+      </button>
     </div>
   );
 }
@@ -767,6 +805,12 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
           }}
         >
           <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.6, color: TD.muted }}>PAGAMENTO ÚNICO</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, marginTop: 6 }}>
+            <span style={{ fontSize: 15, color: TD.muted, textDecoration: "line-through" }}>{fmtBRL(PRECO_CHEIO_DATE)}</span>
+            <span style={{ fontSize: 11, fontWeight: 800, color: "#fff", background: "rgba(0,0,0,.28)", padding: "3px 9px", borderRadius: 99 }}>
+              -50%
+            </span>
+          </div>
           <div
             style={{
               fontFamily: "'Playfair Display', Georgia, serif",
