@@ -15,12 +15,12 @@ import { ref as sRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
   Heart, ArrowRight, ArrowLeft, Eye, ChevronDown, ChevronUp, Rocket, Sparkles, X,
   Palette, Check, Calendar, Upload, Image as ImageIcon, Wand2, Search, Music,
-  Trash2, Plus, Crown, ShieldCheck, Zap, Star, EyeOff, LayoutTemplate, MessageCircle,
+  Trash2, Plus, Crown, ShieldCheck, Zap, Star, EyeOff, LayoutTemplate, MessageCircle, Mail, Send,
 } from "lucide-react";
 import { db, storage } from "@/lib/firebase";
 import { emptyCouplePageDoc, type CoupleMoment } from "@/types/page";
 import CouplePageContent, { THEMES, getTheme, MOMENT_ICONS } from "@/components/CouplePageContent";
-import DatePage, { DATE_TEMPLATES } from "@/components/DatePage";
+import DatePage, { DATE_TEMPLATES, type DateTemplateId } from "@/components/DatePage";
 
 // ⚠️ Troque pelos links reais dos seus produtos na Kiwify.
 const KIWIFY_CHECKOUT: Record<string, string> = {
@@ -701,27 +701,121 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
     );
 
   // FASE 1 — planos + addons (ou confirmação simples, se for o estilo Date)
-  if (d.style === "date")
+  if (d.style === "date") {
+    // A confirmação usa o sotaque do template que a pessoa escolheu (laranja ou
+    // roxo) — assim a tela de pagamento parece a continuação do produto que ela
+    // acabou de montar, e não uma tela genérica.
+    const TD = DATE_TEMPLATES[(d.dateTemplate as DateTemplateId) ?? "sunset"] ?? DATE_TEMPLATES.sunset;
+    const entrega = [
+      { Icon: Zap, t: "Liberação na hora", d: "Assim que o pagamento cair, seu convite fica no ar." },
+      { Icon: Mail, t: "Link no seu e-mail", d: "Você recebe o link pronto pra copiar e guardar." },
+      { Icon: Send, t: "É só mandar", d: "Cole no WhatsApp ou Instagram e espere a resposta." },
+    ];
+
     return (
       <>
-        <div style={{ textAlign: "center", marginBottom: 6 }}>
-          <span style={{ fontSize: 40 }}>🐧💙</span>
+        <div style={{ textAlign: "center" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/date/penguin-flower.png"
+            alt=""
+            width={120}
+            height={120}
+            style={{ objectFit: "contain", display: "block", margin: "0 auto" }}
+          />
+          <h2 style={{ ...h2, textAlign: "center", marginTop: 6 }}>Seu convite está pronto!</h2>
+          <p style={{ ...subTxt, textAlign: "center" }}>Falta só liberar pra mandar pra pessoa.</p>
         </div>
-        <h2 style={{ ...h2, textAlign: "center" }}>Seu convite está pronto!</h2>
-        <p style={{ ...subTxt, textAlign: "center" }}>
-          Um "aceita um date?" interativo, com resposta direto no seu WhatsApp.
-        </p>
-        <div style={{ padding: "16px 18px", borderRadius: 14, background: P.pinkSoft, border: `1px solid ${P.cardBorder}`, marginTop: 18, textAlign: "center" }}>
-          <div style={{ fontSize: 13, color: P.sub }}>Total</div>
-          <div style={{ fontSize: 32, fontWeight: 700, color: P.ink, fontFamily: "'Playfair Display', Georgia, serif" }}>{fmtBRL(PRICES.date)}</div>
+
+        {/* como recebe */}
+        <div style={{ display: "grid", gap: 12, marginTop: 22 }}>
+          {entrega.map((e) => (
+            <div key={e.t} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+              <span
+                style={{
+                  flexShrink: 0,
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  background: TD.accentSoft,
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                <e.Icon size={16} color={TD.accent} />
+              </span>
+              <span>
+                <div style={{ fontSize: 14, fontWeight: 700, color: P.ink }}>{e.t}</div>
+                <div style={{ fontSize: 12.5, color: P.sub, lineHeight: 1.45, marginTop: 1 }}>{e.d}</div>
+              </span>
+            </div>
+          ))}
         </div>
+
+        {/* preço */}
+        <div
+          style={{
+            marginTop: 24,
+            padding: "22px 20px 20px",
+            borderRadius: 20,
+            textAlign: "center",
+            background: TD.bg,
+            border: `1px solid ${TD.cardBorder}`,
+            boxShadow: `0 14px 32px -16px ${TD.accent}`,
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.6, color: TD.muted }}>PAGAMENTO ÚNICO</div>
+          <div
+            style={{
+              fontFamily: "'Playfair Display', Georgia, serif",
+              fontSize: 46,
+              fontWeight: 700,
+              color: TD.text,
+              lineHeight: 1.05,
+              margin: "2px 0 4px",
+              textShadow: "0 2px 0 rgba(0,0,0,.18)",
+            }}
+          >
+            {fmtBRL(PRICES.date)}
+          </div>
+          <div style={{ fontSize: 12.5, color: TD.muted }}>sem mensalidade · o link é seu</div>
+
+          <div style={{ height: 1, background: TD.cardBorder, margin: "16px 0 14px" }} />
+
+          <div style={{ display: "grid", gap: 8, textAlign: "left" }}>
+            {["Convite interativo completo", "Resposta direto no seu WhatsApp", "Funciona em qualquer celular"].map((f) => (
+              <div key={f} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, color: TD.text }}>
+                <Check size={14} color={TD.accent} strokeWidth={3} />
+                {f}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 14, fontSize: 11.5, color: P.sub }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <ShieldCheck size={14} color="#2f8f78" /> Pagamento seguro
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <Zap size={14} color="#e0a53a" /> Liberação instantânea
+          </span>
+        </div>
+
         {error && <p style={{ color: "#c0392b", fontSize: 13, textAlign: "center", marginTop: 10 }}>{error}</p>}
-        {bigBtn(saving ? "Salvando..." : "Ir para o pagamento", finish, saving)}
-        <button onClick={() => setPhase(0)} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", color: P.sub, fontSize: 14, cursor: "pointer", marginTop: 12 }}>
-          <ArrowLeft size={15} /> Voltar
-        </button>
+        {bigBtn(saving ? "Salvando..." : "Quero meu convite", finish, saving)}
+        <div style={{ textAlign: "center" }}>
+          <button
+            onClick={() => setPhase(0)}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", color: P.sub, fontSize: 14, cursor: "pointer", marginTop: 14 }}
+          >
+            <ArrowLeft size={15} /> Voltar
+          </button>
+        </div>
       </>
     );
+  }
 
   return (
     <>
