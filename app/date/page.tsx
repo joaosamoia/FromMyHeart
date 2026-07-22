@@ -345,10 +345,16 @@ function Preco() {
         <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 2, color: C.peach, marginBottom: 10 }}>
           PAGAMENTO ÚNICO
         </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 2 }}>
+          <span style={{ fontSize: 19, color: C.peach, textDecoration: "line-through" }}>R$ 39,90</span>
+          <span style={{ fontSize: 12, fontWeight: 800, color: C.scorch, background: C.cream, padding: "4px 11px", borderRadius: 99 }}>
+            -50%
+          </span>
+        </div>
         <div
           style={{
             fontFamily: "'Anton', Impact, sans-serif",
-            fontSize: 68,
+            fontSize: "clamp(52px, 15vw, 68px)",
             lineHeight: 1,
             color: C.ember,
             marginBottom: 6,
