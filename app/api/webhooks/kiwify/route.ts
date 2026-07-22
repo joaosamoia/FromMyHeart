@@ -183,9 +183,10 @@ export async function POST(req: NextRequest) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
     await sendPageReadyEmail({
       to: finalEmail,
-      buyerName: existingData?.buyerName || "amor",
-      pageTitle: existingData?.title || "Sua página",
+      buyerName: existingData?.buyerName || "",
+      pageTitle: existingData?.title || "",
       pageUrl: `${siteUrl}/${slug}`,
+      produto: existingData?.style === "date" ? "date" : "classica",
     });
   } else {
     console.warn(`Kiwify webhook: sem e-mail disponível pra "${slug}" — confirmação não enviada.`);
