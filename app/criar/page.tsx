@@ -363,7 +363,7 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
                     <Check size={13} color="#fff" strokeWidth={3} />
                   </span>
                 )}
-                <div style={{ fontSize: 30, lineHeight: 1 }}>{t.emojiHero}</div>
+                <div style={{ fontSize: 30, lineHeight: 1 }}>{t.emojiFinal}</div>
                 <div style={{ fontSize: 13, fontWeight: 800, marginTop: 8 }}>{t.nome}</div>
                 <div style={{ fontSize: 10.5, opacity: 0.85, marginTop: 2, lineHeight: 1.3 }}>{t.descricao}</div>
               </button>
