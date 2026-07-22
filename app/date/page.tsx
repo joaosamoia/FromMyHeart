@@ -291,7 +291,7 @@ function DemoAoVivo() {
                 transition: "all .2s",
               }}
             >
-              {DATE_TEMPLATES[id].emojiHero} {DATE_TEMPLATES[id].nome}
+              {DATE_TEMPLATES[id].emojiFinal} {DATE_TEMPLATES[id].nome}
             </button>
           );
         })}
