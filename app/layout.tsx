@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Site do Amor",
-  description: "Crie uma página personalizada e surpreenda quem você ama.",
+  title: "FromMyHeart",
+  description: "Páginas personalizadas feitas com amor. Surpreenda quem você ama.",
 };
 
 export default function RootLayout({
