@@ -6,17 +6,13 @@
 //
 // O texto muda conforme o produto: quem comprou um convite de date não deveria
 // receber um e-mail falando "sua página de amor está pronta".
-
 import { Resend } from "resend";
-
 function getResend() {
   const key = process.env.RESEND_API_KEY;
   if (!key) return null;
   return new Resend(key);
 }
-
 type Produto = "classica" | "date";
-
 const TEXTOS: Record<Produto, { assunto: string; emoji: string; titulo: string; linha: string; botao: string; accent: string; bg: string }> = {
   classica: {
     assunto: "Sua página de amor está pronta! 💕",
@@ -28,16 +24,15 @@ const TEXTOS: Record<Produto, { assunto: string; emoji: string; titulo: string; 
     bg: "#FEEBE4",
   },
   date: {
-    assunto: "Seu convite está pronto! 🐧",
-    emoji: "🐧",
-    titulo: "Bora nesse date",
+    assunto: "Seu convite está pronto!",
+    emoji: "",
+    titulo: "Pronto",
     linha: "está no ar. Agora é só mandar pra pessoa e esperar a resposta.",
     botao: "Ver meu convite",
     accent: "#F94C12",
     bg: "#FFF1E9",
   },
 };
-
 export async function sendPageReadyEmail(params: {
   to: string;
   buyerName: string;
@@ -50,12 +45,10 @@ export async function sendPageReadyEmail(params: {
     console.warn("RESEND_API_KEY não configurada — e-mail de confirmação NÃO enviado.");
     return;
   }
-
   const { to, buyerName, pageTitle, pageUrl, produto = "classica" } = params;
   const T = TEXTOS[produto] ?? TEXTOS.classica;
   const nome = buyerName?.trim() ? buyerName.trim().split(" ")[0] : "";
   const titulo = pageTitle?.trim() ? `“${pageTitle.trim()}”` : produto === "date" ? "Seu convite" : "Sua página";
-
   try {
     await resend.emails.send({
       // ⚠️ Enquanto o domínio próprio não estiver verificado no Resend, use
@@ -67,7 +60,7 @@ export async function sendPageReadyEmail(params: {
       subject: T.assunto,
       html: `
         <div style="font-family:Georgia,'Times New Roman',serif;max-width:480px;margin:0 auto;padding:34px 26px;background:${T.bg};border-radius:18px;">
-          <div style="text-align:center;font-size:40px;line-height:1;">${T.emoji}</div>
+          ${T.emoji ? `<div style="text-align:center;font-size:40px;line-height:1;">${T.emoji}</div>` : ""}
           <h1 style="text-align:center;color:#3A241F;font-size:23px;margin:16px 0 10px;">
             ${T.titulo}${nome ? `, ${nome}` : ""}!
           </h1>
