@@ -5,39 +5,44 @@
 // páginas personalizadas (que fica em "/"). Identidade própria: laranja quente,
 // coração azul, tom brincalhão — o oposto do rosa romântico da Clássica.
 //
+// Visual: o mesmo sistema da home/Retrospectiva (paleta Paixão, Bricolage
+// gigante, cores chapadas). O convite em si (DatePage) mantém o visual dele.
+//
 // A hero é o próprio convite jogável: quem chega tenta clicar no "NÃO" e ele
 // foge. Isso é o produto se demonstrando sozinho, sem precisar explicar.
 
 import { useState, useRef } from "react";
 import Link from "next/link";
 import DatePage, { DATE_TEMPLATES, type DateTemplateId } from "@/components/DatePage";
+import { BR, D_FONT, BRAND_CSS, Blobs, Logo, Marquee } from "@/components/brand";
 
 const C = {
-  ember: "#F94C12",
-  flare: "#FF7A3D",
-  scorch: "#B62F08",
-  ink: "#1C0A04",
-  cream: "#FFF4EE",
-  peach: "#FFD9C7",
-  blue: "#4D7CFF",
+  ember: BR.pink,
+  flare: BR.pinkHot,
+  scorch: BR.wine,
+  ink: BR.wine,
+  cream: BR.cream,
+  peach: BR.blush,
+  blue: BR.yellow,
 };
 
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap');`;
+const FONTS = BRAND_CSS;
 
 export default function DateLanding() {
   return (
-    <div style={{ background: C.ink, color: C.cream, fontFamily: "'DM Sans', system-ui, sans-serif", minHeight: "100vh" }}>
+    <div style={{ background: C.ink, color: C.cream, fontFamily: "Inter, system-ui, sans-serif", minHeight: "100vh" }}>
       <style>{FONTS}{`
         @keyframes floatUpD { 0%{transform:translateY(0) rotate(0);opacity:0} 12%{opacity:.85} 88%{opacity:.85} 100%{transform:translateY(-110vh) rotate(140deg);opacity:0} }
         @keyframes bobD { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
         @media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
         .dl-cta:hover { transform: translateY(-2px); }
         .dl-cta:focus-visible, .dl-no:focus-visible, .dl-sim:focus-visible { outline:3px solid ${C.blue}; outline-offset:3px; }
-        .dl-h1 { font-size: clamp(38px, 11vw, 78px); }
+        .dl-h1 { font-size: clamp(42px, 12vw, 80px); }
         .dl-sec { font-size: clamp(26px, 6vw, 40px); }
       `}</style>
 
       <Hero />
+      <Marquee items={["Ela responde brincando", "Cai no seu WhatsApp", "Link na hora", "Sem como dizer não"]} />
       <ComoFunciona />
       <DemoAoVivo />
       <Preco />
@@ -81,12 +86,13 @@ function Hero() {
     <section
       style={{
         position: "relative",
-        background: `radial-gradient(120% 110% at 50% 0%, ${C.flare} 0%, ${C.ember} 52%, ${C.scorch} 100%)`,
+        background: C.ember,
         padding: "28px 20px 64px",
         overflow: "hidden",
         textAlign: "center",
       }}
     >
+      <Blobs a={BR.orange} b={BR.plum} opacity={0.45} />
       <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
         {hearts.map((h, i) => (
           <span
@@ -106,8 +112,8 @@ function Hero() {
       </div>
 
       <div style={{ position: "relative", maxWidth: 560, margin: "0 auto" }}>
-        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 2, opacity: 0.85, marginBottom: 30 }}>
-          FROMMYHEART
+        <div style={{ marginBottom: 30 }}>
+          <Logo size={30} />
         </div>
 
         <div style={{ fontSize: 64, animation: "bobD 3s ease-in-out infinite", marginBottom: 14 }}>🐧</div>
@@ -115,15 +121,14 @@ function Hero() {
         <h1
           className="dl-h1"
           style={{
-            fontFamily: "'Anton', Impact, sans-serif",
+            fontFamily: D_FONT, fontWeight: 800,
             lineHeight: 0.92,
-            letterSpacing: -0.5,
+            letterSpacing: "-0.035em",
             margin: "0 0 14px",
-            textShadow: "0 3px 0 rgba(0,0,0,.28)",
           }}
         >
-          VOCÊ ACEITARIA IR
-          <br />A UM DATE COMIGO?
+          Você aceitaria ir
+          <br />a um <span style={{ color: C.blue }}>date</span> comigo?
         </h1>
 
         <p style={{ fontSize: 16, color: C.peach, fontWeight: 500, margin: "0 0 30px" }}>
@@ -160,9 +165,9 @@ function Hero() {
               fontWeight: 700,
               fontSize: 18,
               letterSpacing: 0.5,
-              color: "#fff",
-              background: `linear-gradient(180deg, #FF9354, ${C.ember})`,
-              boxShadow: "0 10px 24px rgba(0,0,0,.32)",
+              color: C.scorch,
+              background: C.blue,
+              boxShadow: `0 5px 0 ${BR.night}`,
             }}
           >
             SIM
@@ -220,8 +225,8 @@ function ComoFunciona() {
 
   return (
     <section style={{ padding: "64px 20px", maxWidth: 640, margin: "0 auto" }}>
-      <h2 className="dl-sec" style={{ fontFamily: "'Anton', Impact, sans-serif", lineHeight: 1, margin: "0 0 36px", letterSpacing: -0.3 }}>
-        COMO FUNCIONA
+      <h2 className="dl-sec" style={{ fontFamily: D_FONT, fontWeight: 800, lineHeight: 1, margin: "0 0 36px", letterSpacing: -0.3 }}>
+        Como funciona
       </h2>
 
       <div style={{ display: "grid", gap: 2 }}>
@@ -232,13 +237,13 @@ function ComoFunciona() {
               display: "flex",
               gap: 18,
               padding: "22px 0",
-              borderTop: i === 0 ? `1px solid rgba(255,120,60,.28)` : "none",
-              borderBottom: `1px solid rgba(255,120,60,.28)`,
+              borderTop: i === 0 ? `1px solid rgba(255,92,138,.3)` : "none",
+              borderBottom: `1px solid rgba(255,92,138,.3)`,
             }}
           >
             <span
               style={{
-                fontFamily: "'Anton', Impact, sans-serif",
+                fontFamily: D_FONT, fontWeight: 800,
                 fontSize: 30,
                 color: C.ember,
                 lineHeight: 1,
@@ -264,8 +269,8 @@ function DemoAoVivo() {
 
   return (
     <section style={{ padding: "20px 20px 64px", textAlign: "center" }}>
-      <h2 className="dl-sec" style={{ fontFamily: "'Anton', Impact, sans-serif", lineHeight: 1, margin: "0 0 10px", letterSpacing: -0.3 }}>
-        EXPERIMENTA AÍ
+      <h2 className="dl-sec" style={{ fontFamily: D_FONT, fontWeight: 800, lineHeight: 1, margin: "0 0 10px", letterSpacing: -0.3 }}>
+        Experimenta aí
       </h2>
       <p style={{ fontSize: 14.5, color: C.peach, margin: "0 0 22px" }}>
         Dois visuais pra escolher. É isso que a pessoa vai ver.
@@ -306,7 +311,7 @@ function DemoAoVivo() {
           padding: 10,
           background: "#0d0402",
           boxShadow: "0 30px 60px -20px rgba(0,0,0,.7)",
-          border: "1px solid rgba(255,120,60,.25)",
+          border: "1px solid rgba(255,92,138,.25)",
         }}
       >
         <div style={{ position: "relative", borderRadius: 34, overflow: "hidden", height: 540 }}>
@@ -337,8 +342,8 @@ function Preco() {
       style={{
         padding: "64px 20px 72px",
         textAlign: "center",
-        background: `linear-gradient(180deg, transparent, rgba(249,76,18,.14))`,
-        borderTop: "1px solid rgba(255,120,60,.2)",
+        background: `linear-gradient(180deg, transparent, rgba(232,51,109,.18))`,
+        borderTop: "1px solid rgba(255,92,138,.22)",
       }}
     >
       <div style={{ maxWidth: 460, margin: "0 auto" }}>
@@ -353,7 +358,7 @@ function Preco() {
         </div>
         <div
           style={{
-            fontFamily: "'Anton', Impact, sans-serif",
+            fontFamily: D_FONT, fontWeight: 800,
             fontSize: "clamp(52px, 15vw, 68px)",
             lineHeight: 1,
             color: C.ember,
@@ -406,13 +411,13 @@ function CTA({ texto, grande = false }: { texto: string; grande?: boolean }) {
         marginTop: grande ? 32 : 30,
         padding: grande ? "19px 44px" : "17px 38px",
         borderRadius: 44,
-        background: C.cream,
+        background: C.blue,
         color: C.scorch,
-        fontWeight: 700,
-        fontSize: grande ? 18 : 16.5,
-        letterSpacing: 0.3,
+        fontFamily: D_FONT,
+        fontWeight: 800,
+        fontSize: grande ? 19 : 17,
         textDecoration: "none",
-        boxShadow: "0 12px 28px rgba(0,0,0,.32)",
+        boxShadow: `0 6px 0 ${BR.night}`,
         transition: "transform .18s ease",
       }}
     >
@@ -429,7 +434,7 @@ function Rodape() {
         textAlign: "center",
         fontSize: 13.5,
         color: C.peach,
-        borderTop: "1px solid rgba(255,120,60,.2)",
+        borderTop: "1px solid rgba(255,92,138,.22)",
       }}
     >
       Quer algo mais romântico?{" "}
