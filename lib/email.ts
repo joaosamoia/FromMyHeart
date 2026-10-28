@@ -12,7 +12,7 @@ function getResend() {
   if (!key) return null;
   return new Resend(key);
 }
-type Produto = "classica" | "date";
+type Produto = "classica" | "date" | "retro";
 const TEXTOS: Record<Produto, { assunto: string; emoji: string; titulo: string; linha: string; botao: string; accent: string; bg: string }> = {
   classica: {
     assunto: "Sua página de amor está pronta! 💕",
@@ -32,6 +32,15 @@ const TEXTOS: Record<Produto, { assunto: string; emoji: string; titulo: string; 
     accent: "#F94C12",
     bg: "#FFF1E9",
   },
+  retro: {
+    assunto: "A retrospectiva de vocês está pronta! 🎉",
+    emoji: "🎞️",
+    titulo: "Prontinho",
+    linha: "está no ar. Manda o link e deixa a pessoa reviver o ano de vocês.",
+    botao: "Ver a retrospectiva",
+    accent: "#E8336D",
+    bg: "#FFE9F0",
+  },
 };
 export async function sendPageReadyEmail(params: {
   to: string;
@@ -48,7 +57,7 @@ export async function sendPageReadyEmail(params: {
   const { to, buyerName, pageTitle, pageUrl, produto = "classica" } = params;
   const T = TEXTOS[produto] ?? TEXTOS.classica;
   const nome = buyerName?.trim() ? buyerName.trim().split(" ")[0] : "";
-  const titulo = pageTitle?.trim() ? `“${pageTitle.trim()}”` : produto === "date" ? "Seu convite" : "Sua página";
+  const titulo = pageTitle?.trim() ? `“${pageTitle.trim()}”` : produto === "date" ? "Seu convite" : produto === "retro" ? "A retrospectiva" : "Sua página";
   try {
     await resend.emails.send({
       // ⚠️ Enquanto o domínio próprio não estiver verificado no Resend, use

@@ -9,6 +9,7 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import type { CouplePageDoc } from "@/types/page";
 import CouplePageContent from "@/components/CouplePageContent";
 import DatePage from "@/components/DatePage";
+import RetroStories from "@/components/RetroStories";
 
 // Força renderização dinâmica: esta página lê dados que mudam (status de
 // pagamento), então nunca deve ser cacheada estaticamente pelo Next.js.
@@ -30,6 +31,15 @@ export async function generateMetadata({
   const page = await getPage(slug);
   if (!page || page.status !== "pago") {
     return { title: "Site do Amor" };
+  }
+  if (page.style === "retro") {
+    const t = `Nosso ${page.retroYear ?? ""} · ${page.retroNameA ?? ""} & ${page.retroNameB ?? ""}`;
+    const cover = page.retroMonths?.find((m) => m.photo)?.photo;
+    return {
+      title: t,
+      description: "Alguém preparou a retrospectiva do ano de vocês. Toque pra abrir. ♥",
+      openGraph: { title: t, description: "Alguém preparou a retrospectiva do ano de vocês. ♥", images: cover ? [cover] : undefined },
+    };
   }
   return {
     title: page.title || "Uma página de amor",
@@ -88,6 +98,8 @@ export default async function CouplePage({
       </div>
     );
   }
+
+  if (page.style === "retro") return <RetroStories page={page} />;
 
   return <CouplePageContent page={page} />;
 }

@@ -12,9 +12,26 @@ export interface CoupleMoment {
   photo?: string; // URL do Firebase Storage
 }
 
+// ───── Retrospectiva do Casal (style === "retro") ─────
+export interface RetroMonth {
+  month: number; // 0 = janeiro … 11 = dezembro
+  title: string;
+  photo?: string; // URL do Firebase Storage
+}
+
+export interface RetroSong {
+  title: string; // "Perfect - Ed Sheeran"
+  url?: string; // link Spotify/YouTube (opcional) — vira player na página
+}
+
+export interface RetroStat {
+  value: string; // "1.247"
+  label: string; // "vezes que eu disse que te amo"
+}
+
 export interface CouplePageDoc {
   slug: string;
-  style: "classica" | "date"; // qual produto/template esta página usa
+  style: "classica" | "date" | "retro"; // qual produto/template esta página usa
   title: string;
   startDate: string; // yyyy-mm-dd
   message: string;
@@ -28,6 +45,16 @@ export interface CouplePageDoc {
   nickname?: string; // apelido carinhoso usado no convite
   dateTemplate?: "sunset" | "ultravioleta"; // qual dos dois layouts do convite
 
+  // usados só quando style === "retro"
+  retroYear?: number; // ano da retrospectiva (ex: 2026)
+  retroNameA?: string; // quem está presenteando
+  retroNameB?: string; // quem recebe
+  retroMonths?: RetroMonth[]; // um momento por mês (só os meses preenchidos)
+  retroSongs?: RetroSong[]; // top 5 do casal
+  retroStats?: RetroStat[]; // "números do casal" (até 4)
+  retroWrappedA?: string; // print da retrospectiva musical de A (opcional)
+  retroWrappedB?: string; // print da retrospectiva musical de B (opcional)
+
   // dados de contato do comprador (não exibidos na página pública)
   buyerName: string;
   buyerEmail: string;
@@ -35,7 +62,7 @@ export interface CouplePageDoc {
 
   // controle de acesso / pagamento
   status: PageStatus;
-  plan: "1dia" | "eterno" | "date" | null;
+  plan: "1dia" | "eterno" | "date" | "retro" | null;
   astral: boolean; // addon do mapa estelar (liberado só pelo webhook, só pra "classica")
 
   // QR Code personalizado: "qrStyle" é só a escolha estética (cosmética, sem
@@ -70,4 +97,12 @@ export const emptyCouplePageDoc = (): Omit<
   buyerPhone: "",
   astral: false,
   qrStyle: "simples",
+  retroYear: new Date().getFullYear(),
+  retroNameA: "",
+  retroNameB: "",
+  retroMonths: [],
+  retroSongs: [],
+  retroStats: [],
+  retroWrappedA: "",
+  retroWrappedB: "",
 });

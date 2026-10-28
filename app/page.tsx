@@ -21,6 +21,15 @@ const B = {
 
 const PRODUTOS = [
   {
+    href: "/criar?estilo=retro",
+    emoji: "🎞️",
+    nome: "Retrospectiva do casal",
+    desc: "O ano de vocês em slides estilo stories, com fotos, músicas e um card pra postar.",
+    preco: "R$ 29,90 · novo",
+    cor: "#C2185B",
+    corSoft: "#F8D3E2",
+  },
+  {
     href: "/criar",
     emoji: "💌",
     nome: "Página de amor",
@@ -74,7 +83,7 @@ export default function Home() {
             margin: "4px 0 8px",
           }}
         >
-          Duas formas de dizer
+          Três formas de dizer
           <br />o que você sente
         </h1>
         <p style={{ fontSize: 14.5, color: B.muted, margin: "0 0 28px", lineHeight: 1.5 }}>
