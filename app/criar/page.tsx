@@ -18,9 +18,10 @@ import {
   Trash2, Plus, Crown, ShieldCheck, Zap, Star, EyeOff, LayoutTemplate, MessageCircle, Mail, Send,
 } from "lucide-react";
 import { db, storage } from "@/lib/firebase";
-import { emptyCouplePageDoc, type CoupleMoment } from "@/types/page";
+import { emptyCouplePageDoc, type CoupleMoment, type RetroMonth, type RetroSong, type RetroStat } from "@/types/page";
 import CouplePageContent, { THEMES, getTheme, MOMENT_ICONS } from "@/components/CouplePageContent";
 import DatePage, { DATE_TEMPLATES, type DateTemplateId } from "@/components/DatePage";
+import RetroStories, { RETRO_THEMES, DEFAULT_RETRO_THEME, MESES, RETRO_STAT_IDEAS } from "@/components/RetroStories";
 
 // ⚠️ Troque pelos links reais dos seus produtos na Kiwify.
 const KIWIFY_CHECKOUT: Record<string, string> = {
@@ -33,9 +34,14 @@ const KIWIFY_CHECKOUT: Record<string, string> = {
   "eterno-qr": "https://pay.kiwify.com.br/ooq0qgi",
   "eterno-astral-qr": "https://pay.kiwify.com.br/Fv11z3Z",
   date: "https://pay.kiwify.com.br/1tedzUy",
+  // ⚠️ Crie o produto "Retrospectiva do Casal" na Kiwify e cole o link aqui.
+  // O webhook já funciona igual (libera pelo slug que vai no ?s=).
+  retro: "https://pay.kiwify.com.br/TROCAR-PELO-LINK-DA-RETROSPECTIVA",
 };
 
-const PRICES = { "1dia": 24.9, eterno: 39.9, astral: 10, qr: 4.9, date: 19.9 };
+const PRICES = { "1dia": 24.9, eterno: 39.9, astral: 10, qr: 4.9, date: 19.9, retro: 29.9 };
+// Mesma regra do Date: cadastre R$59,90 como preço cheio na Kiwify pra âncora ser real.
+const PRECO_CHEIO_RETRO = 59.9;
 // Preço "de" do Date. Pra isso não ser propaganda enganosa, cadastre R$39,90
 // como preço cheio na Kiwify e R$19,90 como promocional — aí a âncora é real.
 const PRECO_CHEIO_DATE = 39.9;
@@ -49,13 +55,17 @@ const P = {
 
 const STEPS_FULL = ["Estilo", "Tema", "Nome", "Mensagem", "Fotos", "Música", "Timeline", "Finalizar"] as const;
 const STEPS_DATE = ["Estilo", "Date", "Finalizar"] as const;
-const getSteps = (style: string) => (style === "date" ? STEPS_DATE : STEPS_FULL);
-const EMOJI: Record<string, string> = { Estilo: "✦", Tema: "🎨", Nome: "📝", Mensagem: "💌", Fotos: "📷", Música: "🎵", Timeline: "🕰️", Date: "🐧", Finalizar: "✨" };
+const STEPS_RETRO = ["Estilo", "Casal", "Cores", "Meses", "Músicas", "Números", "Prints", "Mensagem", "Finalizar"] as const;
+const getSteps = (style: string): readonly string[] => (style === "date" ? STEPS_DATE : style === "retro" ? STEPS_RETRO : STEPS_FULL);
+const EMOJI: Record<string, string> = { Estilo: "✦", Tema: "🎨", Nome: "📝", Mensagem: "💌", Fotos: "📷", Música: "🎵", Timeline: "🕰️", Date: "🐧", Finalizar: "✨", Casal: "💞", Cores: "🎨", Meses: "🗓️", Músicas: "🎧", Números: "🔢", Prints: "📱" };
 const CHEER = (p: number) =>
   p >= 100 ? "Tudo pronto! ♥" : p >= 72 ? "Reta final!" : p >= 45 ? "Metade do caminho!" : p >= 22 ? "Está ficando lindo!" : p > 0 ? "Ótimo começo!" : "Vamos começar!";
 
 const DECLARACAO =
   "Desde o dia em que você entrou na minha vida, tudo passou a fazer mais sentido. Você é o meu lugar favorito, a minha paz e a minha aventura preferida. Obrigado por cada sorriso, cada abraço e cada bom dia. Eu escolheria você em todas as vidas. Te amo mais a cada dia. ♥";
+
+const DECLARACAO_RETRO =
+  "Esse ano teve de tudo: risada, perrengue, viagem, briga boba e muito colo. E em todos os dias, o melhor pedaço foi você. Obrigado por ter escolhido dividir esse ano comigo. Que o próximo seja ainda mais nosso. Te amo. ♥";
 
 const SUGGESTIONS = [
   { cat: "ROMÂNTICAS INTERNACIONAIS", songs: ["Perfect - Ed Sheeran", "All of Me - John Legend", "A Thousand Years - Christina Perri", "Thinking Out Loud - Ed Sheeran"] },
@@ -76,9 +86,11 @@ export default function CriarPage() {
 function CriarInner() {
   // Quem chega pela landing do Date (/date) vem com ?estilo=date — já entra no
   // fluxo certo, sem passar pela tela de escolha de estilo.
-  const veioDaLandingDate = useSearchParams().get("estilo") === "date";
+  const estiloParam = useSearchParams().get("estilo");
+  const veioDaLandingDate = estiloParam === "date";
+  const veioDaLandingRetro = estiloParam === "retro";
 
-  const [step, setStep] = useState(veioDaLandingDate ? 1 : 0);
+  const [step, setStep] = useState(veioDaLandingDate || veioDaLandingRetro ? 1 : 0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [immersive, setImmersive] = useState(false);
@@ -87,6 +99,7 @@ function CriarInner() {
     ...emptyCouplePageDoc(),
     slug: "",
     ...(veioDaLandingDate ? { style: "date" as const } : {}),
+    ...(veioDaLandingRetro ? { style: "retro" as const, theme: DEFAULT_RETRO_THEME } : {}),
   });
   const set = (k: keyof typeof d) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setD((s) => ({ ...s, [k]: e.target.value }));
@@ -101,6 +114,7 @@ function CriarInner() {
     if (name === "Nome") return d.title.trim() !== "" && d.slug.trim() !== "" && d.startDate !== "";
     if (name === "Mensagem") return d.message.trim() !== "";
     if (name === "Date") return (d.whatsapp ?? "").replace(/\D/g, "").length >= 10 && d.slug.trim() !== "";
+    if (name === "Casal") return (d.retroNameA ?? "").trim() !== "" && (d.retroNameB ?? "").trim() !== "" && d.slug.trim() !== "" && d.startDate !== "";
     return true;
   };
   const ok = canNext();
@@ -201,7 +215,13 @@ function CriarInner() {
           <div style={{ position: "relative", borderRadius: 34, overflow: "hidden", height: 540 }}>
             <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 74, height: 20, background: "#0f0f12", borderRadius: 99, zIndex: 3 }} />
             <div className="scr" style={{ position: "absolute", inset: 0, overflowY: "auto" }}>
-              {d.style === "date" ? <DatePage whatsapp={d.whatsapp} nickname={d.nickname} template={d.dateTemplate} /> : <CouplePageContent page={d} compact />}
+              {d.style === "date" ? (
+                <DatePage whatsapp={d.whatsapp} nickname={d.nickname} template={d.dateTemplate} />
+              ) : d.style === "retro" ? (
+                <RetroStories page={d} compact />
+              ) : (
+                <CouplePageContent page={d} compact />
+              )}
             </div>
           </div>
         </div>
@@ -250,20 +270,30 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
         <div style={{ display: "grid", gap: 12 }}>
           {[
             { id: "classica", Icon: Heart, name: "Clássica", desc: "Contador, fotos, timeline e mensagem", price: "a partir de R$ 24,90" },
+            { id: "retro", Icon: Sparkles, name: "Retrospectiva do Casal", desc: "O ano de vocês em slides, estilo stories 🎞️", price: "R$ 29,90", novo: true },
             { id: "date", Icon: LayoutTemplate, name: "Date", desc: "Convite interativo: \"Aceita um date?\" 🐧💙", price: "R$ 19,90" },
-          ].map((s) => {
+          ].map((s: any) => {
             const active = d.style === s.id;
             return (
               <button
                 key={s.id}
-                onClick={() => setD((x: any) => ({ ...x, style: s.id }))}
+                onClick={() =>
+                  setD((x: any) => {
+                    const isRetroTheme = String(x.theme).startsWith("retro-");
+                    const theme = s.id === "retro" ? (isRetroTheme ? x.theme : DEFAULT_RETRO_THEME) : isRetroTheme ? "branco-rosa" : x.theme;
+                    return { ...x, style: s.id, theme };
+                  })
+                }
                 style={{ position: "relative", textAlign: "left", display: "flex", alignItems: "center", gap: 14, padding: 16, borderRadius: 16, cursor: "pointer", background: active ? P.pinkSoft : P.card, border: `1.5px solid ${active ? P.pinkBorder : P.cardBorder}`, transition: "all .2s" }}
               >
                 <span style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 12, background: active ? "#fff" : P.pinkSoft, display: "grid", placeItems: "center" }}>
                   <s.Icon size={20} color={P.pink} />
                 </span>
                 <span style={{ flex: 1 }}>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: P.ink }}>{s.name}</div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: P.ink, display: "flex", alignItems: "center", gap: 8 }}>
+                    {s.name}
+                    {s.novo && <span style={{ fontSize: 9.5, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#f871a8,#a03fd0)", padding: "2px 7px", borderRadius: 99, letterSpacing: "0.04em" }}>NOVO</span>}
+                  </div>
                   <div style={{ fontSize: 13, color: P.sub, marginTop: 1 }}>{s.desc}</div>
                   <div style={{ fontSize: 12, color: P.pink, fontWeight: 600, marginTop: 4 }}>{s.price}</div>
                 </span>
@@ -347,7 +377,7 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
       <>
         <Head title="Escreva sua declaração de amor" sub="As palavras que vão emocionar quem você ama." />
         <button
-          onClick={() => setD((s: any) => ({ ...s, message: DECLARACAO }))}
+          onClick={() => setD((s: any) => ({ ...s, message: s.style === "retro" ? DECLARACAO_RETRO : DECLARACAO }))}
           style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 14, borderRadius: 12, border: "none", cursor: "pointer", color: "#fff", fontSize: 14, fontWeight: 600, background: "linear-gradient(135deg,#f45fa8,#a03fd0)", boxShadow: "0 6px 16px rgba(160,63,208,0.28)", marginBottom: 14 }}
         >
           <Wand2 size={17} /> Gerar declaração automática
@@ -361,6 +391,14 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
   if (name === "Fotos") return <FotosStep d={d} setD={setD} />;
   if (name === "Música") return <MusicStep d={d} setD={setD} />;
   if (name === "Timeline") return <TimelineStep d={d} setD={setD} />;
+
+  // ───── Retrospectiva ─────
+  if (name === "Casal") return <RetroCasalStep d={d} setD={setD} set={set} />;
+  if (name === "Cores") return <RetroCoresStep d={d} setD={setD} />;
+  if (name === "Meses") return <RetroMesesStep d={d} setD={setD} />;
+  if (name === "Músicas") return <RetroMusicasStep d={d} setD={setD} />;
+  if (name === "Números") return <RetroNumerosStep d={d} setD={setD} />;
+  if (name === "Prints") return <RetroPrintsStep d={d} setD={setD} />;
 
   if (name === "Date") {
     const phoneMask = (v: string) => {
@@ -676,6 +714,21 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
     setError("");
     setSaving(true);
     try {
+      if (d.style === "retro") {
+        await setDoc(doc(db, "pages", d.slug), {
+          ...d,
+          title: `${(d.retroNameA ?? "").trim()} & ${(d.retroNameB ?? "").trim()} · ${d.retroYear}`,
+          plan: "retro",
+          astral: false,
+          qrStyle: "simples",
+          qrPaid: false,
+          status: "pendente",
+          createdAt: Date.now(),
+          paidAt: null,
+        });
+        window.location.href = `${KIWIFY_CHECKOUT["retro"]}?s=${encodeURIComponent(d.slug)}`;
+        return;
+      }
       if (d.style === "date") {
         await setDoc(doc(db, "pages", d.slug), {
           ...d,
@@ -737,6 +790,9 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
         </button>
       </>
     );
+
+  // FASE 1 — retrospectiva: produto único
+  if (d.style === "retro") return <RetroCheckout d={d} saving={saving} error={error} finish={finish} onBack={() => setPhase(0)} bigBtn={bigBtn} />;
 
   // FASE 1 — planos + addons (ou confirmação simples, se for o estilo Date)
   if (d.style === "date") {
@@ -972,6 +1028,344 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
   );
 }
 
+// ───────────────── Retrospectiva do Casal — etapas ─────────────────
+async function uploadTo(slug: string, prefix: string, file: File) {
+  const r = sRef(storage, `pages/${slug}/${prefix}-${Date.now()}-${file.name}`);
+  await uploadBytes(r, file);
+  return getDownloadURL(r);
+}
+
+function RetroCasalStep({ d, setD, set }: any) {
+  const anoAtual = new Date().getFullYear();
+  return (
+    <>
+      <Head title="A retrospectiva de vocês" sub="Quem são os dois, e desde quando essa história existe." />
+      <div style={{ display: "flex", gap: 10 }}>
+        <label style={{ ...lbl, flex: 1 }}>
+          <span style={lblTxt}>Seu nome</span>
+          <input className="qinput" value={d.retroNameB ?? ""} onChange={set("retroNameB")} placeholder="João" style={inp} />
+        </label>
+        <label style={{ ...lbl, flex: 1 }}>
+          <span style={lblTxt}>Nome de quem vai receber</span>
+          <input className="qinput" value={d.retroNameA ?? ""} onChange={set("retroNameA")} placeholder="Maria" style={inp} />
+        </label>
+      </div>
+      <label style={lbl}>
+        <span style={lblTxt}>Link da retrospectiva</span>
+        <div style={{ display: "flex", alignItems: "center", border: `1.5px solid ${P.cardBorder}`, borderRadius: 12, background: P.card }}>
+          <span style={{ padding: "12px 4px 12px 14px", color: P.sub, fontSize: 14 }}>seusite.com/</span>
+          <input
+            className="qinput"
+            value={d.slug}
+            onChange={(e) => setD((s: any) => ({ ...s, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") }))}
+            placeholder={`nosso-${anoAtual}`}
+            style={{ flex: 1, border: "none", outline: "none", padding: "12px 14px 12px 0", fontSize: 14, background: "transparent" }}
+          />
+        </div>
+      </label>
+      <div style={{ display: "flex", gap: 10 }}>
+        <label style={{ ...lbl, flex: 1.4 }}>
+          <span style={lblTxt}>Quando vocês começaram?</span>
+          <input className="qinput" type="date" value={d.startDate} onChange={set("startDate")} style={{ ...inp, textAlign: "center", colorScheme: "light", cursor: "pointer" }} />
+        </label>
+        <label style={{ ...lbl, flex: 1 }}>
+          <span style={lblTxt}>Ano da retrospectiva</span>
+          <select className="qinput" value={d.retroYear} onChange={(e) => setD((s: any) => ({ ...s, retroYear: Number(e.target.value) }))} style={{ ...inp, cursor: "pointer" }}>
+            {[anoAtual, anoAtual - 1].map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <Hint>A data vira o contador de “dias juntos” do ano — o slide que mais emociona.</Hint>
+    </>
+  );
+}
+
+function RetroCoresStep({ d, setD }: any) {
+  return (
+    <>
+      <Head title="Escolha as cores" sub="Cada slide ganha uma cor da paleta, no estilo das retrospectivas de fim de ano." />
+      <div style={{ display: "grid", gap: 12 }}>
+        {Object.entries(RETRO_THEMES).map(([id, t]) => {
+          const active = d.theme === id;
+          return (
+            <button
+              key={id}
+              onClick={() => setD((s: any) => ({ ...s, theme: id }))}
+              style={{ display: "flex", alignItems: "center", gap: 14, padding: 12, borderRadius: 16, cursor: "pointer", textAlign: "left", background: active ? P.pinkSoft : P.card, border: `1.5px solid ${active ? P.pinkBorder : P.cardBorder}` }}
+            >
+              <span style={{ display: "flex", borderRadius: 10, overflow: "hidden", flexShrink: 0 }}>
+                {t.swatches.map((sw, i) => (
+                  <span key={i} style={{ width: 22, height: 44, background: sw.bg }} />
+                ))}
+              </span>
+              <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: P.ink }}>{t.name}</span>
+              {active && <Check size={18} color={P.pink} />}
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function RetroMesesStep({ d, setD }: any) {
+  const months: RetroMonth[] = d.retroMonths ?? [];
+  const get = (m: number) => months.find((x) => x.month === m);
+  const [open, setOpen] = useState<number | null>(months[0]?.month ?? null);
+  const [uploading, setUploading] = useState<number | null>(null);
+  const upsert = (m: number, patch: Partial<RetroMonth>) =>
+    setD((s: any) => {
+      const list: RetroMonth[] = s.retroMonths ?? [];
+      const has = list.some((x) => x.month === m);
+      const next = has ? list.map((x) => (x.month === m ? { ...x, ...patch } : x)) : [...list, { month: m, title: "", ...patch }];
+      return { ...s, retroMonths: next.filter((x) => x.title.trim() || x.photo || x.month === m) };
+    });
+  const remove = (m: number) => setD((s: any) => ({ ...s, retroMonths: (s.retroMonths ?? []).filter((x: RetroMonth) => x.month !== m) }));
+  const onPhoto = async (m: number, file?: File) => {
+    if (!file || !d.slug) return;
+    setUploading(m);
+    try {
+      upsert(m, { photo: await uploadTo(d.slug, `mes${m + 1}`, file) });
+    } finally {
+      setUploading(null);
+    }
+  };
+
+  return (
+    <>
+      <Head title="Um momento por mês" sub="Escolha os meses que marcaram o ano. Não precisa preencher todos." />
+      {!d.slug && <p style={{ color: "#c0392b", fontSize: 13, marginBottom: 10 }}>Volte e defina o link antes de subir fotos.</p>}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 16 }}>
+        {MESES.map((nome, m) => {
+          const filled = !!(get(m)?.title?.trim() || get(m)?.photo);
+          const active = open === m;
+          return (
+            <button
+              key={m}
+              onClick={() => setOpen(m)}
+              style={{ position: "relative", padding: "10px 4px", borderRadius: 12, cursor: "pointer", fontSize: 12.5, fontWeight: 600, background: active ? P.pink : filled ? P.pinkSoft : "#fff", color: active ? "#fff" : P.ink, border: `1.5px solid ${active ? P.pink : filled ? P.pinkBorder : P.cardBorder}` }}
+            >
+              {nome.slice(0, 3)}
+              {filled && !active && <span style={{ position: "absolute", top: 4, right: 6, fontSize: 9, color: P.pink }}>●</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      {open !== null && (
+        <div key={open} className="qi" style={{ padding: 16, borderRadius: 16, background: "#fff", border: `1px solid ${P.cardBorder}` }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>{MESES[open]}</span>
+            {get(open) && (
+              <button onClick={() => remove(open)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", color: P.sub, fontSize: 12.5 }}>
+                <Trash2 size={14} /> limpar
+              </button>
+            )}
+          </div>
+          <label style={lbl}>
+            <span style={lblTxt}>O que aconteceu?</span>
+            <input className="qinput" value={get(open)?.title ?? ""} onChange={(e) => upsert(open, { title: e.target.value })} placeholder="Ex: nossa primeira viagem pra praia" maxLength={70} style={inp} />
+          </label>
+          {get(open)?.photo ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={get(open)!.photo} alt="" style={{ width: 72, height: 96, borderRadius: 10, objectFit: "cover", border: `1px solid ${P.cardBorder}` }} />
+              <button onClick={() => upsert(open, { photo: undefined })} style={{ background: "none", border: "none", cursor: "pointer", color: P.sub, fontSize: 13 }}>
+                remover foto
+              </button>
+            </div>
+          ) : (
+            <label className="drop" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, border: `1.5px dashed ${P.pinkBorder}`, cursor: d.slug ? "pointer" : "not-allowed", fontSize: 13, color: P.pink, opacity: d.slug ? 1 : 0.5 }}>
+              <input type="file" accept="image/*" disabled={!d.slug} onChange={(e) => onPhoto(open, e.target.files?.[0])} style={{ display: "none" }} />
+              <Upload size={15} /> {uploading === open ? "Enviando..." : "Adicionar foto (vertical fica melhor)"}
+            </label>
+          )}
+          {open < 11 && (
+            <button onClick={() => setOpen(open + 1)} style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 14, background: "none", border: "none", cursor: "pointer", color: P.pink, fontSize: 13, fontWeight: 600 }}>
+              Próximo mês: {MESES[open + 1]} <ArrowRight size={14} />
+            </button>
+          )}
+        </div>
+      )}
+      <Hint>{months.filter((m) => m.title.trim() || m.photo).length} mês(es) preenchido(s) · cada um vira um slide</Hint>
+    </>
+  );
+}
+
+function RetroMusicasStep({ d, setD }: any) {
+  const songs: RetroSong[] = d.retroSongs ?? [];
+  const update = (i: number, patch: Partial<RetroSong>) => setD((s: any) => ({ ...s, retroSongs: (s.retroSongs ?? []).map((x: RetroSong, j: number) => (j === i ? { ...x, ...patch } : x)) }));
+  const add = (title = "") => setD((s: any) => ({ ...s, retroSongs: [...(s.retroSongs ?? []), { title, url: "" }].slice(0, 5) }));
+  const remove = (i: number) => setD((s: any) => ({ ...s, retroSongs: (s.retroSongs ?? []).filter((_: any, j: number) => j !== i) }));
+  const sugestoes = SUGGESTIONS.flatMap((g) => g.songs).filter((t) => !songs.some((s) => s.title === t)).slice(0, 6);
+
+  return (
+    <>
+      <Head title="O top 5 do casal" sub="As músicas que foram a trilha sonora do ano de vocês." />
+      {songs.map((s, i) => (
+        <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 12, padding: 12, borderRadius: 14, background: "#fff", border: `1px solid ${P.cardBorder}` }}>
+          <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: 22, color: P.pink, width: 20, lineHeight: "40px" }}>{i + 1}</span>
+          <div style={{ flex: 1, display: "grid", gap: 8 }}>
+            <input className="qinput" value={s.title} onChange={(e) => update(i, { title: e.target.value })} placeholder="Música - Artista" style={inp} />
+            <input className="qinput" value={s.url ?? ""} onChange={(e) => update(i, { url: e.target.value })} placeholder="Link do Spotify ou YouTube (opcional, vira player)" style={{ ...inp, fontSize: 12.5, padding: "9px 12px" }} />
+          </div>
+          <button onClick={() => remove(i)} style={{ background: "none", border: "none", cursor: "pointer", color: P.sub, marginTop: 10 }}>
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ))}
+      {songs.length < 5 && (
+        <button onClick={() => add()} style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 13, borderRadius: 12, border: `1.5px dashed ${P.pinkBorder}`, background: "transparent", cursor: "pointer", fontSize: 14, fontWeight: 500, color: P.ink }}>
+          <Plus size={16} color={P.pink} /> Adicionar música ({songs.length}/5)
+        </button>
+      )}
+      {songs.length < 5 && sugestoes.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", color: P.sub, marginBottom: 8 }}>SUGESTÕES</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {sugestoes.map((t) => (
+              <button key={t} onClick={() => add(t)} style={{ padding: "6px 10px", borderRadius: 99, border: `1px solid ${P.cardBorder}`, background: "#fff", cursor: "pointer", fontSize: 12, color: P.ink }}>
+                + {t}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <Hint>Dica: no Spotify, toque em ⋯ → Compartilhar → Copiar link da música.</Hint>
+    </>
+  );
+}
+
+function RetroNumerosStep({ d, setD }: any) {
+  const stats: RetroStat[] = d.retroStats ?? [];
+  const update = (i: number, patch: Partial<RetroStat>) => setD((s: any) => ({ ...s, retroStats: (s.retroStats ?? []).map((x: RetroStat, j: number) => (j === i ? { ...x, ...patch } : x)) }));
+  const add = (st: RetroStat = { value: "", label: "" }) => setD((s: any) => ({ ...s, retroStats: [...(s.retroStats ?? []), st].slice(0, 4) }));
+  const remove = (i: number) => setD((s: any) => ({ ...s, retroStats: (s.retroStats ?? []).filter((_: any, j: number) => j !== i) }));
+  const ideias = RETRO_STAT_IDEAS.filter((x) => !stats.some((s) => s.label === x.label));
+
+  return (
+    <>
+      <Head title="Os números do casal" sub="Pode ser sério ou zoeira — ninguém vai conferir. 😅" />
+      {stats.map((st, i) => (
+        <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
+          <input className="qinput" value={st.value} onChange={(e) => update(i, { value: e.target.value })} placeholder="1.247" maxLength={7} style={{ ...inp, width: 90, flexShrink: 0, textAlign: "center", fontWeight: 700 }} />
+          <input className="qinput" value={st.label} onChange={(e) => update(i, { label: e.target.value })} placeholder="vezes que eu disse te amo" maxLength={48} style={inp} />
+          <button onClick={() => remove(i)} style={{ background: "none", border: "none", cursor: "pointer", color: P.sub, flexShrink: 0 }}>
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ))}
+      {stats.length < 4 && (
+        <>
+          <button onClick={() => add()} style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 13, borderRadius: 12, border: `1.5px dashed ${P.pinkBorder}`, background: "transparent", cursor: "pointer", fontSize: 14, fontWeight: 500, color: P.ink, marginTop: 4 }}>
+            <Plus size={16} color={P.pink} /> Criar número ({stats.length}/4)
+          </button>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", color: P.sub, margin: "16px 0 8px" }}>IDEIAS PRONTAS (TOQUE PRA USAR E EDITE O NÚMERO)</div>
+          <div style={{ display: "grid", gap: 6 }}>
+            {ideias.map((x) => (
+              <button key={x.label} onClick={() => add(x)} style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 12px", borderRadius: 10, border: `1px solid ${P.cardBorder}`, background: "#fff", cursor: "pointer", textAlign: "left", fontSize: 13, color: P.ink }}>
+                <b style={{ color: P.pink, minWidth: 50 }}>{x.value}</b> {x.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+function RetroPrintsStep({ d, setD }: any) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const onFile = async (k: "retroWrappedA" | "retroWrappedB", file?: File) => {
+    if (!file || !d.slug) return;
+    setBusy(k);
+    try {
+      const url = await uploadTo(d.slug, k === "retroWrappedA" ? "printA" : "printB", file);
+      setD((s: any) => ({ ...s, [k]: url }));
+    } finally {
+      setBusy(null);
+    }
+  };
+  const slot = (k: "retroWrappedA" | "retroWrappedB", nome: string) => (
+    <div style={{ flex: 1, textAlign: "center" }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: P.ink, marginBottom: 8 }}>{nome || "—"}</div>
+      {d[k] ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={d[k]} alt="" style={{ width: "100%", aspectRatio: "9/16", objectFit: "cover", borderRadius: 12, border: `1px solid ${P.cardBorder}` }} />
+          <button onClick={() => setD((s: any) => ({ ...s, [k]: "" }))} style={{ background: "none", border: "none", cursor: "pointer", color: P.sub, fontSize: 12.5, marginTop: 6 }}>
+            remover
+          </button>
+        </>
+      ) : (
+        <label className="drop" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, aspectRatio: "9/16", borderRadius: 12, border: `2px dashed ${P.pinkBorder}`, background: "rgba(255,255,255,0.5)", cursor: d.slug ? "pointer" : "not-allowed", opacity: d.slug ? 1 : 0.5, fontSize: 12.5, color: P.pink }}>
+          <input type="file" accept="image/*" disabled={!d.slug} onChange={(e) => onFile(k, e.target.files?.[0])} style={{ display: "none" }} />
+          <Upload size={18} /> {busy === k ? "Enviando..." : "Subir print"}
+        </label>
+      )}
+    </div>
+  );
+  return (
+    <>
+      <Head title="Os prints de cada um" sub="Opcional: o print da retrospectiva musical do app de música de cada um." />
+      <div style={{ display: "flex", gap: 12 }}>
+        {slot("retroWrappedB", d.retroNameB)}
+        {slot("retroWrappedA", d.retroNameA)}
+      </div>
+      <Hint>Ainda não saiu a retrospectiva do app de música? Pula essa etapa — o slide só aparece se tiver print.</Hint>
+    </>
+  );
+}
+
+function RetroCheckout({ d, saving, error, finish, onBack, bigBtn }: any) {
+  const nMeses = (d.retroMonths ?? []).filter((m: RetroMonth) => m.title.trim() || m.photo).length;
+  const inclui = [
+    "Slides em tela cheia, estilo stories",
+    `Contador de dias juntos em ${d.retroYear}`,
+    nMeses ? `${nMeses} momento(s) do ano com foto` : "Um momento por mês com foto",
+    "Top 5 músicas do casal com player",
+    "Card final pra postar no story",
+    "QR Code pra imprimir e presentear",
+  ];
+  return (
+    <>
+      <h2 style={{ ...h2, textAlign: "center" }}>
+        O ano de <span style={{ color: P.pink }}>{d.retroNameA || "vocês"}</span> e {d.retroNameB || "você"} tá pronto pra ser revivido
+      </h2>
+      <div style={{ marginTop: 22, padding: "22px 20px 20px", borderRadius: 20, textAlign: "center", background: "linear-gradient(160deg,#2B0B3F,#6A1B4D 60%,#E8336D)", color: "#FFF4F7", boxShadow: "0 16px 36px -14px rgba(232,51,109,0.55)" }}>
+        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.6, opacity: 0.8 }}>RETROSPECTIVA DO CASAL · PAGAMENTO ÚNICO</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, marginTop: 8 }}>
+          <span style={{ fontSize: 15, opacity: 0.7, textDecoration: "line-through" }}>{fmtBRL(PRECO_CHEIO_RETRO)}</span>
+          <span style={{ fontSize: 11, fontWeight: 800, background: "rgba(0,0,0,.3)", padding: "3px 9px", borderRadius: 99 }}>-50%</span>
+        </div>
+        <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 46, fontWeight: 700, lineHeight: 1.05, margin: "2px 0 4px" }}>{fmtBRL(PRICES.retro)}</div>
+        <div style={{ fontSize: 12.5, opacity: 0.8 }}>o link fica no ar pra sempre</div>
+        <div style={{ height: 1, background: "rgba(255,255,255,.2)", margin: "16px 0 14px" }} />
+        <div style={{ display: "grid", gap: 8, textAlign: "left" }}>
+          {inclui.map((f) => (
+            <div key={f} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13 }}>
+              <Check size={14} color="#FFD23F" strokeWidth={3} /> {f}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 14, fontSize: 11.5, color: P.sub }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><ShieldCheck size={14} color="#2f8f78" /> Pagamento seguro</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Zap size={14} color="#e0a53a" /> Liberação instantânea</span>
+      </div>
+      {error && <p style={{ color: "#c0392b", fontSize: 13, textAlign: "center", marginTop: 10 }}>{error}</p>}
+      {bigBtn(saving ? "Salvando..." : "Liberar nossa retrospectiva", finish, saving)}
+      <div style={{ textAlign: "center" }}>
+        <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", color: P.sub, fontSize: 14, cursor: "pointer", marginTop: 14 }}>
+          <ArrowLeft size={15} /> Voltar
+        </button>
+      </div>
+    </>
+  );
+}
+
 // ───────── modo imersivo (deslize para abrir) ─────────
 function SlideToOpen({ th, onOpen }: any) {
   const [x, setX] = useState(0);
@@ -1017,6 +1411,16 @@ function SlideToOpen({ th, onOpen }: any) {
 function ImmersivePreview({ d, onClose }: any) {
   const th = getTheme(d.theme);
   const [opened, setOpened] = useState(false);
+
+  if (d.style === "retro")
+    return (
+      <div style={{ position: "fixed", inset: 0, zIndex: 9999 }}>
+        <RetroStories page={d} />
+        <button onClick={onClose} aria-label="Fechar" style={{ position: "fixed", top: 16, right: 16, zIndex: 60, width: 42, height: 42, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.45)", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center", backdropFilter: "blur(4px)" }}>
+          <X size={20} />
+        </button>
+      </div>
+    );
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: th.screen, overflow: "hidden" }}>
