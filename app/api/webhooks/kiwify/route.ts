@@ -82,11 +82,10 @@ function extractOrderInfo(body: any, slugFromQuery: string | null) {
     String(status).toLowerCase()
   );
 
-  const slug: string | null =
-    body?.TrackingParameters?.s ??
-    body?.tracking_parameters?.s ??
-    body?.data?.tracking_parameters?.s ??
-    slugFromQuery;
+  // O slug vai no parâmetro `s1` do checkout (a Kiwify só repassa src, sck,
+  // utm_*, s1, s2, s3). `s` fica como fallback de links antigos.
+  const tp = body?.TrackingParameters ?? body?.tracking_parameters ?? body?.data?.tracking_parameters ?? body?.tracking ?? {};
+  const slug: string | null = tp?.s1 || tp?.s || slugFromQuery || null;
 
   const buyerEmail: string | undefined = body?.Customer?.email ?? body?.data?.customer?.email;
 

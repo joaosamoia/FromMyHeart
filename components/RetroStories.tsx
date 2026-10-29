@@ -216,7 +216,7 @@ function RetroColorido({ page, compact = false }: { page: Doc; compact?: boolean
   const message = page.message?.trim() ?? "";
   const promises = (page.retroPromises ?? []).map((p) => p.trim()).filter(Boolean).slice(0, 5);
   const music = useRef<MusicApi | null>(null);
-  const coverPhoto = months.find((m) => m.photo)?.photo ?? page.photos?.[0];
+  const coverPhoto = page.retroCover || months.find((m) => m.photo)?.photo || page.photos?.[0];
   const [opened, setOpened] = useState(compact);
 
   return (

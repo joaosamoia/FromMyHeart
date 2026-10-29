@@ -171,7 +171,11 @@ export default function RetroScrapbook({ page, variant, compact = false }: { pag
     () => [...(page.retroMonths ?? [])].filter((m) => m.title?.trim() || m.photo).sort((a, b) => a.month - b.month),
     [page.retroMonths]
   );
-  const photos = useMemo(() => [...months.map((m) => m.photo).filter(Boolean), ...(page.photos ?? [])] as string[], [months, page.photos]);
+  // a foto de capa (1ª etapa do quiz) vem primeiro: é ela que aparece na abertura
+  const photos = useMemo(
+    () => [...new Set([page.retroCover, ...months.map((m) => m.photo), ...(page.photos ?? [])].filter(Boolean))] as string[],
+    [page.retroCover, months, page.photos]
+  );
   const songs = (page.retroSongs ?? []).filter((s) => s.title?.trim()).slice(0, 5);
   const stats = (page.retroStats ?? []).filter((s) => s.value?.trim() && s.label?.trim()).slice(0, 5);
   const promises = (page.retroPromises ?? []).map((p) => p.trim()).filter(Boolean).slice(0, 5);
