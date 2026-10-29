@@ -21,6 +21,7 @@ import { db, storage } from "@/lib/firebase";
 import { emptyCouplePageDoc, type CoupleMoment, type RetroMonth, type RetroSong, type RetroStat } from "@/types/page";
 import CouplePageContent, { THEMES, getTheme, MOMENT_ICONS } from "@/components/CouplePageContent";
 import DatePage, { DATE_TEMPLATES, type DateTemplateId } from "@/components/DatePage";
+import { BR, D_FONT, BRAND_CSS, Blobs, Logo } from "@/components/brand";
 import RetroStories, { RETRO_THEMES, DEFAULT_RETRO_THEME, MESES, RETRO_STAT_IDEAS } from "@/components/RetroStories";
 
 // ⚠️ Troque pelos links reais dos seus produtos na Kiwify.
@@ -47,11 +48,13 @@ const PRECO_CHEIO_RETRO = 59.9;
 const PRECO_CHEIO_DATE = 39.9;
 const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+// Paleta "Paixão" (mesma da Retrospectiva e da home) — ver components/brand.tsx
 const P = {
-  bg: "#fdf1f6", bgTint: "#fbe8f1", ink: "#2c2333", sub: "#a493ad",
-  pink: "#ec4b93", pinkSoft: "#fbe1ec", pinkBorder: "#f26bae",
-  card: "#ffffff", cardBorder: "#f2e0e9", gold: "#c08a2d",
+  bg: BR.cream, bgTint: "#FFE6EE", ink: BR.wine, sub: BR.mutedInk,
+  pink: BR.pink, pinkSoft: BR.blush, pinkBorder: BR.pink,
+  card: "#ffffff", cardBorder: BR.line, gold: BR.orange,
 };
+const STICKER = `0 5px 0 ${BR.wine}`; // sombra "chapada" dos botões principais
 
 const STEPS_FULL = ["Estilo", "Tema", "Nome", "Mensagem", "Fotos", "Música", "Timeline", "Finalizar"] as const;
 const STEPS_DATE = ["Estilo", "Date", "Finalizar"] as const;
@@ -121,6 +124,7 @@ function CriarInner() {
 
   return (
     <div style={{ minHeight: "100vh", background: P.bg, fontFamily: "Inter, system-ui, sans-serif", display: "flex", flexWrap: "wrap" }}>
+      <style>{BRAND_CSS}</style>
       <style>{`
         @keyframes stepIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;} }
         @keyframes beatBig {0%,100%{transform:scale(1);}14%{transform:scale(1.18);}28%{transform:scale(1);}42%{transform:scale(1.12);}70%{transform:scale(1);}}
@@ -130,7 +134,7 @@ function CriarInner() {
         .qinput:focus { border-color:${P.pinkBorder} !important; box-shadow:0 0 0 3px ${P.pinkSoft}; }
         .drop:hover { border-color:${P.pinkBorder} !important; background:${P.pinkSoft} !important; }
         .scr::-webkit-scrollbar{ width:0; }
-        @media (max-width: 900px) { .preview-col { display:none; } }
+        @media (max-width: 900px) { .preview-col { display:none !important; } }
         /* No celular a coluna de preview não cabe, mas o preview é justamente
            o que vende — então em vez de esconder e pronto, damos um botão
            flutuante que abre a versão em tela cheia. */
@@ -148,7 +152,10 @@ function CriarInner() {
 
       {/* ───────── ESQUERDA: QUIZ ───────── */}
       <div style={{ flex: "1 1 440px", minWidth: 320, display: "flex", flexDirection: "column", background: `linear-gradient(180deg, ${P.bgTint}, ${P.bg})`, minHeight: "100vh" }}>
-        <div style={{ padding: "20px 28px 0" }}>
+        <div style={{ padding: "18px 28px 0" }}>
+          <div style={{ marginBottom: 18 }}>
+            <Logo color={P.ink} size={30} />
+          </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 500, color: P.ink }}>
               <Rocket size={16} color={P.pink} /> {CHEER(progress)}
@@ -156,7 +163,7 @@ function CriarInner() {
             <span style={{ fontSize: 13, fontWeight: 600, color: P.pink }}>{progress}%</span>
           </div>
           <div style={{ height: 6, borderRadius: 99, background: P.pinkSoft, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${progress}%`, borderRadius: 99, background: `linear-gradient(90deg,#f871a8,${P.pink})`, transition: "width .5s ease" }} />
+            <div style={{ height: "100%", width: `${progress}%`, borderRadius: 99, background: `linear-gradient(90deg,${P.pink},${BR.orange})`, transition: "width .5s ease" }} />
           </div>
         </div>
 
@@ -185,14 +192,14 @@ function CriarInner() {
               <button
                 onClick={() => setStep((s) => Math.max(0, s - 1))}
                 disabled={stepC === 0}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", color: stepC === 0 ? "#cbbcd0" : P.sub, fontSize: 14, cursor: stepC === 0 ? "default" : "pointer" }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", color: stepC === 0 ? "#D8BFD0" : P.sub, fontSize: 14, cursor: stepC === 0 ? "default" : "pointer" }}
               >
                 {stepC === 0 ? <X size={16} /> : <ArrowLeft size={16} />} {stepC === 0 ? "Cancelar" : "Voltar"}
               </button>
               <button
                 onClick={() => ok && setStep(stepC + 1)}
                 disabled={!ok}
-                style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 26px", borderRadius: 99, border: "none", cursor: ok ? "pointer" : "default", fontSize: 14, fontWeight: 600, color: "#fff", opacity: ok ? 1 : 0.55, background: "linear-gradient(135deg,#f871a8,#ec4b93)", boxShadow: ok ? "0 6px 16px rgba(236,75,147,0.28)" : "none" }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 26px", borderRadius: 99, border: "none", cursor: ok ? "pointer" : "default", fontSize: 14, fontWeight: 600, color: "#fff", opacity: ok ? 1 : 0.55, background: P.pink, boxShadow: ok ? STICKER : "none" }}
               >
                 Continuar <ArrowRight size={16} />
               </button>
@@ -202,16 +209,15 @@ function CriarInner() {
       </div>
 
       {/* ───────── DIREITA: PREVIEW AO VIVO ───────── */}
-      <div className="preview-col" style={{ flex: "1 1 400px", minWidth: 360, display: "flex", flexDirection: "column", alignItems: "center", padding: "30px 20px 40px" }}>
-        <p style={{ textAlign: "center", color: P.sub, fontSize: 13, maxWidth: 280, margin: "6px 0 12px" }}>
-          Você pode ver o resultado ao lado enquanto personaliza
-        </p>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 7, color: P.pink, fontSize: 13, fontWeight: 500 }}>
-          <Eye size={15} /> Veja como está ficando 👇
+      <div className="preview-col" style={{ position: "relative", overflow: "hidden", flex: "1 1 400px", minWidth: 360, display: "flex", flexDirection: "column", alignItems: "center", padding: "30px 20px 40px", background: BR.wine, color: BR.cream }}>
+        <Blobs a={BR.pink} b={BR.orange} opacity={0.4} />
+        <div style={{ position: "relative", fontSize: 12, fontWeight: 800, letterSpacing: "0.22em", color: BR.blush, margin: "6px 0 8px" }}>PREVIEW AO VIVO</div>
+        <div style={{ position: "relative", fontFamily: D_FONT, fontWeight: 800, fontSize: 26, letterSpacing: "-0.02em", textAlign: "center", lineHeight: 1.05 }}>
+          Veja como está ficando
         </div>
-        <ChevronDown size={18} color={P.pinkBorder} style={{ margin: "4px 0 14px" }} />
+        <ChevronDown size={20} color={BR.yellow} style={{ position: "relative", margin: "8px 0 14px" }} />
 
-        <div style={{ width: 280, borderRadius: 44, padding: 10, background: "#1b1b1f", boxShadow: "0 24px 50px -18px rgba(120,40,90,0.45)" }}>
+        <div style={{ position: "relative", width: 280, borderRadius: 44, padding: 10, background: "#120419", boxShadow: "0 30px 60px -20px rgba(0,0,0,0.7)", border: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ position: "relative", borderRadius: 34, overflow: "hidden", height: 540 }}>
             <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 74, height: 20, background: "#0f0f12", borderRadius: 99, zIndex: 3 }} />
             <div className="scr" style={{ position: "absolute", inset: 0, overflowY: "auto" }}>
@@ -228,7 +234,8 @@ function CriarInner() {
 
         <button
           onClick={() => setImmersive(true)}
-          style={{ marginTop: 18, display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 22px", borderRadius: 99, border: `1.5px solid ${P.pinkBorder}`, background: "#fff", cursor: "pointer", fontSize: 13.5, fontWeight: 600, color: P.pink }}
+          className="br-btn"
+          style={{ position: "relative", marginTop: 22, display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 24px", borderRadius: 99, border: "none", background: BR.yellow, cursor: "pointer", fontSize: 14.5, fontWeight: 800, fontFamily: D_FONT, color: BR.wine, boxShadow: `0 5px 0 ${BR.night}` }}
         >
           <Sparkles size={15} /> Ver em tela cheia
         </button>
@@ -246,13 +253,13 @@ function CriarInner() {
           padding: "12px 18px",
           borderRadius: 99,
           border: "none",
-          background: "linear-gradient(135deg,#f871a8,#ec4b93)",
+          background: P.pink,
           color: "#fff",
           fontSize: 13.5,
           fontWeight: 700,
           fontFamily: "inherit",
           cursor: "pointer",
-          boxShadow: "0 10px 24px -8px rgba(236,75,147,.6)",
+          boxShadow: STICKER,
         }}
       >
         <Eye size={16} /> Ver preview
@@ -270,7 +277,7 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
         <div style={{ display: "grid", gap: 12 }}>
           {[
             { id: "classica", Icon: Heart, name: "Clássica", desc: "Contador, fotos, timeline e mensagem", price: "a partir de R$ 24,90" },
-            { id: "retro", Icon: Sparkles, name: "Retrospectiva do Casal", desc: "O ano de vocês em slides, estilo stories 🎞️", price: "R$ 29,90", novo: true },
+            { id: "retro", Icon: Sparkles, name: "Retrospectiva do Casal", desc: "O ano de vocês com linha do tempo mês a mês 🎞️", price: "R$ 29,90", novo: true },
             { id: "date", Icon: LayoutTemplate, name: "Date", desc: "Convite interativo: \"Aceita um date?\" 🐧💙", price: "R$ 19,90" },
           ].map((s: any) => {
             const active = d.style === s.id;
@@ -290,9 +297,9 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
                   <s.Icon size={20} color={P.pink} />
                 </span>
                 <span style={{ flex: 1 }}>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: P.ink, display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ fontFamily: D_FONT, fontSize: 19, fontWeight: 800, letterSpacing: "-0.01em", color: P.ink, display: "flex", alignItems: "center", gap: 8 }}>
                     {s.name}
-                    {s.novo && <span style={{ fontSize: 9.5, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#f871a8,#a03fd0)", padding: "2px 7px", borderRadius: 99, letterSpacing: "0.04em" }}>NOVO</span>}
+                    {s.novo && <span style={{ fontSize: 9.5, fontWeight: 800, color: BR.wine, background: BR.yellow, padding: "2px 7px", borderRadius: 99, letterSpacing: "0.04em" }}>NOVO</span>}
                   </div>
                   <div style={{ fontSize: 13, color: P.sub, marginTop: 1 }}>{s.desc}</div>
                   <div style={{ fontSize: 12, color: P.pink, fontWeight: 600, marginTop: 4 }}>{s.price}</div>
@@ -378,7 +385,7 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
         <Head title="Escreva sua declaração de amor" sub="As palavras que vão emocionar quem você ama." />
         <button
           onClick={() => setD((s: any) => ({ ...s, message: s.style === "retro" ? DECLARACAO_RETRO : DECLARACAO }))}
-          style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 14, borderRadius: 12, border: "none", cursor: "pointer", color: "#fff", fontSize: 14, fontWeight: 600, background: "linear-gradient(135deg,#f45fa8,#a03fd0)", boxShadow: "0 6px 16px rgba(160,63,208,0.28)", marginBottom: 14 }}
+          style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 14, borderRadius: 12, border: "none", cursor: "pointer", color: "#fff", fontSize: 14, fontWeight: 600, background: BR.wine, boxShadow: `0 5px 0 ${BR.pink}`, marginBottom: 14 }}
         >
           <Wand2 size={17} /> Gerar declaração automática
         </button>
@@ -559,10 +566,10 @@ function MusicStep({ d, setD }: any) {
         value={link}
         onChange={(e) => setMusic(e.target.value)}
         placeholder="https://open.spotify.com/track/…"
-        style={{ ...inp, borderColor: linkType ? "#3fae8f" : P.cardBorder, boxShadow: linkType ? "0 0 0 3px rgba(63,174,143,0.14)" : "none" }}
+        style={{ ...inp, borderColor: linkType ? "#1F9D72" : P.cardBorder, boxShadow: linkType ? "0 0 0 3px rgba(63,174,143,0.14)" : "none" }}
       />
       {linkType && (
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "#2f8f78", marginTop: 8 }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "#1F9D72", marginTop: 8 }}>
           <Check size={14} /> Música do {linkType} adicionada!
         </div>
       )}
@@ -586,7 +593,7 @@ function MusicStep({ d, setD }: any) {
                       <button
                         key={song}
                         onClick={() => setMusic(song)}
-                        style={{ display: "flex", alignItems: "center", gap: 9, textAlign: "left", padding: "10px 14px", borderRadius: 99, cursor: "pointer", fontSize: 13.5, fontWeight: active ? 600 : 400, border: "none", color: active ? "#fff" : P.ink, background: active ? "linear-gradient(135deg,#f871a8,#ec4b93)" : "transparent" }}
+                        style={{ display: "flex", alignItems: "center", gap: 9, textAlign: "left", padding: "10px 14px", borderRadius: 99, cursor: "pointer", fontSize: 13.5, fontWeight: active ? 600 : 400, border: "none", color: active ? "#fff" : P.ink, background: active ? P.pink : "transparent" }}
                       >
                         <Music size={14} color={active ? "#fff" : P.pink} /> {song}
                       </button>
@@ -766,7 +773,7 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
     <button
       onClick={onClick}
       disabled={disabled}
-      style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 18, padding: 15, borderRadius: 14, border: "none", cursor: disabled ? "default" : "pointer", fontSize: 15, fontWeight: 600, color: "#fff", opacity: disabled ? 0.5 : 1, background: "linear-gradient(135deg,#f871a8,#ec4b93)", boxShadow: disabled ? "none" : "0 8px 20px rgba(236,75,147,0.32)" }}
+      style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 18, padding: 15, borderRadius: 14, border: "none", cursor: disabled ? "default" : "pointer", fontSize: 15, fontWeight: 600, color: "#fff", opacity: disabled ? 0.5 : 1, background: P.pink, boxShadow: disabled ? "none" : STICKER }}
     >
       {label} <ArrowRight size={17} />
     </button>
@@ -781,8 +788,8 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
           <Heart size={26} color={P.pink} fill={P.pink} />
         </div>
         <input className="qinput" value={d.buyerName} onChange={(e) => setD((s: any) => ({ ...s, buyerName: e.target.value }))} placeholder="Seu nome" style={{ ...inp, marginBottom: 14 }} />
-        <input className="qinput" type="email" value={d.buyerEmail} onChange={(e) => setD((s: any) => ({ ...s, buyerEmail: e.target.value }))} placeholder="seu@email.com" style={{ ...inp, borderColor: emailOk ? "#3fae8f" : P.cardBorder }} />
-        {emailOk && <div style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#2f8f78", margin: "6px 0 8px" }}><Check size={13} /> Email válido!</div>}
+        <input className="qinput" type="email" value={d.buyerEmail} onChange={(e) => setD((s: any) => ({ ...s, buyerEmail: e.target.value }))} placeholder="seu@email.com" style={{ ...inp, borderColor: emailOk ? "#1F9D72" : P.cardBorder }} />
+        {emailOk && <div style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#1F9D72", margin: "6px 0 8px" }}><Check size={13} /> Email válido!</div>}
         <input className="qinput" value={d.buyerPhone} onChange={(e) => setD((s: any) => ({ ...s, buyerPhone: phoneMask(e.target.value) }))} placeholder="(41) 99999-9999" style={{ ...inp, marginTop: 8 }} />
         {bigBtn("Continuar", () => setPhase(1), !contaOk)}
         <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", color: P.sub, fontSize: 14, cursor: "pointer", marginTop: 12 }}>
@@ -869,7 +876,7 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
           </div>
           <div
             style={{
-              fontFamily: "'Playfair Display', Georgia, serif",
+              fontFamily: "'Bricolage Grotesque', Inter, sans-serif",
               fontSize: 46,
               fontWeight: 700,
               color: TD.text,
@@ -896,7 +903,7 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
 
         <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 14, fontSize: 11.5, color: P.sub }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-            <ShieldCheck size={14} color="#2f8f78" /> Pagamento seguro
+            <ShieldCheck size={14} color="#1F9D72" /> Pagamento seguro
           </span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
             <Zap size={14} color="#e0a53a" /> Liberação instantânea
@@ -933,14 +940,14 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
             <button
               key={pl.id}
               onClick={() => setPlan(pl.id)}
-              style={{ position: "relative", textAlign: "left", padding: "20px 18px 18px", borderRadius: 20, cursor: "pointer", transition: "all .2s", transform: active ? "translateY(-2px)" : "none", background: pl.best ? "linear-gradient(180deg,#fff,#fef1f7)" : "#fff", border: `2px solid ${active ? P.pinkBorder : pl.best ? "#f7c9de" : P.cardBorder}`, boxShadow: pl.best ? "0 16px 36px -14px rgba(236,75,147,0.45)" : active ? `0 0 0 3px ${P.pinkSoft}` : "0 2px 10px rgba(120,40,90,0.06)" }}
+              style={{ position: "relative", textAlign: "left", padding: "20px 18px 18px", borderRadius: 20, cursor: "pointer", transition: "all .2s", transform: active ? "translateY(-2px)" : "none", background: pl.best ? "linear-gradient(180deg,#fff,#FFF4F7)" : "#fff", border: `2px solid ${active ? P.pinkBorder : pl.best ? "#FFD9E4" : P.cardBorder}`, boxShadow: pl.best ? STICKER : active ? `0 0 0 3px ${P.pinkSoft}` : "0 2px 10px rgba(120,40,90,0.06)" }}
             >
               {pl.best && (
-                <span style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", fontSize: 10, fontWeight: 800, color: "#fff", background: "linear-gradient(135deg,#f871a8,#c44fd0)", padding: "5px 16px", borderRadius: 99, whiteSpace: "nowrap", boxShadow: "0 4px 12px rgba(196,79,208,0.4)" }}>
+                <span style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", fontSize: 10, fontWeight: 800, color: "#fff", background: BR.wine, padding: "5px 16px", borderRadius: 99, whiteSpace: "nowrap", boxShadow: "none" }}>
                   💕 MAIS ESCOLHIDO
                 </span>
               )}
-              <span style={{ position: "absolute", top: 18, right: 16, width: 24, height: 24, borderRadius: "50%", border: `2px solid ${active ? P.pink : "#d9c8d6"}`, background: active ? P.pink : "transparent", display: "grid", placeItems: "center" }}>
+              <span style={{ position: "absolute", top: 18, right: 16, width: 24, height: 24, borderRadius: "50%", border: `2px solid ${active ? P.pink : "#E7C9D6"}`, background: active ? P.pink : "transparent", display: "grid", placeItems: "center" }}>
                 {active && <Check size={14} color="#fff" strokeWidth={3} />}
               </span>
 
@@ -961,16 +968,16 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 14, color: "#c9a2b4", textDecoration: "line-through" }}>{pl.from}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#2f8f78", background: "#d8f2e8", padding: "2px 7px", borderRadius: 6 }}>-50%</span>
+                <span style={{ fontSize: 14, color: "#B79AB8", textDecoration: "line-through" }}>{pl.from}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#1F9D72", background: "#FFE7A8", padding: "2px 7px", borderRadius: 6 }}>-50%</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: P.pink, background: P.pinkSoft, padding: "2px 8px", borderRadius: 99 }}>Economize {pl.save}</span>
               </div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 }}>
                 <span style={{ fontSize: 13, color: P.sub }}>por</span>
-                <span style={{ fontSize: 34, fontWeight: 700, color: P.ink, fontFamily: "'Playfair Display', Georgia, serif" }}>{pl.price}</span>
+                <span style={{ fontSize: 34, fontWeight: 700, color: P.ink, fontFamily: "'Bricolage Grotesque', Inter, sans-serif" }}>{pl.price}</span>
               </div>
 
-              <div style={{ height: 1, background: pl.best ? "#f6d8e6" : P.cardBorder, margin: "14px 0" }} />
+              <div style={{ height: 1, background: pl.best ? "#F3D3E0" : P.cardBorder, margin: "14px 0" }} />
               <div style={{ display: "grid", gap: 9 }}>
                 {pl.feats.map((f) => (
                   <div key={f} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, color: P.ink }}>
@@ -1015,7 +1022,7 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
       </div>
 
       <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 16, margin: "14px 0", fontSize: 11.5, color: P.sub }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><ShieldCheck size={14} color="#2f8f78" /> Pagamento 100% seguro</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><ShieldCheck size={14} color="#1F9D72" /> Pagamento 100% seguro</span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Zap size={14} color="#e0a53a" /> Liberação instantânea</span>
       </div>
 
@@ -1077,7 +1084,7 @@ function RetroCasalStep({ d, setD, set }: any) {
           </select>
         </label>
       </div>
-      <Hint>A data vira o contador de “dias juntos” do ano — o slide que mais emociona.</Hint>
+      <Hint>A data vira o contador de “dias juntos” do ano — a parte que mais emociona.</Hint>
     </>
   );
 }
@@ -1085,7 +1092,7 @@ function RetroCasalStep({ d, setD, set }: any) {
 function RetroCoresStep({ d, setD }: any) {
   return (
     <>
-      <Head title="Escolha as cores" sub="Cada slide ganha uma cor da paleta, no estilo das retrospectivas de fim de ano." />
+      <Head title="Escolha as cores" sub="Cada parte da página ganha uma cor da paleta, no estilo das retrospectivas de fim de ano." />
       <div style={{ display: "grid", gap: 12 }}>
         {Object.entries(RETRO_THEMES).map(([id, t]) => {
           const active = d.theme === id;
@@ -1135,7 +1142,7 @@ function RetroMesesStep({ d, setD }: any) {
 
   return (
     <>
-      <Head title="Um momento por mês" sub="Escolha os meses que marcaram o ano. Não precisa preencher todos." />
+      <Head title="A linha do tempo do ano" sub="Escolha os meses que marcaram vocês. Não precisa preencher todos." />
       {!d.slug && <p style={{ color: "#c0392b", fontSize: 13, marginBottom: 10 }}>Volte e defina o link antes de subir fotos.</p>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 16 }}>
         {MESES.map((nome, m) => {
@@ -1189,7 +1196,7 @@ function RetroMesesStep({ d, setD }: any) {
           )}
         </div>
       )}
-      <Hint>{months.filter((m) => m.title.trim() || m.photo).length} mês(es) preenchido(s) · cada um vira um slide</Hint>
+      <Hint>{months.filter((m) => m.title.trim() || m.photo).length} mês(es) preenchido(s) · cada um entra na linha do tempo</Hint>
     </>
   );
 }
@@ -1206,7 +1213,7 @@ function RetroMusicasStep({ d, setD }: any) {
       <Head title="O top 5 do casal" sub="As músicas que foram a trilha sonora do ano de vocês." />
       {songs.map((s, i) => (
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 12, padding: 12, borderRadius: 14, background: "#fff", border: `1px solid ${P.cardBorder}` }}>
-          <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: 22, color: P.pink, width: 20, lineHeight: "40px" }}>{i + 1}</span>
+          <span style={{ fontFamily: "'Bricolage Grotesque', Inter, sans-serif", fontWeight: 700, fontSize: 22, color: P.pink, width: 20, lineHeight: "40px" }}>{i + 1}</span>
           <div style={{ flex: 1, display: "grid", gap: 8 }}>
             <input className="qinput" value={s.title} onChange={(e) => update(i, { title: e.target.value })} placeholder="Música - Artista" style={inp} />
             <input className="qinput" value={s.url ?? ""} onChange={(e) => update(i, { url: e.target.value })} placeholder="Link do Spotify ou YouTube (opcional, vira player)" style={{ ...inp, fontSize: 12.5, padding: "9px 12px" }} />
@@ -1314,7 +1321,7 @@ function RetroPrintsStep({ d, setD }: any) {
         {slot("retroWrappedB", d.retroNameB)}
         {slot("retroWrappedA", d.retroNameA)}
       </div>
-      <Hint>Ainda não saiu a retrospectiva do app de música? Pula essa etapa — o slide só aparece se tiver print.</Hint>
+      <Hint>Ainda não saiu a retrospectiva do app de música? Pula essa etapa — essa parte só aparece se tiver print.</Hint>
     </>
   );
 }
@@ -1322,9 +1329,9 @@ function RetroPrintsStep({ d, setD }: any) {
 function RetroCheckout({ d, saving, error, finish, onBack, bigBtn }: any) {
   const nMeses = (d.retroMonths ?? []).filter((m: RetroMonth) => m.title.trim() || m.photo).length;
   const inclui = [
-    "Slides em tela cheia, estilo stories",
-    `Contador de dias juntos em ${d.retroYear}`,
-    nMeses ? `${nMeses} momento(s) do ano com foto` : "Um momento por mês com foto",
+    "Página com o visual de retrospectiva de fim de ano",
+    `Contador de dias juntos em ${d.retroYear}, ao vivo`,
+    nMeses ? `Linha do tempo com ${nMeses} momento(s) do ano` : "Linha do tempo com um momento por mês",
     "Top 5 músicas do casal com player",
     "Card final pra postar no story",
     "QR Code pra imprimir e presentear",
@@ -1334,13 +1341,13 @@ function RetroCheckout({ d, saving, error, finish, onBack, bigBtn }: any) {
       <h2 style={{ ...h2, textAlign: "center" }}>
         O ano de <span style={{ color: P.pink }}>{d.retroNameA || "vocês"}</span> e {d.retroNameB || "você"} tá pronto pra ser revivido
       </h2>
-      <div style={{ marginTop: 22, padding: "22px 20px 20px", borderRadius: 20, textAlign: "center", background: "linear-gradient(160deg,#2B0B3F,#6A1B4D 60%,#E8336D)", color: "#FFF4F7", boxShadow: "0 16px 36px -14px rgba(232,51,109,0.55)" }}>
+      <div style={{ marginTop: 22, padding: "22px 20px 20px", borderRadius: 20, textAlign: "center", background: "linear-gradient(160deg,#2B0B3F,#6A1B4D 60%,#E8336D)", color: "#FFF4F7", boxShadow: STICKER }}>
         <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.6, opacity: 0.8 }}>RETROSPECTIVA DO CASAL · PAGAMENTO ÚNICO</div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, marginTop: 8 }}>
           <span style={{ fontSize: 15, opacity: 0.7, textDecoration: "line-through" }}>{fmtBRL(PRECO_CHEIO_RETRO)}</span>
           <span style={{ fontSize: 11, fontWeight: 800, background: "rgba(0,0,0,.3)", padding: "3px 9px", borderRadius: 99 }}>-50%</span>
         </div>
-        <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 46, fontWeight: 700, lineHeight: 1.05, margin: "2px 0 4px" }}>{fmtBRL(PRICES.retro)}</div>
+        <div style={{ fontFamily: "'Bricolage Grotesque', Inter, sans-serif", fontSize: 46, fontWeight: 700, lineHeight: 1.05, margin: "2px 0 4px" }}>{fmtBRL(PRICES.retro)}</div>
         <div style={{ fontSize: 12.5, opacity: 0.8 }}>o link fica no ar pra sempre</div>
         <div style={{ height: 1, background: "rgba(255,255,255,.2)", margin: "16px 0 14px" }} />
         <div style={{ display: "grid", gap: 8, textAlign: "left" }}>
@@ -1352,7 +1359,7 @@ function RetroCheckout({ d, saving, error, finish, onBack, bigBtn }: any) {
         </div>
       </div>
       <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 14, fontSize: 11.5, color: P.sub }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><ShieldCheck size={14} color="#2f8f78" /> Pagamento seguro</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><ShieldCheck size={14} color="#1F9D72" /> Pagamento seguro</span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Zap size={14} color="#e0a53a" /> Liberação instantânea</span>
       </div>
       {error && <p style={{ color: "#c0392b", fontSize: 13, textAlign: "center", marginTop: 10 }}>{error}</p>}
@@ -1414,7 +1421,7 @@ function ImmersivePreview({ d, onClose }: any) {
 
   if (d.style === "retro")
     return (
-      <div style={{ position: "fixed", inset: 0, zIndex: 9999 }}>
+      <div className="scr" style={{ position: "fixed", inset: 0, zIndex: 9999, overflowY: "auto" }}>
         <RetroStories page={d} />
         <button onClick={onClose} aria-label="Fechar" style={{ position: "fixed", top: 16, right: 16, zIndex: 60, width: 42, height: 42, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.45)", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center", backdropFilter: "blur(4px)" }}>
           <X size={20} />
@@ -1435,7 +1442,7 @@ function ImmersivePreview({ d, onClose }: any) {
       <div style={{ position: "absolute", inset: 0, zIndex: 4, background: th.screen, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 28px", textAlign: "center", transform: opened ? "translateY(-110%)" : "none", opacity: opened ? 0 : 1, transition: "transform .9s cubic-bezier(.7,0,.25,1), opacity .7s ease", pointerEvents: opened ? "none" : "auto" }}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "60%", background: `radial-gradient(60% 60% at 50% 20%, ${th.glow}, transparent)`, pointerEvents: "none" }} />
         <Heart size={76} color={th.accent} fill={th.accent} style={{ animation: "beatBig 1.6s ease-in-out infinite", position: "relative" }} />
-        <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 30, fontWeight: 600, color: th.ink, marginTop: 22, lineHeight: 1.2, position: "relative" }}>
+        <div style={{ fontFamily: "'Bricolage Grotesque', Inter, sans-serif", fontSize: 30, fontWeight: 600, color: th.ink, marginTop: 22, lineHeight: 1.2, position: "relative" }}>
           {d.title || "Para você"}
         </div>
         <div style={{ fontSize: 14, color: th.sub, marginTop: 8, position: "relative" }}>uma surpresa preparada com muito amor</div>
@@ -1465,7 +1472,7 @@ function ToggleCard({ active, onClick, icon, title, desc, mb = 16 }: any) {
       onClick={onClick}
       style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 12, padding: 14, borderRadius: 14, cursor: "pointer", marginTop: 16, marginBottom: mb, border: active ? `2px solid ${P.pinkBorder}` : `1.5px dashed ${P.pinkBorder}`, background: active ? P.pinkSoft : "#fff", boxShadow: active ? `0 0 0 3px ${P.pinkSoft}` : "none" }}
     >
-      <span style={{ flexShrink: 0, width: 24, height: 24, borderRadius: 7, border: `2px solid ${active ? P.pink : "#d9c8d6"}`, background: active ? P.pink : "transparent", display: "grid", placeItems: "center" }}>
+      <span style={{ flexShrink: 0, width: 24, height: 24, borderRadius: 7, border: `2px solid ${active ? P.pink : "#E7C9D6"}`, background: active ? P.pink : "transparent", display: "grid", placeItems: "center" }}>
         {active && <Check size={14} color="#fff" strokeWidth={3} />}
       </span>
       <span style={{ flex: 1 }}>
@@ -1476,7 +1483,7 @@ function ToggleCard({ active, onClick, icon, title, desc, mb = 16 }: any) {
   );
 }
 
-const h2: React.CSSProperties = { fontFamily: "'Playfair Display', Georgia, serif", fontSize: 26, fontWeight: 600, color: P.ink, margin: "0 0 8px", lineHeight: 1.2 };
+const h2: React.CSSProperties = { fontFamily: D_FONT, fontSize: 30, fontWeight: 800, letterSpacing: "-0.025em", color: P.ink, margin: "0 0 8px", lineHeight: 1.05 };
 const subTxt: React.CSSProperties = { fontSize: 14.5, color: P.sub, margin: 0, lineHeight: 1.45 };
 const lbl: React.CSSProperties = { display: "block", marginBottom: 16 };
 const lblTxt: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 500, color: P.ink, marginBottom: 7 };

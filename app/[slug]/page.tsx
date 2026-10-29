@@ -75,15 +75,15 @@ export default async function CouplePage({
           textAlign: "center",
           padding: 24,
           fontFamily: "Inter, sans-serif",
-          background: "#fdf1f6",
+          background: "#2B0B3F",
         }}
       >
         <div>
           <div style={{ fontSize: 40, marginBottom: 12 }}>⏳</div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "#2c2333" }}>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: "#FFF4F7", fontFamily: "'Bricolage Grotesque', Inter, sans-serif", letterSpacing: "-0.02em" }}>
             Esta página ainda não foi ativada
           </h1>
-          <p style={{ color: "#a493ad", marginTop: 8, maxWidth: 320 }}>
+          <p style={{ color: "#FFD9E4", marginTop: 8, maxWidth: 320 }}>
             Assim que o pagamento for confirmado, ela é liberada automaticamente.
           </p>
         </div>
