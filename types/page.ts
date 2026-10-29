@@ -52,8 +52,7 @@ export interface CouplePageDoc {
   retroMonths?: RetroMonth[]; // um momento por mês (só os meses preenchidos)
   retroSongs?: RetroSong[]; // top 5 do casal
   retroStats?: RetroStat[]; // "números do casal" (até 4)
-  retroWrappedA?: string; // print da retrospectiva musical de A (opcional)
-  retroWrappedB?: string; // print da retrospectiva musical de B (opcional)
+  retroPromises?: string[]; // "promessas pro próximo ano" (até 5)
 
   // dados de contato do comprador (não exibidos na página pública)
   buyerName: string;
@@ -103,6 +102,5 @@ export const emptyCouplePageDoc = (): Omit<
   retroMonths: [],
   retroSongs: [],
   retroStats: [],
-  retroWrappedA: "",
-  retroWrappedB: "",
+  retroPromises: [],
 });
