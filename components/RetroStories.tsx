@@ -68,10 +68,10 @@ export const RETRO_THEMES: Record<string, { name: string; preview: string; swatc
 };
 // Visuais de colagem (scrapbook) — renderizados por components/RetroScrapbook.
 export const SCRAP_THEMES: Record<string, { name: string; desc: string; preview: string }> = {
-  "scrap-rosa": { name: "Colagem Rosa", desc: "letras recortadas e fotos dentro do ano", preview: "linear-gradient(90deg,#F5EEE4 55%,#EEA3B5 55%)" },
   "scrap-kraft": { name: "Kraft Polaroid", desc: "papel pardo, polaroids e fita adesiva", preview: "linear-gradient(135deg,#C9A378,#A97F55)" },
+  "scrap-sol": { name: "Colagem Sol", desc: "cores alegres, letras recortadas e o ano com as fotos de vocês", preview: "linear-gradient(90deg,#FBF4E6 55%,#F6C453 55%)" },
 };
-export const DEFAULT_RETRO_THEME = "scrap-rosa";
+export const DEFAULT_RETRO_THEME = "scrap-kraft";
 const getRetroTheme = (id?: string) => RETRO_THEMES[id ?? ""] ?? RETRO_THEMES["retro-paixao"];
 
 export const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -193,8 +193,9 @@ function useCountUp(target: number, active: boolean, ms = 1600) {
 }
 
 export default function RetroStories({ page, compact = false }: { page: Doc; compact?: boolean }) {
-  if (page.theme === "scrap-kraft") return <RetroScrapbook page={page} variant="kraft" compact={compact} />;
-  if (!page.theme || !RETRO_THEMES[page.theme]) return <RetroScrapbook page={page} variant="rosa" compact={compact} />;
+  // "scrap-rosa" e "scrap-creme" (versões antigas) caem na Colagem Sol
+  if (page.theme === "scrap-sol" || page.theme === "scrap-creme" || page.theme === "scrap-rosa") return <RetroScrapbook page={page} variant="sol" compact={compact} />;
+  if (!page.theme || !RETRO_THEMES[page.theme]) return <RetroScrapbook page={page} variant="kraft" compact={compact} />;
   return <RetroColorido page={page} compact={compact} />;
 }
 
