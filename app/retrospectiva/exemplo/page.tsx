@@ -7,8 +7,8 @@
 // nomes de arquivo (foto-1.jpg … foto-6.jpg).
 //
 // Tema pela URL (pra testar os formatos nos anúncios):
-//   /retrospectiva/exemplo                    → Colagem Rosa (padrão)
-//   /retrospectiva/exemplo?tema=scrap-kraft   → Kraft Polaroid
+//   /retrospectiva/exemplo                    → Kraft Polaroid (padrão)
+//   /retrospectiva/exemplo?tema=scrap-creme   → Papel Creme
 //   /retrospectiva/exemplo?tema=retro-paixao  → Colorido
 
 import type { Metadata } from "next";
@@ -24,7 +24,7 @@ const ano = new Date().getFullYear();
 
 const DEMO: Partial<CouplePageDoc> = {
   style: "retro",
-  theme: "scrap-rosa",
+  theme: "scrap-kraft",
   retroYear: ano,
   retroNameA: "Julia",
   retroNameB: "João",

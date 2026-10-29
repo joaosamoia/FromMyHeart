@@ -2,13 +2,13 @@
 
 // components/RetroScrapbook.tsx
 // Retrospectiva do Casal no estilo COLAGEM (scrapbook) — papel, fita adesiva,
-// polaroids, letras recortadas e caneta. Duas variações, pra testar em anúncio:
+// polaroids e caneta. Duas variações neutras, pra testar em anúncio:
 //
-//   "scrap-rosa"  → Colagem Rosa: papel creme + papel rosa rasgado, nomes com
-//                   letras recortadas de revista, o ano com fotos DENTRO dos
-//                   números e adesivos de coração.
-//   "scrap-kraft" → Kraft Polaroid: papel pardo, polaroids com fita, tiras de
-//                   papel rasgado e legenda escrita à mão.
+//   "scrap-kraft" → Kraft Polaroid: papel pardo, polaroid grande com legenda
+//                   à mão, polaroids nos cantos e tiras de papel rasgado.
+//   "scrap-creme" → Papel Creme: a mesma linguagem em papel creme/linho, com
+//                   o ano preenchido pelas fotos do casal na abertura.
+//   ("scrap-rosa" era a versão antiga, mais enfeitada — hoje cai no Creme.)
 //
 // É uma página de rolagem (igual à Clássica): capa "toque para abrir" →
 // abertura → contador → linha do tempo → mixtape (top 5) → recibo do ano
@@ -24,7 +24,7 @@ import type { CouplePageDoc, RetroSong, RetroStat } from "@/types/page";
 import MusicDock, { type MusicApi } from "@/components/MusicDock";
 
 type Doc = Partial<CouplePageDoc> & { slug?: string };
-export type ScrapVariant = "rosa" | "kraft";
+export type ScrapVariant = "creme" | "kraft";
 
 const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
@@ -38,16 +38,16 @@ const BODY = "Inter, system-ui, sans-serif";
 const NOISE = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.25  0 0 0 0 0.18  0 0 0 0 0.1  0 0 0 .13 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")`;
 
 const LOOK = {
-  rosa: {
-    paper: "#F5EEE4",
-    paper2: "#EEA3B5",
-    paper2Dark: "#E2899E",
-    ink: "#3A2626",
-    soft: "#7A5A5A",
-    accent: "#D9476A",
-    tape: "rgba(247, 205, 214, .85)",
-    tape2: "rgba(240, 228, 205, .85)",
-    heart: "#E8587A",
+  creme: {
+    paper: "#F4EFE7",
+    paper2: "#E8E0D3",
+    paper2Dark: "#D8CEBF",
+    ink: "#2F2A25",
+    soft: "#6E645A",
+    accent: "#B4583F",
+    tape: "rgba(226, 214, 190, .88)",
+    tape2: "rgba(212, 198, 178, .88)",
+    heart: "#B9503D",
   },
   kraft: {
     paper: "#C9A378",
@@ -61,7 +61,7 @@ const LOOK = {
     heart: "#C9504A",
   },
 };
-type Look = (typeof LOOK)["rosa"];
+type Look = (typeof LOOK)["kraft"];
 
 // números "aleatórios" mas sempre iguais pro mesmo casal (nada pula a cada render)
 function rng(seed: string) {
@@ -182,52 +182,52 @@ export default function RetroScrapbook({ page, variant, compact = false }: { pag
   const paperBg = (color: string): React.CSSProperties => ({ backgroundColor: color, backgroundImage: NOISE });
 
   return (
-    <div style={{ minHeight: compact ? "100%" : "100vh", ...paperBg(variant === "kraft" ? L.paper2Dark : "#E9DFD2"), fontFamily: BODY, color: L.ink, overflowX: "hidden", ...(opened ? {} : { height: "100vh", overflow: "hidden" }) }}>
+    <div style={{ minHeight: compact ? "100%" : "100vh", ...paperBg(L.paper2Dark), fontFamily: BODY, color: L.ink, overflowX: "hidden", ...(opened ? {} : { height: "100vh", overflow: "hidden" }) }}>
       <style>{CSS}</style>
       <div style={{ maxWidth: compact ? "none" : 520, margin: "0 auto", containerType: "inline-size", position: "relative", boxShadow: compact ? "none" : "0 0 40px rgba(0,0,0,.25)" }}>
-        {variant === "rosa" ? (
-          <HeroRosa L={L} year={year} nameA={nameA} nameB={nameB} photos={photos} opened={opened} compact={compact} />
+        {variant === "creme" ? (
+          <HeroCreme L={L} year={year} nameA={nameA} nameB={nameB} photos={photos} opened={opened} compact={compact} />
         ) : (
           <HeroKraft L={L} year={year} nameA={nameA} nameB={nameB} photos={photos} opened={opened} compact={compact} />
         )}
 
         {days && (
-          <Sheet L={L} bg={variant === "rosa" ? L.paper2 : L.paper} edge>
+          <Sheet L={L} bg={variant === "creme" ? L.paper2 : L.paper} edge>
             <Counter L={L} days={days} year={year} startDate={page.startDate!} variant={variant} />
           </Sheet>
         )}
 
         {months.length > 0 && (
-          <Sheet L={L} bg={variant === "rosa" ? L.paper : L.paper2} edge>
+          <Sheet L={L} bg={variant === "creme" ? L.paper : L.paper2} edge>
             <Timeline L={L} months={months} year={year} variant={variant} />
           </Sheet>
         )}
 
         {songs.length > 0 && (
-          <Sheet L={L} bg={variant === "rosa" ? L.paper2 : L.paper} edge>
+          <Sheet L={L} bg={variant === "creme" ? L.paper2 : L.paper} edge>
             <Mixtape L={L} songs={songs} year={year} nameA={nameA} nameB={nameB} />
           </Sheet>
         )}
 
         {stats.length > 0 && (
-          <Sheet L={L} bg={variant === "rosa" ? L.paper : L.paper2} edge>
+          <Sheet L={L} bg={variant === "creme" ? L.paper : L.paper2} edge>
             <Receipt L={L} stats={stats} year={year} nameA={nameA} nameB={nameB} />
           </Sheet>
         )}
 
         {promises.length > 0 && (
-          <Sheet L={L} bg={variant === "rosa" ? L.paper2 : L.paper} edge>
+          <Sheet L={L} bg={variant === "creme" ? L.paper2 : L.paper} edge>
             <Promises L={L} promises={promises} year={year} />
           </Sheet>
         )}
 
         {message && (
-          <Sheet L={L} bg={variant === "rosa" ? L.paper : L.paper2} edge>
+          <Sheet L={L} bg={variant === "creme" ? L.paper : L.paper2} edge>
             <Letter L={L} message={message} nameA={nameA} nameB={nameB} />
           </Sheet>
         )}
 
-        <Sheet L={L} bg={variant === "rosa" ? L.paper2 : L.paper} edge>
+        <Sheet L={L} bg={variant === "creme" ? L.paper2 : L.paper} edge>
           <Final L={L} year={year} slug={page.slug} photo={photos[0]} qrPhoto={page.qrPaid ? page.qrPhoto : undefined} />
         </Sheet>
         {!compact && songs[0] && <div style={{ height: 140 }} />}
@@ -260,7 +260,7 @@ function Cover({ L, variant, year, nameA, nameB, opened, onOpen, photo }: { L: L
         zIndex: 50,
         border: "none",
         cursor: "pointer",
-        backgroundColor: variant === "rosa" ? L.paper2 : L.paper,
+        backgroundColor: variant === "creme" ? L.paper2 : L.paper,
         backgroundImage: NOISE,
         color: L.ink,
         display: "flex",
@@ -298,37 +298,43 @@ function Cover({ L, variant, year, nameA, nameB, opened, onOpen, photo }: { L: L
 }
 
 // ───────── aberturas ─────────
-function HeroRosa({ L, year, nameA, nameB, photos, opened, compact }: { L: Look; year: number; nameA: string; nameB: string; photos: string[]; opened: boolean; compact: boolean }) {
+function HeroCreme({ L, year, nameA, nameB, photos, opened, compact }: { L: Look; year: number; nameA: string; nameB: string; photos: string[]; opened: boolean; compact: boolean }) {
   const [ref, inView] = useInView<HTMLElement>();
   const on = opened && inView;
+  const p = (i: number) => (photos.length ? photos[i % photos.length] : undefined);
   return (
     <section ref={ref} className={on ? "sc-on" : undefined} style={{ position: "relative", minHeight: compact ? 560 : "100svh", overflow: "hidden", backgroundColor: L.paper, backgroundImage: NOISE, padding: "14cqw 6cqw 12cqw", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-      {/* papel rosa rasgado no lado direito */}
-      <div style={{ position: "absolute", top: 0, bottom: 0, right: 0, width: "44%", backgroundColor: L.paper2, backgroundImage: NOISE, clipPath: tornV(nameA + year, 6), boxShadow: "-2px 0 0 rgba(255,255,255,.6)" }} />
-      <div style={{ position: "absolute", top: 0, bottom: 0, right: "1%", width: "45.5%", background: "rgba(255,255,255,.55)", clipPath: tornV(nameA + year, 6), zIndex: 0, mixBlendMode: "soft-light" }} />
+      {/* tiras de papel rasgado (tom linho, discreto) */}
+      <TornStrip color={L.paper2} style={{ top: "4cqw", right: "-14cqw", width: "64cqw", transform: "rotate(9deg)" }} seed="c" />
+      <TornStrip color={L.paper2} style={{ bottom: "6cqw", left: "-16cqw", width: "62cqw", transform: "rotate(-10deg)" }} seed="d" />
+
+      {/* polaroids de canto */}
+      <div className="sc-in" style={{ ["--d" as string]: "600ms", position: "absolute", right: "-7cqw", top: "9cqw" }}>
+        <Polaroid src={p(1)} w="26cqw" rot={8} L={L} />
+      </div>
+      <div className="sc-in" style={{ ["--d" as string]: "700ms", position: "absolute", left: "-7cqw", bottom: "16cqw" }}>
+        <Polaroid src={p(2)} w="25cqw" rot={-8} L={L} />
+      </div>
 
       <div style={{ position: "relative", width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <div className="sc-in" style={{ ["--d" as string]: "0ms", position: "relative", padding: "2.6cqw 6cqw", background: "#FFFDF8", boxShadow: "0 1cqw 2.5cqw rgba(0,0,0,.12)", transform: "rotate(-1.5deg)", fontFamily: HAND, fontSize: "7cqw", lineHeight: 1 }}>
-          <Tape L={L} w="16cqw" rot={-8} style={{ left: "-5cqw", top: "-2cqw" }} />
+        <div className="sc-in" style={{ ["--d" as string]: "0ms", position: "relative", padding: "2.4cqw 6cqw", background: "#FFFDF8", boxShadow: "0 1cqw 2.5cqw rgba(0,0,0,.12)", transform: "rotate(-1.5deg)", fontFamily: TYPE, fontSize: "4.2cqw", letterSpacing: "0.04em" }}>
+          <Tape L={L} w="15cqw" rot={-6} style={{ left: "-4cqw", top: "-2cqw" }} />
           a retrospectiva de
         </div>
 
-        <div className="sc-in" style={{ ["--d" as string]: "150ms", marginTop: "7cqw" }}>
-          <Ransom text={`${nameA} & ${nameB}`} seed={nameA + nameB} L={L} size={8.6} />
+        <div className="sc-in" style={{ ["--d" as string]: "150ms", marginTop: "5cqw", fontFamily: HAND, fontWeight: 700, fontSize: "12cqw", lineHeight: 1, textAlign: "center" }}>
+          {nameA} <span style={{ color: L.accent }}>&amp;</span> {nameB}
         </div>
 
-        <div className="sc-pop" style={{ ["--d" as string]: "350ms", position: "relative", marginTop: "6cqw" }}>
+        <div className="sc-pop" style={{ ["--d" as string]: "350ms", marginTop: "5cqw" }}>
           <PhotoYear year={year} photos={photos} L={L} />
-          <Heart color={L.heart} size="11cqw" style={{ position: "absolute", top: "-6cqw", left: "38%", transform: "rotate(-12deg)" }} />
-          <Heart color="#9F7AE0" size="10cqw" style={{ position: "absolute", bottom: "-3cqw", left: "-3cqw", transform: "rotate(-18deg)" }} />
-          <Heart color={L.heart} size="9cqw" style={{ position: "absolute", top: "-2cqw", right: "-2cqw", transform: "rotate(14deg)" }} />
         </div>
 
-        <div className="sc-in" style={{ ["--d" as string]: "650ms", position: "relative", marginTop: "10cqw", width: "78cqw", transform: "rotate(-1deg)" }}>
-          <Tape L={L} w="20cqw" rot={-30} style={{ left: "-6cqw", bottom: "-1cqw" }} color={L.tape2} />
-          <Lined style={{ padding: "5cqw 5cqw 4cqw 9cqw", boxShadow: "0 1.5cqw 4cqw rgba(0,0,0,.12)" }}>
+        <div className="sc-in" style={{ ["--d" as string]: "650ms", position: "relative", marginTop: "9cqw", width: "70cqw", transform: "rotate(-1deg)" }}>
+          <Clip L={L} style={{ top: "-4cqw", right: "10cqw" }} />
+          <Lined style={{ padding: "5cqw 5cqw 4cqw 9cqw", boxShadow: "0 1.5cqw 4cqw rgba(0,0,0,.14)" }}>
             <div style={{ fontFamily: HAND, fontSize: "5.6cqw", lineHeight: "7cqw", color: L.ink }}>
-              Tudo o que vivemos esse ano, numa página só. ♥
+              Tudo o que vivemos esse ano, numa página só.<span style={{ color: L.accent }}> ♥</span>
             </div>
           </Lined>
         </div>
@@ -423,7 +429,7 @@ function Counter({ L, days, year, startDate, variant }: { L: Look; days: NonNull
               [t.mo, t.mo === 1 ? "mês" : "meses", 2],
               [t.da, t.da === 1 ? "dia" : "dias", -1.5],
             ].map(([v, l, r]) => (
-              <div key={l as string} style={{ position: "relative", width: "21cqw", padding: "3.5cqw 0 2.5cqw", background: variant === "rosa" ? "#FFFDF8" : "#F6EEDC", boxShadow: "0 1cqw 2.5cqw rgba(0,0,0,.15)", transform: `rotate(${r}deg)` }}>
+              <div key={l as string} style={{ position: "relative", width: "21cqw", padding: "3.5cqw 0 2.5cqw", background: variant === "creme" ? "#FFFDF8" : "#F6EEDC", boxShadow: "0 1cqw 2.5cqw rgba(0,0,0,.15)", transform: `rotate(${r}deg)` }}>
                 <Tape L={L} w="10cqw" rot={(r as number) * -2} style={{ top: "-2.2cqw", left: "5.5cqw" }} />
                 <div style={{ fontFamily: SERIF, fontSize: "10cqw", lineHeight: 1 }}>{v as number}</div>
                 <div style={{ fontFamily: HAND, fontSize: "5cqw", color: L.soft }}>{l as string}</div>
@@ -453,7 +459,7 @@ function Timeline({ L, months, year, variant }: { L: Look; months: { month: numb
       </div>
       <div style={{ position: "relative", marginTop: "8cqw" }}>
         {/* barbante */}
-        <div style={{ position: "absolute", top: 0, bottom: 0, left: "50%", width: 0, borderLeft: `0.6cqw dashed ${variant === "rosa" ? "rgba(58,38,38,.35)" : "rgba(51,36,26,.45)"}`, transform: "translateX(-50%)" }} />
+        <div style={{ position: "absolute", top: 0, bottom: 0, left: "50%", width: 0, borderLeft: `0.6cqw dashed ${variant === "creme" ? "rgba(58,38,38,.35)" : "rgba(51,36,26,.45)"}`, transform: "translateX(-50%)" }} />
         {months.map((m, i) => (
           <TimelineItem key={`${m.month}-${i}`} L={L} m={m} i={i} />
         ))}
@@ -723,60 +729,8 @@ function Polaroid({ src, w, rot, L, children, bigCaption, qr, qrPhoto }: { src?:
   );
 }
 
-function TornStrip({ style, seed }: { style?: React.CSSProperties; seed: string }) {
-  return <div aria-hidden style={{ position: "absolute", height: "12cqw", background: "#F8F4EC", clipPath: tornBoth(seed), boxShadow: "0 1cqw 2cqw rgba(0,0,0,.15)", ...style }} />;
-}
-
-// letras recortadas de revista
-function Ransom({ text, seed, L, size }: { text: string; seed: string; L: Look; size: number }) {
-  const r = rng(seed);
-  const styles = [
-    { bg: "#FFFDF8", fg: L.ink, font: SERIF },
-    { bg: L.ink, fg: "#FFF8EE", font: BOLD },
-    { bg: "#F7C9D4", fg: L.ink, font: TYPE },
-    { bg: "#FFFFFF", fg: L.accent, font: SERIF },
-    { bg: "#EFE4CF", fg: L.ink, font: BOLD },
-    { bg: L.accent, fg: "#FFF", font: SERIF },
-  ];
-  const words = text.split(" ");
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: `${size * 0.45}cqw ${size * 0.6}cqw`, maxWidth: "88cqw" }}>
-      {words.map((w, wi) =>
-        w === "&" ? (
-          <span key={wi} style={{ fontFamily: HAND, fontWeight: 700, fontSize: `${size * 1.25}cqw`, color: L.accent, lineHeight: 1, alignSelf: "center" }}>
-            &amp;
-          </span>
-        ) : (
-          <span key={wi} style={{ display: "inline-flex", gap: `${size * 0.08}cqw` }}>
-            {Array.from(w).map((ch, ci) => {
-              const s = styles[Math.floor(r() * styles.length)];
-              const rot = (r() - 0.5) * 12;
-              const dy = (r() - 0.5) * size * 0.25;
-              return (
-                <span
-                  key={ci}
-                  style={{
-                    display: "inline-block",
-                    background: s.bg,
-                    color: s.fg,
-                    fontFamily: s.font,
-                    fontSize: `${size * (0.85 + r() * 0.3)}cqw`,
-                    lineHeight: 1,
-                    padding: `${size * 0.1}cqw ${size * 0.12}cqw`,
-                    transform: `rotate(${rot}deg) translateY(${dy}cqw)`,
-                    boxShadow: "0 .5cqw 1cqw rgba(0,0,0,.18)",
-                    textTransform: r() > 0.5 ? "uppercase" : "lowercase",
-                  }}
-                >
-                  {ch}
-                </span>
-              );
-            })}
-          </span>
-        )
-      )}
-    </div>
-  );
+function TornStrip({ style, seed, color = "#F8F4EC" }: { style?: React.CSSProperties; seed: string; color?: string }) {
+  return <div aria-hidden style={{ position: "absolute", height: "12cqw", background: color, clipPath: tornBoth(seed), boxShadow: "0 1cqw 2cqw rgba(0,0,0,.15)", ...style }} />;
 }
 
 // o ano com fotos dentro dos números
@@ -789,7 +743,7 @@ function PhotoYear({ year, photos, L }: { year: number; photos: string[]; L: Loo
         const ph = photos.length ? photos[i % photos.length] : undefined;
         const fill: React.CSSProperties = ph
           ? { backgroundImage: `url("${ph}")`, backgroundSize: "cover", backgroundPosition: "center" }
-          : { backgroundImage: `repeating-linear-gradient(45deg, ${L.heart} 0 2cqw, ${L.paper2} 2cqw 4cqw)` };
+          : { backgroundImage: `repeating-linear-gradient(45deg, ${L.soft} 0 2cqw, ${L.paper2} 2cqw 4cqw)` };
         return (
           <span key={i} style={{ position: "relative", display: "inline-block", fontFamily: BOLD, fontWeight: 800, fontSize: size, lineHeight: 0.92, letterSpacing: "-0.04em", transform: `rotate(${[-3, 2, -2, 3][i % 4]}deg)` }}>
             {/* contorno branco + sombra (camada de baixo) */}
@@ -818,12 +772,6 @@ function tornH(seed: string, top: boolean) {
   const pts: string[] = [];
   for (let x = 0; x <= 100; x += 2.5) pts.push(`${x}% ${top ? 20 + r() * 80 : r() * 80}%`);
   return top ? `polygon(0 100%, ${pts.join(", ")}, 100% 100%)` : `polygon(0 0, 100% 0, ${pts.reverse().join(", ")})`;
-}
-function tornV(seed: string, amp: number) {
-  const r = rng(seed);
-  const pts: string[] = [];
-  for (let y = 0; y <= 100; y += 2) pts.push(`${r() * amp}% ${y}%`);
-  return `polygon(${pts.join(", ")}, 100% 100%, 100% 0)`;
 }
 function tornBoth(seed: string) {
   const r = rng(seed);
