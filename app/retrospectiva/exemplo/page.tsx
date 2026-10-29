@@ -8,7 +8,7 @@
 //
 // Tema pela URL (pra testar os formatos nos anúncios):
 //   /retrospectiva/exemplo                    → Kraft Polaroid (padrão)
-//   /retrospectiva/exemplo?tema=scrap-creme   → Papel Creme
+//   /retrospectiva/exemplo?tema=scrap-sol     → Colagem Sol
 //   /retrospectiva/exemplo?tema=retro-paixao  → Colorido
 
 import type { Metadata } from "next";
