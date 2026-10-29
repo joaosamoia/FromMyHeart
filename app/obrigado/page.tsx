@@ -39,7 +39,18 @@ export default function ObrigadoPage() {
 }
 
 function ObrigadoInner() {
-  const slug = useSearchParams().get("s") ?? "";
+  const params = useSearchParams();
+  // o slug pode vir pela URL (?s= ou ?s1=) ou, se a Kiwify não repassar nada,
+  // do próprio aparelho (gravado pelo quiz antes de ir pro checkout)
+  const [slug] = useState(() => {
+    const fromUrl = params.get("s") || params.get("s1");
+    if (fromUrl) return fromUrl;
+    try {
+      return typeof window !== "undefined" ? localStorage.getItem("fmh_last_slug") ?? "" : "";
+    } catch {
+      return "";
+    }
+  });
   const [estado, setEstado] = useState<"conferindo" | "pago" | "pendente" | "erro">("conferindo");
   const [titulo, setTitulo] = useState("");
   const [tentativas, setTentativas] = useState(0);

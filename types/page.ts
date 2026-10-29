@@ -49,6 +49,7 @@ export interface CouplePageDoc {
   retroYear?: number; // ano da retrospectiva (ex: 2026)
   retroNameA?: string; // quem está presenteando
   retroNameB?: string; // quem recebe
+  retroCover?: string; // foto de capa (abertura da página), enviada na 1ª etapa
   retroMonths?: RetroMonth[]; // um momento por mês (só os meses preenchidos)
   retroSongs?: RetroSong[]; // top 5 do casal
   retroStats?: RetroStat[]; // "números do casal" (até 4)
@@ -99,6 +100,7 @@ export const emptyCouplePageDoc = (): Omit<
   retroYear: new Date().getFullYear(),
   retroNameA: "",
   retroNameB: "",
+  retroCover: "",
   retroMonths: [],
   retroSongs: [],
   retroStats: [],

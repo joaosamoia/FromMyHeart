@@ -8,9 +8,9 @@
 // redireciona pro checkout certo da Kiwify (8 combinações de plano × addons)
 // → o webhook confirma o pagamento e libera a página.
 
-import { useState, useRef, Suspense } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { ref as sRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
   Heart, ArrowRight, ArrowLeft, Eye, ChevronDown, ChevronUp, Rocket, Sparkles, X,
@@ -22,6 +22,7 @@ import { emptyCouplePageDoc, type CoupleMoment, type RetroMonth, type RetroSong,
 import CouplePageContent, { THEMES, getTheme, MOMENT_ICONS } from "@/components/CouplePageContent";
 import DatePage, { DATE_TEMPLATES, type DateTemplateId } from "@/components/DatePage";
 import { BR, D_FONT, BRAND_CSS, Blobs, Logo } from "@/components/brand";
+import { musicLinkStatus, embedSrc } from "@/components/MusicDock";
 import RetroStories, { RETRO_THEMES, SCRAP_THEMES, DEFAULT_RETRO_THEME, MESES, RETRO_STAT_IDEAS } from "@/components/RetroStories";
 
 // ⚠️ Troque pelos links reais dos seus produtos na Kiwify.
@@ -39,6 +40,23 @@ const KIWIFY_CHECKOUT: Record<string, string> = {
   // O webhook já funciona igual (libera pelo slug que vai no ?s=).
   retro: "https://pay.kiwify.com.br/TROCAR-PELO-LINK-DA-RETROSPECTIVA",
 };
+
+// Monta o link do checkout da Kiwify.
+// ⚠️ A Kiwify só repassa ao webhook estes parâmetros: src, sck, utm_*, s1, s2, s3.
+// Por isso o slug da página vai em `s1` (antes ia em `s`, que a Kiwify descartava
+// e a página nunca era liberada). Nome, e-mail e telefone pré-preenchem o checkout.
+function checkoutUrl(base: string, d: { slug: string; buyerName?: string; buyerEmail?: string; buyerPhone?: string }) {
+  const q = new URLSearchParams({ s1: d.slug });
+  if (d.buyerName?.trim()) q.set("name", d.buyerName.trim());
+  if (d.buyerEmail?.trim()) q.set("email", d.buyerEmail.trim());
+  const phone = (d.buyerPhone ?? "").replace(/\D/g, "");
+  if (phone) q.set("phone", phone);
+  // guarda o slug no aparelho: a página /obrigado usa isso se a Kiwify não devolver o parâmetro
+  try {
+    localStorage.setItem("fmh_last_slug", d.slug);
+  } catch {}
+  return `${base}?${q.toString()}`;
+}
 
 const PRICES = { "1dia": 24.9, eterno: 39.9, astral: 10, qr: 4.9, date: 19.9, retro: 29.9 };
 // Mesma regra do Date: cadastre R$59,90 como preço cheio na Kiwify pra âncora ser real.
@@ -58,7 +76,7 @@ const STICKER = `0 5px 0 ${BR.wine}`; // sombra "chapada" dos botões principais
 
 const STEPS_FULL = ["Estilo", "Tema", "Nome", "Mensagem", "Fotos", "Música", "Timeline", "Finalizar"] as const;
 const STEPS_DATE = ["Estilo", "Date", "Finalizar"] as const;
-const STEPS_RETRO = ["Estilo", "Casal", "Visual", "Meses", "Músicas", "Números", "Promessas", "Mensagem", "Finalizar"] as const;
+const STEPS_RETRO = ["Estilo", "Visual", "Casal", "Meses", "Músicas", "Números", "Promessas", "Mensagem", "Finalizar"] as const;
 const getSteps = (style: string): readonly string[] => (style === "date" ? STEPS_DATE : style === "retro" ? STEPS_RETRO : STEPS_FULL);
 const EMOJI: Record<string, string> = { Estilo: "✦", Tema: "🎨", Nome: "📝", Mensagem: "💌", Fotos: "📷", Música: "🎵", Timeline: "🕰️", Date: "🐧", Finalizar: "✨", Casal: "💞", Meses: "🗓️", Músicas: "🎧", Números: "🔢", Promessas: "🤞", Visual: "🎨" };
 const CHEER = (p: number) =>
@@ -75,6 +93,86 @@ const SUGGESTIONS = [
   { cat: "SERTANEJO", songs: ["Meu Abrigo - Melim", "Amor da Sua Cama - Jorge & Mateus", "Evidências - Chitãozinho & Xororó"] },
   { cat: "MPB & NACIONAIS", songs: ["Trem-Bala - Ana Vilela", "Velha Infância - Tribalistas", "Sozinho - Caetano Veloso"] },
 ];
+
+// ───────── link da página (slug) ─────────
+// Rotas do próprio site que não podem virar link de cliente.
+const SLUGS_RESERVADOS = ["criar", "date", "obrigado", "retrospectiva", "api", "admin", "exemplo"];
+const limparSlug = (v: string) => v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9-]/g, "-").replace(/-{2,}/g, "-").replace(/^-/, "").slice(0, 40);
+function meusSlugs(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem("fmh_my_slugs") || "[]");
+  } catch {
+    return [];
+  }
+}
+function guardarMeuSlug(slug: string) {
+  try {
+    localStorage.setItem("fmh_my_slugs", JSON.stringify([...new Set([...meusSlugs(), slug])].slice(-20)));
+  } catch {}
+}
+type SlugStatus = "empty" | "short" | "checking" | "ok" | "taken" | "error";
+// Confere no Firestore se o link já é de outra pessoa (evita sobrescrever a página
+// de alguém). Rascunho "pendente" criado neste mesmo aparelho conta como seu.
+function useSlugStatus(slug: string): SlugStatus {
+  const [res, setRes] = useState<{ slug: string; status: "ok" | "taken" | "error" } | null>(null);
+  const clean = slug.replace(/-+$/, "");
+  useEffect(() => {
+    if (clean.length < 3 || SLUGS_RESERVADOS.includes(clean)) return;
+    let alive = true;
+    const t = window.setTimeout(async () => {
+      try {
+        const snap = await getDoc(doc(db, "pages", clean));
+        if (!alive) return;
+        const meu = meusSlugs().includes(clean) && snap.data()?.status === "pendente";
+        setRes({ slug: clean, status: snap.exists() && !meu ? "taken" : "ok" });
+      } catch {
+        if (alive) setRes({ slug: clean, status: "error" });
+      }
+    }, 450);
+    return () => {
+      alive = false;
+      window.clearTimeout(t);
+    };
+  }, [clean]);
+  if (!clean) return "empty";
+  if (SLUGS_RESERVADOS.includes(clean)) return "taken";
+  if (clean.length < 3) return "short";
+  if (!res || res.slug !== clean) return "checking";
+  return res.status;
+}
+const slugLivre = (st: SlugStatus) => st === "ok" || st === "error"; // erro de rede não trava a pessoa
+
+// Fotos de celular chegam com 4–12 MB; reduz pra 1600px/JPEG antes de subir
+// (upload muito mais rápido e página mais leve pra quem recebe).
+async function comprimirImagem(file: File): Promise<Blob> {
+  if (!file.type.startsWith("image/") || file.type === "image/gif") return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    if (scale === 1 && file.size < 900_000) return file;
+    const c = document.createElement("canvas");
+    c.width = Math.round(bmp.width * scale);
+    c.height = Math.round(bmp.height * scale);
+    c.getContext("2d")?.drawImage(bmp, 0, 0, c.width, c.height);
+    return await new Promise<Blob>((res) => c.toBlob((b) => res(b ?? file), "image/jpeg", 0.82));
+  } catch {
+    return file;
+  }
+}
+
+function SlugHint({ status }: { status: SlugStatus }) {
+  const map: Record<SlugStatus, [string, string] | null> = {
+    empty: null,
+    short: ["#8A6B86", "Use pelo menos 3 letras."],
+    checking: ["#8A6B86", "Conferindo se esse link está livre…"],
+    ok: ["#1F9D72", "✓ Link livre, é seu!"],
+    taken: ["#C0392B", "Esse link já está em uso. Tente outro (ex.: some o ano ou um apelido)."],
+    error: ["#8A6B86", "Não deu pra conferir agora, mas você pode seguir."],
+  };
+  const m = map[status];
+  if (!m) return null;
+  return <div style={{ fontSize: 12.5, color: m[0], margin: "-8px 0 14px" }}>{m[1]}</div>;
+}
 
 // useSearchParams exige um limite de Suspense no App Router — por isso o
 // componente real fica separado, e o export default só o envolve.
@@ -106,6 +204,41 @@ function CriarInner() {
   });
   const set = (k: keyof typeof d) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setD((s) => ({ ...s, [k]: e.target.value }));
+  const slugStatus = useSlugStatus(d.slug);
+
+  // Rascunho salvo no aparelho: se a pessoa fechar a aba, recarregar ou voltar
+  // do checkout, continua de onde parou em vez de perder tudo.
+  const restored = useRef(false);
+  const [draftNotice, setDraftNotice] = useState(false);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("fmh_draft_v1") || "null");
+      const temAlgo = saved?.d && (saved.d.slug || saved.d.retroNameA || saved.d.title || saved.d.whatsapp);
+      if (temAlgo && (!estiloParam || saved.d.style === estiloParam)) {
+        setD((x) => ({ ...x, ...saved.d }));
+        setStep(Number(saved.step) || 0);
+        setDraftNotice(true);
+      }
+    } catch {}
+    restored.current = true;
+    // só na abertura da página
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!restored.current) return;
+    const t = window.setTimeout(() => {
+      try {
+        localStorage.setItem("fmh_draft_v1", JSON.stringify({ d, step }));
+      } catch {}
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [d, step]);
+  const recomecar = () => {
+    try {
+      localStorage.removeItem("fmh_draft_v1");
+    } catch {}
+    window.location.reload();
+  };
 
   const STEPS = getSteps(d.style);
   const stepC = Math.min(step, STEPS.length - 1);
@@ -114,10 +247,10 @@ function CriarInner() {
   const name = STEPS[stepC];
 
   const canNext = () => {
-    if (name === "Nome") return d.title.trim() !== "" && d.slug.trim() !== "" && d.startDate !== "";
+    if (name === "Nome") return d.title.trim() !== "" && slugLivre(slugStatus) && d.startDate !== "";
     if (name === "Mensagem") return d.message.trim() !== "";
-    if (name === "Date") return (d.whatsapp ?? "").replace(/\D/g, "").length >= 10 && d.slug.trim() !== "";
-    if (name === "Casal") return (d.retroNameA ?? "").trim() !== "" && (d.retroNameB ?? "").trim() !== "" && d.slug.trim() !== "" && d.startDate !== "";
+    if (name === "Date") return (d.whatsapp ?? "").replace(/\D/g, "").length >= 10 && slugLivre(slugStatus);
+    if (name === "Casal") return (d.retroNameA ?? "").trim() !== "" && (d.retroNameB ?? "").trim() !== "" && slugLivre(slugStatus) && d.startDate !== "";
     return true;
   };
   const ok = canNext();
@@ -169,8 +302,17 @@ function CriarInner() {
 
         <div className="scr" style={{ flex: 1, overflowY: "auto", padding: "32px 28px 20px" }}>
           <div key={stepC} className="qi">
+            {draftNotice && stepC > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 12, background: "#fff", border: `1px solid ${P.cardBorder}`, marginBottom: 18, fontSize: 13, color: P.ink }}>
+                <span style={{ flex: 1 }}>Recuperamos o que você já tinha preenchido. ♥</span>
+                <button onClick={recomecar} style={{ background: "none", border: "none", color: P.pink, fontWeight: 600, cursor: "pointer", fontSize: 13 }}>
+                  Começar do zero
+                </button>
+              </div>
+            )}
             <StepBody
               name={name}
+              slugStatus={slugStatus}
               d={d}
               set={set}
               setD={setD}
@@ -269,7 +411,7 @@ function CriarInner() {
 }
 
 // ───────────────── etapas ─────────────────
-function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBack }: any) {
+function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBack, slugStatus }: any) {
   if (name === "Estilo")
     return (
       <>
@@ -361,12 +503,13 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
             <input
               className="qinput"
               value={d.slug}
-              onChange={(e) => setD((s: any) => ({ ...s, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") }))}
+              onChange={(e) => setD((s: any) => ({ ...s, slug: limparSlug(e.target.value) }))}
               placeholder="joao-e-maria"
               style={{ flex: 1, border: "none", outline: "none", padding: "12px 14px 12px 0", fontSize: 14, background: "transparent" }}
             />
           </div>
         </label>
+        <SlugHint status={slugStatus} />
         <label style={lbl}>
           <span style={lblTxt}>Título da página</span>
           <input className="qinput" value={d.title} onChange={set("title")} placeholder="Ex: Para o amor da minha vida" style={inp} />
@@ -400,7 +543,7 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
   if (name === "Timeline") return <TimelineStep d={d} setD={setD} />;
 
   // ───── Retrospectiva ─────
-  if (name === "Casal") return <RetroCasalStep d={d} setD={setD} set={set} />;
+  if (name === "Casal") return <RetroCasalStep d={d} setD={setD} set={set} slugStatus={slugStatus} />;
   if (name === "Visual") return <RetroCoresStep d={d} setD={setD} />;
   if (name === "Meses") return <RetroMesesStep d={d} setD={setD} />;
   if (name === "Músicas") return <RetroMusicasStep d={d} setD={setD} />;
@@ -475,12 +618,13 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
             <input
               className="qinput"
               value={d.slug}
-              onChange={(e) => setD((s: any) => ({ ...s, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") }))}
+              onChange={(e) => setD((s: any) => ({ ...s, slug: limparSlug(e.target.value) }))}
               placeholder="aceita-um-date"
               style={{ flex: 1, border: "none", outline: "none", padding: "12px 14px 12px 0", fontSize: 14, background: "transparent" }}
             />
           </div>
         </label>
+        <SlugHint status={slugStatus} />
         <Hint>A pessoa recebe o convite, aceita, escolhe data/comida/vibe — e a resposta cai direto no seu WhatsApp. 💌</Hint>
       </>
     );
@@ -720,11 +864,14 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
   const finish = async () => {
     setError("");
     setSaving(true);
+    // o link nunca termina em hífen (ex.: "joao-" enquanto a pessoa digitava)
+    const dd = { ...d, slug: d.slug.replace(/-+$/, "") };
+    guardarMeuSlug(dd.slug);
     try {
-      if (d.style === "retro") {
-        await setDoc(doc(db, "pages", d.slug), {
-          ...d,
-          title: `${(d.retroNameA ?? "").trim()} & ${(d.retroNameB ?? "").trim()} · ${d.retroYear}`,
+      if (dd.style === "retro") {
+        await setDoc(doc(db, "pages", dd.slug), {
+          ...dd,
+          title: `${(dd.retroNameA ?? "").trim()} & ${(dd.retroNameB ?? "").trim()} · ${dd.retroYear}`,
           plan: "retro",
           astral: false,
           qrStyle: "simples",
@@ -733,12 +880,12 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
           createdAt: Date.now(),
           paidAt: null,
         });
-        window.location.href = `${KIWIFY_CHECKOUT["retro"]}?s=${encodeURIComponent(d.slug)}`;
+        window.location.href = checkoutUrl(KIWIFY_CHECKOUT["retro"], dd);
         return;
       }
-      if (d.style === "date") {
-        await setDoc(doc(db, "pages", d.slug), {
-          ...d,
+      if (dd.style === "date") {
+        await setDoc(doc(db, "pages", dd.slug), {
+          ...dd,
           plan: "date",
           astral: false,
           qrStyle: "simples",
@@ -747,11 +894,11 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
           createdAt: Date.now(),
           paidAt: null,
         });
-        window.location.href = `${KIWIFY_CHECKOUT["date"]}?s=${encodeURIComponent(d.slug)}`;
+        window.location.href = checkoutUrl(KIWIFY_CHECKOUT["date"], dd);
         return;
       }
-      await setDoc(doc(db, "pages", d.slug), {
-        ...d,
+      await setDoc(doc(db, "pages", dd.slug), {
+        ...dd,
         plan,
         astral,
         qrStyle: qrOn ? qrStyle : "simples",
@@ -761,7 +908,7 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
         paidAt: null,
       });
       const key = [plan, astral && "astral", qrOn && "qr"].filter(Boolean).join("-");
-      window.location.href = `${KIWIFY_CHECKOUT[key]}?s=${encodeURIComponent(d.slug)}`;
+      window.location.href = checkoutUrl(KIWIFY_CHECKOUT[key], dd);
     } catch (err) {
       console.error(err);
       setError("Não foi possível salvar. Tente novamente.");
@@ -1037,43 +1184,88 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
 
 // ───────────────── Retrospectiva do Casal — etapas ─────────────────
 async function uploadTo(slug: string, prefix: string, file: File) {
-  const r = sRef(storage, `pages/${slug}/${prefix}-${Date.now()}-${file.name}`);
-  await uploadBytes(r, file);
+  const blob = await comprimirImagem(file);
+  const ext = blob.type === "image/jpeg" ? "jpg" : (file.name.split(".").pop() || "jpg").toLowerCase();
+  const r = sRef(storage, `pages/${slug}/${prefix}-${Date.now()}.${ext}`);
+  await uploadBytes(r, blob, { contentType: blob.type || file.type });
   return getDownloadURL(r);
 }
 
-function RetroCasalStep({ d, setD, set }: any) {
+function RetroCasalStep({ d, setD, set, slugStatus }: any) {
   const anoAtual = new Date().getFullYear();
+  const [enviando, setEnviando] = useState(false);
+  const [erroFoto, setErroFoto] = useState("");
+  const podeFoto = slugLivre(slugStatus);
+  const onCover = async (file?: File) => {
+    if (!file || !podeFoto) return;
+    setErroFoto("");
+    setEnviando(true);
+    try {
+      const url = await uploadTo(d.slug, "capa", file);
+      setD((s: any) => ({ ...s, retroCover: url }));
+    } catch {
+      setErroFoto("Não deu pra enviar essa foto. Confira a internet e tente de novo.");
+    } finally {
+      setEnviando(false);
+    }
+  };
   return (
     <>
-      <Head title="A retrospectiva de vocês" sub="Quem são os dois, e desde quando essa história existe." />
-      <div style={{ display: "flex", gap: 10 }}>
-        <label style={{ ...lbl, flex: 1 }}>
-          <span style={lblTxt}>Seu nome</span>
-          <input className="qinput" value={d.retroNameB ?? ""} onChange={set("retroNameB")} placeholder="João" style={inp} />
-        </label>
-        <label style={{ ...lbl, flex: 1 }}>
-          <span style={lblTxt}>Nome de quem vai receber</span>
-          <input className="qinput" value={d.retroNameA ?? ""} onChange={set("retroNameA")} placeholder="Maria" style={inp} />
-        </label>
-      </div>
+      <Head title="A retrospectiva de vocês" sub="O link, quem são os dois, uma foto de capa e desde quando essa história existe." />
       <label style={lbl}>
         <span style={lblTxt}>Link da retrospectiva</span>
-        <div style={{ display: "flex", alignItems: "center", border: `1.5px solid ${P.cardBorder}`, borderRadius: 12, background: P.card }}>
-          <span style={{ padding: "12px 4px 12px 14px", color: P.sub, fontSize: 14 }}>seusite.com/</span>
+        <div style={{ display: "flex", alignItems: "center", border: `1.5px solid ${slugStatus === "taken" ? "#C0392B" : P.cardBorder}`, borderRadius: 12, background: P.card }}>
+          <span style={{ padding: "12px 4px 12px 14px", color: P.sub, fontSize: 14 }}>frommyheart/</span>
           <input
             className="qinput"
             value={d.slug}
-            onChange={(e) => setD((s: any) => ({ ...s, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") }))}
+            onChange={(e) => setD((s: any) => ({ ...s, slug: limparSlug(e.target.value) }))}
             placeholder={`nosso-${anoAtual}`}
+            autoCapitalize="none"
+            autoCorrect="off"
             style={{ flex: 1, border: "none", outline: "none", padding: "12px 14px 12px 0", fontSize: 14, background: "transparent" }}
           />
         </div>
       </label>
+      <SlugHint status={slugStatus} />
+
+      <div style={{ display: "flex", gap: 10 }}>
+        <label style={{ ...lbl, flex: 1 }}>
+          <span style={lblTxt}>Seu nome</span>
+          <input className="qinput" value={d.retroNameB ?? ""} onChange={set("retroNameB")} placeholder="João" maxLength={20} style={inp} />
+        </label>
+        <label style={{ ...lbl, flex: 1 }}>
+          <span style={lblTxt}>Nome de quem vai receber</span>
+          <input className="qinput" value={d.retroNameA ?? ""} onChange={set("retroNameA")} placeholder="Maria" maxLength={20} style={inp} />
+        </label>
+      </div>
+
+      <span style={lblTxt}>Foto de capa (aparece logo na abertura)</span>
+      <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 16 }}>
+        {d.retroCover ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={d.retroCover} alt="" style={{ width: 88, height: 110, objectFit: "cover", borderRadius: 10, border: "4px solid #fff", boxShadow: "0 4px 12px rgba(0,0,0,.15)", transform: "rotate(-3deg)" }} />
+        ) : (
+          <div style={{ width: 88, height: 110, borderRadius: 10, border: `2px dashed ${P.pinkBorder}`, display: "grid", placeItems: "center", background: "rgba(255,255,255,.5)", flexShrink: 0 }}>
+            <ImageIcon size={22} color={P.pink} />
+          </div>
+        )}
+        <div style={{ flex: 1 }}>
+          <label className="drop" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, border: `1.5px dashed ${P.pinkBorder}`, cursor: podeFoto ? "pointer" : "not-allowed", fontSize: 13.5, color: P.pink, opacity: podeFoto ? 1 : 0.5, background: "#fff" }}>
+            <input type="file" accept="image/*" disabled={!podeFoto || enviando} onChange={(e) => onCover(e.target.files?.[0])} style={{ display: "none" }} />
+            <Upload size={15} /> {enviando ? "Enviando…" : d.retroCover ? "Trocar foto" : "Escolher foto"}
+          </label>
+          <div style={{ fontSize: 12, color: P.sub, marginTop: 6, lineHeight: 1.4 }}>
+            {podeFoto ? "Uma foto de vocês dois, de preferência em pé (vertical)." : "Defina o link acima pra liberar o envio da foto."}
+          </div>
+          {erroFoto && <div style={{ fontSize: 12.5, color: "#C0392B", marginTop: 6 }}>{erroFoto}</div>}
+        </div>
+      </div>
+
       <div style={{ display: "flex", gap: 10 }}>
         <label style={{ ...lbl, flex: 1.4 }}>
           <span style={lblTxt}>Quando vocês começaram?</span>
-          <input className="qinput" type="date" value={d.startDate} onChange={set("startDate")} style={{ ...inp, textAlign: "center", colorScheme: "light", cursor: "pointer" }} />
+          <input className="qinput" type="date" value={d.startDate} max={new Date().toISOString().slice(0, 10)} onChange={set("startDate")} style={{ ...inp, textAlign: "center", colorScheme: "light", cursor: "pointer" }} />
         </label>
         <label style={{ ...lbl, flex: 1 }}>
           <span style={lblTxt}>Ano da retrospectiva</span>
@@ -1138,6 +1330,7 @@ function RetroMesesStep({ d, setD }: any) {
   const get = (m: number) => months.find((x) => x.month === m);
   const [open, setOpen] = useState<number | null>(months[0]?.month ?? null);
   const [uploading, setUploading] = useState<number | null>(null);
+  const [erroFoto, setErroFoto] = useState("");
   const upsert = (m: number, patch: Partial<RetroMonth>) =>
     setD((s: any) => {
       const list: RetroMonth[] = s.retroMonths ?? [];
@@ -1151,6 +1344,8 @@ function RetroMesesStep({ d, setD }: any) {
     setUploading(m);
     try {
       upsert(m, { photo: await uploadTo(d.slug, `mes${m + 1}`, file) });
+    } catch {
+      setErroFoto("Não deu pra enviar essa foto. Confira a internet e tente de novo.");
     } finally {
       setUploading(null);
     }
@@ -1212,6 +1407,7 @@ function RetroMesesStep({ d, setD }: any) {
           )}
         </div>
       )}
+      {erroFoto && <p style={{ color: "#C0392B", fontSize: 13, marginTop: 10 }}>{erroFoto}</p>}
       <Hint>{months.filter((m) => m.title.trim() || m.photo).length} mês(es) preenchido(s) · cada um entra na linha do tempo</Hint>
     </>
   );
@@ -1238,7 +1434,19 @@ function RetroMusicasStep({ d, setD }: any) {
           <span style={{ fontFamily: "'Bricolage Grotesque', Inter, sans-serif", fontWeight: 700, fontSize: 22, color: P.pink, width: 20, lineHeight: "40px" }}>{i + 1}</span>
           <div style={{ flex: 1, display: "grid", gap: 8 }}>
             <input className="qinput" value={s.title} onChange={(e) => update(i, { title: e.target.value })} placeholder="Música - Artista" style={inp} />
-            <input className="qinput" value={s.url ?? ""} onChange={(e) => update(i, { url: e.target.value })} placeholder={i === 0 ? "Link do Spotify ou YouTube (essa toca ao abrir ♪)" : "Link do Spotify ou YouTube (opcional)"} style={{ ...inp, fontSize: 12.5, padding: "9px 12px" }} />
+            <input className="qinput" value={s.url ?? ""} onChange={(e) => update(i, { url: e.target.value.trim() })} placeholder={i === 0 ? "Link do Spotify ou YouTube (essa toca ao abrir ♪)" : "Link do Spotify ou YouTube (opcional)"} inputMode="url" autoCapitalize="none" style={{ ...inp, fontSize: 12.5, padding: "9px 12px", borderColor: musicLinkStatus(s.url)?.ok === false ? "#C0392B" : P.cardBorder }} />
+            {musicLinkStatus(s.url) && (
+              <div style={{ fontSize: 12, lineHeight: 1.4, color: musicLinkStatus(s.url)?.ok ? "#1F9D72" : "#C0392B" }}>
+                {musicLinkStatus(s.url)?.ok ? "✓ " : ""}
+                {musicLinkStatus(s.url)?.msg}
+              </div>
+            )}
+            {i === 0 && embedSrc(s.url) && (
+              <div>
+                <div style={{ fontSize: 11.5, color: P.sub, margin: "2px 0 6px" }}>Teste aqui: é essa que vai tocar quando a pessoa abrir.</div>
+                <iframe key={embedSrc(s.url)!} title="prévia da música" src={embedSrc(s.url)!} width="100%" height={/spotify/.test(embedSrc(s.url)!) ? 80 : 160} allow="autoplay; encrypted-media; clipboard-write" loading="lazy" style={{ border: "none", borderRadius: 10, display: "block" }} />
+              </div>
+            )}
           </div>
           <button onClick={() => remove(i)} style={{ background: "none", border: "none", cursor: "pointer", color: P.sub, marginTop: 10 }}>
             <Trash2 size={16} />
