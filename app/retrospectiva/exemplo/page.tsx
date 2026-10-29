@@ -2,8 +2,14 @@
 // Demo pública da Retrospectiva do Casal, com dados fictícios. Serve pra:
 //   • gravar os vídeos de TikTok/Reels (tela do celular rolando a página)
 //   • linkar na bio / anúncio como "veja um exemplo"
-// Troque as fotos por fotos de banco de imagem ou de um casal que autorizou.
-// Tema pela URL: /retrospectiva/exemplo?tema=retro-neon
+// As fotos de public/exemplo/ são provisórias (desenhos genéricos): troque por
+// fotos de banco de imagem ou de um casal que autorizou o uso, com os MESMOS
+// nomes de arquivo (foto-1.jpg … foto-6.jpg).
+//
+// Tema pela URL (pra testar os formatos nos anúncios):
+//   /retrospectiva/exemplo                    → Colagem Rosa (padrão)
+//   /retrospectiva/exemplo?tema=scrap-kraft   → Kraft Polaroid
+//   /retrospectiva/exemplo?tema=retro-paixao  → Colorido
 
 import type { Metadata } from "next";
 import RetroStories from "@/components/RetroStories";
@@ -18,17 +24,18 @@ const ano = new Date().getFullYear();
 
 const DEMO: Partial<CouplePageDoc> = {
   style: "retro",
-  theme: "retro-paixao",
+  theme: "scrap-rosa",
   retroYear: ano,
-  retroNameA: "Maria",
+  retroNameA: "Julia",
   retroNameB: "João",
   startDate: `${ano - 2}-06-12`,
   retroMonths: [
-    { month: 0, title: "Réveillon na praia, de pé na areia" },
-    { month: 2, title: "Aquele jantar que deu tudo errado (e foi perfeito)" },
-    { month: 5, title: "Nosso aniversário de namoro" },
-    { month: 8, title: "Primeira viagem só nós dois" },
-    { month: 11, title: "Montamos a árvore de Natal juntos" },
+    { month: 0, title: "Réveillon na praia, de pé na areia", photo: "/exemplo/foto-1.jpg" },
+    { month: 2, title: "Aquele jantar que deu tudo errado (e foi perfeito)", photo: "/exemplo/foto-2.jpg" },
+    { month: 5, title: "Nosso aniversário de namoro", photo: "/exemplo/foto-3.jpg" },
+    { month: 8, title: "Primeira viagem só nós dois", photo: "/exemplo/foto-4.jpg" },
+    { month: 10, title: "Maratona de série no sofá, chuva lá fora" },
+    { month: 11, title: "Montamos a árvore de Natal juntos", photo: "/exemplo/foto-5.jpg" },
   ],
   retroSongs: [
     { title: "Perfect - Ed Sheeran" },
@@ -42,6 +49,7 @@ const DEMO: Partial<CouplePageDoc> = {
     { value: "57", label: "pizzas divididas (você comeu mais)" },
     { value: "38", label: "brigas por causa de onde jantar" },
   ],
+  retroPromises: ["Viajar pra um lugar novo juntos", "Mais encontros sem celular", "Nunca dormir brigados"],
   message:
     "Esse ano teve de tudo: risada, perrengue, viagem, briga boba e muito colo. E em todos os dias, o melhor pedaço foi você. Que o próximo seja ainda mais nosso. Te amo. ♥",
 };

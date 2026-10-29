@@ -22,6 +22,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Heart, Share2, Music2, Camera, Calendar, ChevronDown } from "lucide-react";
 import type { CouplePageDoc, RetroSong, RetroStat } from "@/types/page";
+import RetroScrapbook from "@/components/RetroScrapbook";
+import MusicDock, { type MusicApi } from "@/components/MusicDock";
 
 type Doc = Partial<CouplePageDoc> & { slug?: string };
 
@@ -64,8 +66,13 @@ export const RETRO_THEMES: Record<string, { name: string; preview: string; swatc
     ],
   },
 };
-export const DEFAULT_RETRO_THEME = "retro-paixao";
-const getRetroTheme = (id?: string) => RETRO_THEMES[id ?? ""] ?? RETRO_THEMES[DEFAULT_RETRO_THEME];
+// Visuais de colagem (scrapbook) — renderizados por components/RetroScrapbook.
+export const SCRAP_THEMES: Record<string, { name: string; desc: string; preview: string }> = {
+  "scrap-rosa": { name: "Colagem Rosa", desc: "letras recortadas e fotos dentro do ano", preview: "linear-gradient(90deg,#F5EEE4 55%,#EEA3B5 55%)" },
+  "scrap-kraft": { name: "Kraft Polaroid", desc: "papel pardo, polaroids e fita adesiva", preview: "linear-gradient(135deg,#C9A378,#A97F55)" },
+};
+export const DEFAULT_RETRO_THEME = "scrap-rosa";
+const getRetroTheme = (id?: string) => RETRO_THEMES[id ?? ""] ?? RETRO_THEMES["retro-paixao"];
 
 export const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
@@ -186,6 +193,13 @@ function useCountUp(target: number, active: boolean, ms = 1600) {
 }
 
 export default function RetroStories({ page, compact = false }: { page: Doc; compact?: boolean }) {
+  if (page.theme === "scrap-kraft") return <RetroScrapbook page={page} variant="kraft" compact={compact} />;
+  if (!page.theme || !RETRO_THEMES[page.theme]) return <RetroScrapbook page={page} variant="rosa" compact={compact} />;
+  return <RetroColorido page={page} compact={compact} />;
+}
+
+// Versão "colorida" (cartelas de cor chapada) — temas retro-paixao/neon/por-do-sol.
+function RetroColorido({ page, compact = false }: { page: Doc; compact?: boolean }) {
   const theme = getRetroTheme(page.theme);
   const S = theme.swatches;
   const year = page.retroYear || new Date().getFullYear();
@@ -199,7 +213,8 @@ export default function RetroStories({ page, compact = false }: { page: Doc; com
   const songs = (page.retroSongs ?? []).filter((s) => s.title?.trim()).slice(0, 5);
   const stats = (page.retroStats ?? []).filter((s) => s.value?.trim() && s.label?.trim()).slice(0, 4);
   const message = page.message?.trim() ?? "";
-  const hasWrapped = !!(page.retroWrappedA || page.retroWrappedB);
+  const promises = (page.retroPromises ?? []).map((p) => p.trim()).filter(Boolean).slice(0, 5);
+  const music = useRef<MusicApi | null>(null);
   const coverPhoto = months.find((m) => m.photo)?.photo ?? page.photos?.[0];
   const [opened, setOpened] = useState(compact);
 
@@ -243,24 +258,22 @@ export default function RetroStories({ page, compact = false }: { page: Doc; com
         {/* ───── músicas ───── */}
         {songs.length > 0 && <SongsSection sw={S[3]} songs={songs} />}
 
-        {/* ───── prints da retrospectiva musical ───── */}
-        {hasWrapped && (
-          <Section sw={S[1]} center blobs={1}>
-            <Kicker>o que cada um ouviu</Kicker>
-            <Title d={120}>A trilha de cada um</Title>
-            <div style={{ display: "flex", gap: "4cqw", marginTop: "7cqw", width: "100%", justifyContent: "center" }}>
-              {[
-                { src: page.retroWrappedA, n: nameA, r: -4 },
-                { src: page.retroWrappedB, n: nameB, r: 4 },
-              ]
-                .filter((x) => x.src)
-                .map((x, i) => (
-                  <div key={i} className="rs-pop" style={{ ["--d" as string]: `${250 + i * 200}ms`, width: "40cqw", transform: `rotate(${x.r}deg)` }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={x.src} alt="" style={{ width: "100%", aspectRatio: "9/16", objectFit: "cover", borderRadius: "4cqw", border: `1cqw solid ${S[1].fg}`, display: "block", boxShadow: "0 3cqw 8cqw rgba(0,0,0,.35)" }} />
-                    <div style={{ fontFamily: D_FONT, fontWeight: 800, fontSize: "5cqw", marginTop: "3cqw" }}>{x.n}</div>
-                  </div>
-                ))}
+        {/* ───── promessas pro próximo ano ───── */}
+        {promises.length > 0 && (
+          <Section sw={S[1]} blobs={1}>
+            <Kicker>pro ano que vem</Kicker>
+            <Title d={120} left>
+              Promessas
+              <br />
+              pra {year + 1}
+            </Title>
+            <div style={{ marginTop: "7cqw", display: "grid", gap: "3.5cqw" }}>
+              {promises.map((p, i) => (
+                <div key={i} className="rs-in" style={{ ["--d" as string]: `${250 + i * 150}ms`, display: "flex", gap: "3.5cqw", alignItems: "flex-start", fontSize: "5cqw", lineHeight: 1.35, fontWeight: 600 }}>
+                  <Heart size={18} color={S[1].ac2} fill={S[1].ac2} style={{ flexShrink: 0, marginTop: "1cqw" }} />
+                  {p}
+                </div>
+              ))}
             </div>
           </Section>
         )}
@@ -320,11 +333,16 @@ export default function RetroStories({ page, compact = false }: { page: Doc; com
           </Link>
         </Section>
 
+        {!compact && songs[0] && <div style={{ height: 140, background: S[2].bg }} />}
       </div>
+      {!compact && <MusicDock url={songs[0]?.url} title={songs[0]?.title ?? ""} apiRef={music} look={{ bg: "#fff", fg: "#1b1b1f", ac: S[0].bg, font: B_FONT, radius: 16 }} />}
       {/* ───── capa "toque para abrir" (fora do preview do quiz) ───── */}
       {!compact && (
         <button
-          onClick={() => setOpened(true)}
+          onClick={() => {
+            music.current?.play(); // dentro do toque, senão o navegador bloqueia o som
+            setOpened(true);
+          }}
           aria-hidden={opened}
           tabIndex={opened ? -1 : 0}
           style={{
