@@ -15,7 +15,7 @@ const PRODUTOS = [
     href: "/criar?estilo=retro",
     n: "01",
     nome: "Retrospectiva do Casal",
-    desc: "O ano de vocês em slides estilo stories: dias juntos, um momento por mês, o top 5 de músicas e um card pra postar.",
+    desc: "O ano de vocês numa página com linha do tempo: contador de dias juntos, um momento por mês, o top 5 de músicas e um card pra postar.",
     preco: "R$ 29,90",
     tag: "NOVO",
     bg: BR.pink,
@@ -200,7 +200,7 @@ export default function Home() {
           no seu celular
         </h2>
         <p style={{ fontSize: 15.5, color: BR.muted, lineHeight: 1.5, margin: "0 auto 26px", maxWidth: 380 }}>
-          É exatamente isso que a pessoa recebe. Toque pra passar os slides.
+          É exatamente isso que a pessoa recebe. Toque pra abrir e vai rolando.
         </p>
         <Link
           href="/retrospectiva/exemplo"

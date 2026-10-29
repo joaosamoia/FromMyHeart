@@ -277,7 +277,7 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
         <div style={{ display: "grid", gap: 12 }}>
           {[
             { id: "classica", Icon: Heart, name: "Clássica", desc: "Contador, fotos, timeline e mensagem", price: "a partir de R$ 24,90" },
-            { id: "retro", Icon: Sparkles, name: "Retrospectiva do Casal", desc: "O ano de vocês em slides, estilo stories 🎞️", price: "R$ 29,90", novo: true },
+            { id: "retro", Icon: Sparkles, name: "Retrospectiva do Casal", desc: "O ano de vocês com linha do tempo mês a mês 🎞️", price: "R$ 29,90", novo: true },
             { id: "date", Icon: LayoutTemplate, name: "Date", desc: "Convite interativo: \"Aceita um date?\" 🐧💙", price: "R$ 19,90" },
           ].map((s: any) => {
             const active = d.style === s.id;
@@ -1084,7 +1084,7 @@ function RetroCasalStep({ d, setD, set }: any) {
           </select>
         </label>
       </div>
-      <Hint>A data vira o contador de “dias juntos” do ano — o slide que mais emociona.</Hint>
+      <Hint>A data vira o contador de “dias juntos” do ano — a parte que mais emociona.</Hint>
     </>
   );
 }
@@ -1092,7 +1092,7 @@ function RetroCasalStep({ d, setD, set }: any) {
 function RetroCoresStep({ d, setD }: any) {
   return (
     <>
-      <Head title="Escolha as cores" sub="Cada slide ganha uma cor da paleta, no estilo das retrospectivas de fim de ano." />
+      <Head title="Escolha as cores" sub="Cada parte da página ganha uma cor da paleta, no estilo das retrospectivas de fim de ano." />
       <div style={{ display: "grid", gap: 12 }}>
         {Object.entries(RETRO_THEMES).map(([id, t]) => {
           const active = d.theme === id;
@@ -1142,7 +1142,7 @@ function RetroMesesStep({ d, setD }: any) {
 
   return (
     <>
-      <Head title="Um momento por mês" sub="Escolha os meses que marcaram o ano. Não precisa preencher todos." />
+      <Head title="A linha do tempo do ano" sub="Escolha os meses que marcaram vocês. Não precisa preencher todos." />
       {!d.slug && <p style={{ color: "#c0392b", fontSize: 13, marginBottom: 10 }}>Volte e defina o link antes de subir fotos.</p>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 16 }}>
         {MESES.map((nome, m) => {
@@ -1196,7 +1196,7 @@ function RetroMesesStep({ d, setD }: any) {
           )}
         </div>
       )}
-      <Hint>{months.filter((m) => m.title.trim() || m.photo).length} mês(es) preenchido(s) · cada um vira um slide</Hint>
+      <Hint>{months.filter((m) => m.title.trim() || m.photo).length} mês(es) preenchido(s) · cada um entra na linha do tempo</Hint>
     </>
   );
 }
@@ -1321,7 +1321,7 @@ function RetroPrintsStep({ d, setD }: any) {
         {slot("retroWrappedB", d.retroNameB)}
         {slot("retroWrappedA", d.retroNameA)}
       </div>
-      <Hint>Ainda não saiu a retrospectiva do app de música? Pula essa etapa — o slide só aparece se tiver print.</Hint>
+      <Hint>Ainda não saiu a retrospectiva do app de música? Pula essa etapa — essa parte só aparece se tiver print.</Hint>
     </>
   );
 }
@@ -1329,9 +1329,9 @@ function RetroPrintsStep({ d, setD }: any) {
 function RetroCheckout({ d, saving, error, finish, onBack, bigBtn }: any) {
   const nMeses = (d.retroMonths ?? []).filter((m: RetroMonth) => m.title.trim() || m.photo).length;
   const inclui = [
-    "Slides em tela cheia, estilo stories",
-    `Contador de dias juntos em ${d.retroYear}`,
-    nMeses ? `${nMeses} momento(s) do ano com foto` : "Um momento por mês com foto",
+    "Página com o visual de retrospectiva de fim de ano",
+    `Contador de dias juntos em ${d.retroYear}, ao vivo`,
+    nMeses ? `Linha do tempo com ${nMeses} momento(s) do ano` : "Linha do tempo com um momento por mês",
     "Top 5 músicas do casal com player",
     "Card final pra postar no story",
     "QR Code pra imprimir e presentear",
@@ -1421,7 +1421,7 @@ function ImmersivePreview({ d, onClose }: any) {
 
   if (d.style === "retro")
     return (
-      <div style={{ position: "fixed", inset: 0, zIndex: 9999 }}>
+      <div className="scr" style={{ position: "fixed", inset: 0, zIndex: 9999, overflowY: "auto" }}>
         <RetroStories page={d} />
         <button onClick={onClose} aria-label="Fechar" style={{ position: "fixed", top: 16, right: 16, zIndex: 60, width: 42, height: 42, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.45)", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center", backdropFilter: "blur(4px)" }}>
           <X size={20} />

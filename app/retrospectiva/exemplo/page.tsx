@@ -1,6 +1,6 @@
 // app/retrospectiva/exemplo/page.tsx
 // Demo pública da Retrospectiva do Casal, com dados fictícios. Serve pra:
-//   • gravar os vídeos de TikTok/Reels (tela do celular passando os slides)
+//   • gravar os vídeos de TikTok/Reels (tela do celular rolando a página)
 //   • linkar na bio / anúncio como "veja um exemplo"
 // Troque as fotos por fotos de banco de imagem ou de um casal que autorizou.
 // Tema pela URL: /retrospectiva/exemplo?tema=retro-neon
