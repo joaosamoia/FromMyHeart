@@ -234,7 +234,7 @@ function RetroColorido({ page, compact = false }: { page: Doc; compact?: boolean
       <div style={{ maxWidth: compact ? "none" : 520, margin: "0 auto", containerType: "inline-size", position: "relative" }}>
         {/* ───── abertura ───── */}
         <Section sw={S[0]} minH={compact ? 540 : "100svh"} center blobs={0} on={opened ? undefined : false}>
-          <Kicker>a retrospectiva de</Kicker>
+          <Kicker>a nossa retrospectiva</Kicker>
           <div className="rs-in" style={{ ["--d" as string]: "120ms", fontFamily: D_FONT, fontWeight: 800, fontSize: "11cqw", lineHeight: 1.02, marginTop: "3cqw" }}>
             {nameA} <span style={{ color: S[0].ac2 }}>&</span> {nameB}
           </div>
@@ -323,14 +323,14 @@ function RetroColorido({ page, compact = false }: { page: Doc; compact?: boolean
                   <img src={page.qrPhoto} alt="" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "8cqw", height: "8cqw", borderRadius: "50%", border: "0.8cqw solid #fff", objectFit: "cover" }} />
                 )}
               </div>
-              <div style={{ fontSize: "3.2cqw", opacity: 0.75, marginTop: "2.5cqw" }}>escaneie ou imprima pra presentear</div>
+              <div style={{ fontSize: "3.2cqw", opacity: 0.75, marginTop: "2.5cqw" }}>pra você guardar ♥</div>
             </div>
           )}
           <div style={{ marginTop: "10cqw", display: "inline-flex", alignItems: "center", gap: "1.5cqw", fontFamily: D_FONT, fontWeight: 800, fontSize: "4cqw" }}>
             <Heart size={13} color={S[2].ac} fill={S[2].ac} /> Nosso {year}
           </div>
           <Link href="/criar?estilo=retro" style={{ marginTop: "1.5cqw", fontSize: "3.2cqw", color: S[2].fg, opacity: 0.7, textDecoration: "underline", textUnderlineOffset: "1cqw" }}>
-            Crie a retrospectiva de vocês
+            feito com ♥ no FromMyHeart
           </Link>
         </Section>
 
@@ -499,7 +499,7 @@ function SongsSection({ sw, songs }: { sw: Swatch; songs: RetroSong[] }) {
   const embed = toEmbed(songs[sel]?.url);
   return (
     <Section sw={sw} blobs={0} innerRef={ref} on={on}>
-      <Kicker>a trilha sonora do casal</Kicker>
+      <Kicker>a nossa trilha sonora</Kicker>
       <Title d={120} left>
         As nossas
         <br />
@@ -531,7 +531,7 @@ function SongsSection({ sw, songs }: { sw: Swatch; songs: RetroSong[] }) {
         <div className="rs-in" style={{ ["--d" as string]: "900ms", marginTop: "5cqw" }}>
           <iframe
             key={embed.src}
-            title="música do casal"
+            title="a nossa música"
             src={embed.src}
             width="100%"
             height={embed.type === "spotify" ? 80 : 180}
@@ -640,11 +640,11 @@ function SummarySection({
           <span style={{ display: "inline-flex", alignItems: "center", gap: "1.5cqw" }}>
             <Heart size={11} fill={card.fg} color={card.fg} /> FromMyHeart
           </span>
-          <span style={{ opacity: 0.8 }}>retrospectiva do casal</span>
+          <span style={{ opacity: 0.8 }}>a nossa retrospectiva</span>
         </div>
       </div>
       <div className="rs-in" style={{ ["--d" as string]: "400ms", display: "flex", alignItems: "center", gap: "2cqw", marginTop: "5cqw", fontSize: "3.8cqw", fontWeight: 600 }}>
-        <Camera size={15} /> Tira um print e posta no story
+        <Camera size={15} /> tira um print e posta a gente no story ♥
       </div>
       {slug && !compact && (
         <button

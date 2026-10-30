@@ -37,8 +37,8 @@ export async function generateMetadata({
     const cover = page.retroMonths?.find((m) => m.photo)?.photo;
     return {
       title: t,
-      description: "Alguém preparou a retrospectiva do ano de vocês. Toque pra abrir. ♥",
-      openGraph: { title: t, description: "Alguém preparou a retrospectiva do ano de vocês. ♥", images: cover ? [cover] : undefined },
+      description: "Fiz a retrospectiva do nosso ano. Toque pra abrir. ♥",
+      openGraph: { title: t, description: "Fiz a retrospectiva do nosso ano. Toque pra abrir. ♥", images: cover ? [cover] : undefined },
     };
   }
   return {

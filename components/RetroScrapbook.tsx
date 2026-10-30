@@ -299,7 +299,7 @@ function Cover({ L, variant, year, nameA, nameB, opened, onOpen, photo }: { L: L
         </div>
         <Heart color={L.heart} size={58} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)" }} className="sc-beat" />
       </div>
-      <div style={{ marginTop: 40, fontFamily: HAND, fontSize: 30, lineHeight: 1.1 }}>a retrospectiva de {year}</div>
+      <div style={{ marginTop: 40, fontFamily: HAND, fontSize: 30, lineHeight: 1.1 }}>a nossa retrospectiva de {year}</div>
       <div style={{ marginTop: 22, display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 26px", background: L.ink, color: "#FFF8EE", fontFamily: TYPE, fontSize: 16, letterSpacing: 1, borderRadius: 3, boxShadow: "3px 4px 0 rgba(0,0,0,.2)", animation: "scPulse 1.8s ease-in-out infinite" }}>
         toque para abrir ♥
       </div>
@@ -325,7 +325,7 @@ function HeroSol({ L, year, nameA, nameB, photos, opened, compact }: { L: Look; 
       <div style={{ position: "relative", width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div className="sc-in" style={{ ["--d" as string]: "0ms", position: "relative", padding: "2.6cqw 6cqw", background: "#FFFDF8", boxShadow: "0 1cqw 2.5cqw rgba(0,0,0,.12)", transform: "rotate(-1.5deg)", fontFamily: HAND, fontSize: "7cqw", lineHeight: 1 }}>
           <Tape L={L} w="16cqw" rot={-8} style={{ left: "-5cqw", top: "-2cqw" }} />
-          a retrospectiva de
+          a nossa retrospectiva
         </div>
 
         <div className="sc-in" style={{ ["--d" as string]: "150ms", marginTop: "7cqw" }}>
@@ -383,7 +383,7 @@ function HeroKraft({ L, year, nameA, nameB, photos, opened, compact }: { L: Look
         <div className="sc-pop" style={{ ["--d" as string]: "150ms" }}>
           <Polaroid src={p(0)} w="70cqw" rot={-3} L={L} bigCaption>
             <div style={{ fontFamily: HAND, fontSize: "7.6cqw", lineHeight: 1.05, color: L.ink }}>
-              A Retrospectiva de...
+              A nossa retrospectiva...
               <br />
               <span style={{ marginLeft: "8cqw" }}>
                 {nameA} &amp; {nameB}
@@ -432,7 +432,7 @@ function Counter({ L, days, year, startDate, variant }: { L: Look; days: NonNull
 
       {t && (
         <div className="sc-in" style={{ ["--d" as string]: "600ms", marginTop: "9cqw", display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <div style={{ fontFamily: HAND, fontSize: "6.4cqw", lineHeight: 1.1 }}>e juntos desde {since}:</div>
+          <div style={{ fontFamily: HAND, fontSize: "6.4cqw", lineHeight: 1.1 }}>e estamos juntos desde {since}:</div>
           <div style={{ display: "flex", gap: "3cqw", marginTop: "4cqw" }}>
             {[
               [t.y, t.y === 1 ? "ano" : "anos", -3],
@@ -511,7 +511,7 @@ function Mixtape({ L, songs, year, nameA, nameB }: { L: Look; songs: RetroSong[]
   const [ref, on] = useInView<HTMLDivElement>();
   return (
     <div ref={ref} className={on ? "sc-on" : undefined} style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-      <Label L={L}>a trilha sonora do casal</Label>
+      <Label L={L}>a nossa trilha sonora</Label>
       {/* fita cassete */}
       <div className="sc-pop" style={{ ["--d" as string]: "150ms", position: "relative", marginTop: "7cqw", width: "74cqw", aspectRatio: "1.6", background: "#2E2A2B", borderRadius: "3cqw", boxShadow: "0 2cqw 5cqw rgba(0,0,0,.3)", transform: "rotate(-2deg)", padding: "4cqw" }}>
         <div style={{ position: "relative", height: "62%", background: "#FFFDF8", borderRadius: "1.5cqw", padding: "2cqw 3cqw", backgroundImage: `linear-gradient(${L.paper2} 0 22%, transparent 22%)` }}>
@@ -612,7 +612,7 @@ function Letter({ L, message, nameA, nameB }: { L: Look; message: string; nameA:
   const [ref, on] = useInView<HTMLDivElement>();
   return (
     <div ref={ref} className={on ? "sc-on" : undefined} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-      <Label L={L}>uma cartinha</Label>
+      <Label L={L}>uma cartinha pra você</Label>
       <div className="sc-in" style={{ ["--d" as string]: "150ms", position: "relative", marginTop: "7cqw", width: "86cqw", transform: "rotate(1deg)" }}>
         <Tape L={L} w="18cqw" rot={-35} style={{ top: "-1cqw", left: "-5cqw" }} />
         <Tape L={L} w="18cqw" rot={35} style={{ top: "-1cqw", right: "-5cqw" }} color={L.tape2} />
@@ -641,12 +641,12 @@ function Final({ L, year, slug, photo, qrPhoto }: { L: Look; year: number; slug?
       {slug && (
         <div className="sc-in" style={{ ["--d" as string]: "450ms", marginTop: "9cqw", position: "relative" }}>
           <Polaroid w="44cqw" rot={-3} L={L} qr={url} qrPhoto={qrPhoto ?? photo}>
-            <div style={{ fontFamily: HAND, fontSize: "5cqw", color: L.ink }}>escaneie ♥</div>
+            <div style={{ fontFamily: HAND, fontSize: "5cqw", color: L.ink }}>pra você guardar ♥</div>
           </Polaroid>
         </div>
       )}
       <Link href="/criar?estilo=retro" style={{ marginTop: "10cqw", fontFamily: HAND, fontSize: "5cqw", color: L.soft, textDecoration: "underline", textUnderlineOffset: "1cqw" }}>
-        crie a retrospectiva de vocês
+        feito com ♥ no FromMyHeart
       </Link>
     </div>
   );
