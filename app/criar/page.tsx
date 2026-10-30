@@ -39,6 +39,10 @@ const KIWIFY_CHECKOUT: Record<string, string> = {
   // ⚠️ Crie o produto "Retrospectiva do Casal" na Kiwify e cole o link aqui.
   // O webhook já funciona igual (libera pelo slug que vai no ?s=).
   retro: "https://pay.kiwify.com.br/TROCAR-PELO-LINK-DA-RETROSPECTIVA",
+  // Retrospectiva + QR Code personalizado (cartão pra imprimir e entregar em mãos).
+  // Produto/oferta à parte na Kiwify (R$ 34,80) — o ID dele entra também em
+  // KIWIFY_PRODUCT_IDS_QR na Vercel, pro webhook marcar qrPaid.
+  "retro-qr": "https://pay.kiwify.com.br/TROCAR-PELO-LINK-DA-RETROSPECTIVA-COM-QR",
 };
 
 // Monta o link do checkout da Kiwify.
@@ -874,13 +878,14 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
           title: `${(dd.retroNameA ?? "").trim()} & ${(dd.retroNameB ?? "").trim()} · ${dd.retroYear}`,
           plan: "retro",
           astral: false,
-          qrStyle: "simples",
-          qrPaid: false,
+          qrStyle: qrOn ? "juntos" : "simples",
+          qrPhoto: dd.retroCover || dd.qrPhoto || "",
+          qrPaid: false, // só o webhook confirma
           status: "pendente",
           createdAt: Date.now(),
           paidAt: null,
         });
-        window.location.href = checkoutUrl(KIWIFY_CHECKOUT["retro"], dd);
+        window.location.href = checkoutUrl(KIWIFY_CHECKOUT[qrOn ? "retro-qr" : "retro"], dd);
         return;
       }
       if (dd.style === "date") {
@@ -946,7 +951,7 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
     );
 
   // FASE 1 — retrospectiva: produto único
-  if (d.style === "retro") return <RetroCheckout d={d} saving={saving} error={error} finish={finish} onBack={() => setPhase(0)} bigBtn={bigBtn} />;
+  if (d.style === "retro") return <RetroCheckout d={d} saving={saving} error={error} finish={finish} onBack={() => setPhase(0)} bigBtn={bigBtn} qrOn={qrOn} setQrOn={setQrOn} />;
 
   // FASE 1 — planos + addons (ou confirmação simples, se for o estilo Date)
   if (d.style === "date") {
@@ -1546,7 +1551,7 @@ function RetroPromessasStep({ d, setD }: any) {
   const sugestoes = PROMESSAS_SUGESTOES.filter((x) => !list.includes(x));
   return (
     <>
-      <Head title={`Promessas pra ${(d.retroYear ?? new Date().getFullYear()) + 1}`} sub="O que vocês vão fazer juntos no ano que vem? Aparece como uma listinha no caderno." />
+      <Head title={`Promessas pra ${(d.retroYear ?? new Date().getFullYear()) + 1}`} sub="O que vocês vão fazer juntos no ano que vem? Aparece como uma listinha no caderno — e no fim, um vale-date." />
       {list.map((p, i) => (
         <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
           <Heart size={16} color={P.pink} fill={P.pink} style={{ flexShrink: 0 }} />
@@ -1576,11 +1581,34 @@ function RetroPromessasStep({ d, setD }: any) {
         </>
       )}
       <Hint>Opcional — se não escrever nenhuma, essa parte não aparece.</Hint>
+
+      <div style={{ marginTop: 26, padding: 16, borderRadius: 16, background: "#fff", border: `1px solid ${P.cardBorder}` }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>🎟️ Vale-date do final</div>
+        <div style={{ fontSize: 12.5, color: P.sub, margin: "3px 0 12px", lineHeight: 1.45 }}>
+          No fim da página aparece um ingresso “Vale um date” pra pessoa resgatar. O que ele vale?
+        </div>
+        <input className="qinput" value={d.retroVoucher ?? ""} onChange={(e) => setD((s: any) => ({ ...s, retroVoucher: e.target.value }))} placeholder="um date surpresa planejado por mim" maxLength={60} style={inp} />
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+          {VALES_SUGESTOES.map((t) => (
+            <button key={t} onClick={() => setD((s: any) => ({ ...s, retroVoucher: t }))} style={{ padding: "6px 10px", borderRadius: 99, border: `1px solid ${d.retroVoucher === t ? P.pinkBorder : P.cardBorder}`, background: d.retroVoucher === t ? P.pinkSoft : "#fff", cursor: "pointer", fontSize: 12, color: P.ink }}>
+              {t}
+            </button>
+          ))}
+        </div>
+      </div>
     </>
   );
 }
 
-function RetroCheckout({ d, saving, error, finish, onBack, bigBtn }: any) {
+const VALES_SUGESTOES = [
+  "um jantar no nosso restaurante favorito",
+  "um piquenique surpresa",
+  "um dia inteiro só nosso, sem celular",
+  "um cinema com pipoca grande",
+  "um fim de semana viajando",
+];
+
+function RetroCheckout({ d, saving, error, finish, onBack, bigBtn, qrOn, setQrOn }: any) {
   const nMeses = (d.retroMonths ?? []).filter((m: RetroMonth) => m.title.trim() || m.photo).length;
   const inclui = [
     "Visual de colagem ou colorido, você escolhe",
@@ -1588,8 +1616,9 @@ function RetroCheckout({ d, saving, error, finish, onBack, bigBtn }: any) {
     nMeses ? `Linha do tempo com ${nMeses} momento(s) do ano` : "Linha do tempo com um momento por mês",
     "A música de vocês tocando quando ela abrir",
     "Card final pra postar no story",
-    "QR Code pra imprimir e presentear",
+    "Vale-date surpresa no final",
   ];
+  const total = PRICES.retro + (qrOn ? PRICES.qr : 0);
   return (
     <>
       <h2 style={{ ...h2, textAlign: "center" }}>
@@ -1611,6 +1640,18 @@ function RetroCheckout({ d, saving, error, finish, onBack, bigBtn }: any) {
             </div>
           ))}
         </div>
+      </div>
+      {/* order bump: QR Code personalizado pra entregar em mãos */}
+      <ToggleCard
+        active={qrOn}
+        onClick={() => setQrOn((q: boolean) => !q)}
+        icon="💌"
+        title={`QR Code personalizado (+${fmtBRL(PRICES.qr)})`}
+        desc="Um cartão pra imprimir, com a foto de vocês e o QR Code que abre a retrospectiva. Perfeito pra entregar em mãos junto de um presente."
+        mb={10}
+      />
+      <div style={{ padding: "13px 16px", borderRadius: 12, background: P.pinkSoft, border: `1px solid ${P.cardBorder}`, fontSize: 15, marginBottom: 6 }}>
+        Total: <b style={{ color: P.pink }}>{fmtBRL(total)}</b>
       </div>
       <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 14, fontSize: 11.5, color: P.sub }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><ShieldCheck size={14} color="#1F9D72" /> Pagamento seguro</span>

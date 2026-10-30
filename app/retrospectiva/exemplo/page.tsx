@@ -50,6 +50,8 @@ const DEMO: Partial<CouplePageDoc> = {
     { value: "38", label: "brigas por causa de onde jantar" },
   ],
   retroPromises: ["Viajar pra um lugar novo juntos", "Mais encontros sem celular", "Nunca dormir brigados"],
+  retroVoucher: "um jantar no nosso restaurante favorito",
+  retroCover: "/exemplo/foto-1.jpg",
   message:
     "Esse ano teve de tudo: risada, perrengue, viagem, briga boba e muito colo. E em todos os dias, o melhor pedaço foi você. Que o próximo seja ainda mais nosso. Te amo. ♥",
 };

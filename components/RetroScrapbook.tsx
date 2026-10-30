@@ -238,7 +238,7 @@ export default function RetroScrapbook({ page, variant, compact = false }: { pag
         )}
 
         <Sheet L={L} bg={variant === "sol" ? L.paper2 : L.paper} edge stickers={variant === "sol" ? "s7" : undefined}>
-          <Final L={L} year={year} slug={page.slug} photo={photos[0]} qrPhoto={page.qrPaid ? page.qrPhoto : undefined} />
+          <Final L={L} year={year} nameA={nameA} nameB={nameB} voucher={page.retroVoucher} />
         </Sheet>
         {!compact && songs[0] && <div style={{ height: 140 }} />}
       </div>
@@ -629,23 +629,80 @@ function Letter({ L, message, nameA, nameB }: { L: Look; message: string; nameA:
 }
 
 // ───────── final ─────────
-function Final({ L, year, slug, photo, qrPhoto }: { L: Look; year: number; slug?: string; photo?: string; qrPhoto?: string }) {
+// Final: no lugar do QR (que virou adicional pago, pra imprimir e entregar
+// pessoalmente), um VALE-DATE — um ingresso que a pessoa "resgata" tocando.
+export const VALE_PADRAO = "um date surpresa planejado por mim";
+
+function Final({ L, year, nameA, nameB, voucher }: { L: Look; year: number; nameA: string; nameB: string; voucher?: string }) {
   const [ref, on] = useInView<HTMLDivElement>();
-  const url = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/${slug ?? ""}`;
+  const [resgatado, setResgatado] = useState(false);
+  const oQue = voucher?.trim() || VALE_PADRAO;
   return (
     <div ref={ref} className={on ? "sc-on" : undefined} style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
       <div className="sc-in" style={{ ["--d" as string]: "0ms", fontFamily: HAND, fontSize: "8cqw" }}>e o melhor ainda vem aí...</div>
       <div className="sc-pop" style={{ ["--d" as string]: "200ms", fontFamily: SERIF, fontSize: "17cqw", lineHeight: 1, marginTop: "2cqw" }}>
         que venha <span style={{ color: L.accent }}>{year + 1}</span>
       </div>
-      {slug && (
-        <div className="sc-in" style={{ ["--d" as string]: "450ms", marginTop: "9cqw", position: "relative" }}>
-          <Polaroid w="44cqw" rot={-3} L={L} qr={url} qrPhoto={qrPhoto ?? photo}>
-            <div style={{ fontFamily: HAND, fontSize: "5cqw", color: L.ink }}>pra você guardar ♥</div>
-          </Polaroid>
+
+      <div className="sc-in" style={{ ["--d" as string]: "450ms", fontFamily: HAND, fontSize: "6cqw", marginTop: "8cqw" }}>
+        e pra começar, um presentinho:
+      </div>
+
+      {/* ingresso */}
+      <div className="sc-pop" style={{ ["--d" as string]: "600ms", position: "relative", marginTop: "5cqw", width: "86cqw", transform: "rotate(-2deg)" }}>
+        <Tape L={L} w="18cqw" rot={-10} style={{ top: "-2.4cqw", left: "8cqw" }} />
+        <div
+          style={{
+            position: "relative",
+            display: "flex",
+            background: "#FFFBF2",
+            boxShadow: "0 2cqw 5cqw rgba(0,0,0,.22)",
+            // recortes redondos nas laterais, como ingresso destacável
+            WebkitMaskImage: "radial-gradient(circle at 0 50%, transparent 3.2cqw, #000 3.3cqw), radial-gradient(circle at 100% 50%, transparent 3.2cqw, #000 3.3cqw)",
+            WebkitMaskComposite: "source-in",
+            maskImage: "radial-gradient(circle at 0 50%, transparent 3.2cqw, #000 3.3cqw), radial-gradient(circle at 100% 50%, transparent 3.2cqw, #000 3.3cqw)",
+            maskComposite: "intersect",
+          }}
+        >
+          <div style={{ flex: 1, padding: "5cqw 4cqw 5cqw 7cqw", textAlign: "left", borderRight: `0.6cqw dashed ${L.soft}55` }}>
+            <div style={{ fontFamily: TYPE, fontSize: "3.2cqw", letterSpacing: "0.2em", color: L.accent }}>FROMMYHEART · Nº 0001</div>
+            <div style={{ fontFamily: SERIF, fontSize: "11cqw", lineHeight: 1, marginTop: "1.5cqw" }}>
+              Vale um <span style={{ color: L.accent }}>date</span>
+            </div>
+            <div style={{ fontFamily: HAND, fontSize: "6cqw", lineHeight: 1.15, marginTop: "2.5cqw" }}>{oQue}</div>
+            <div style={{ fontFamily: TYPE, fontSize: "3.2cqw", lineHeight: 1.6, marginTop: "3cqw", color: L.soft }}>
+              válido para: {nameA.toUpperCase()}
+              <br />
+              emitido por: {nameB.toUpperCase()}
+              <br />
+              validade: {year + 1} inteiro
+            </div>
+          </div>
+          <div style={{ width: "17cqw", display: "flex", alignItems: "center", justifyContent: "center", padding: "3cqw 2cqw" }}>
+            <div style={{ transform: "rotate(90deg)", whiteSpace: "nowrap", fontFamily: TYPE, fontSize: "3.4cqw", letterSpacing: "0.25em", color: L.soft }}>ADMITE 2 ♥</div>
+          </div>
+          {resgatado && (
+            <div
+              aria-live="polite"
+              className="sc-stamp"
+              style={{ position: "absolute", left: "26%", top: "26%", padding: "1.5cqw 4cqw", border: `0.9cqw solid ${L.accent}`, color: L.accent, fontFamily: TYPE, fontSize: "7cqw", letterSpacing: "0.12em", borderRadius: "2cqw", transform: "rotate(-14deg)", background: "rgba(255,251,242,.6)" }}
+            >
+              RESGATADO
+            </div>
+          )}
         </div>
-      )}
-      <Link href="/criar?estilo=retro" style={{ marginTop: "10cqw", fontFamily: HAND, fontSize: "5cqw", color: L.soft, textDecoration: "underline", textUnderlineOffset: "1cqw" }}>
+      </div>
+
+      <button
+        onClick={() => setResgatado(true)}
+        disabled={resgatado}
+        className="sc-in"
+        style={{ ["--d" as string]: "800ms", marginTop: "7cqw", padding: "3.4cqw 7cqw", border: "none", borderRadius: "1.5cqw", background: resgatado ? "transparent" : L.ink, color: resgatado ? L.ink : "#FFF8EE", fontFamily: resgatado ? HAND : TYPE, fontSize: resgatado ? "6cqw" : "4.2cqw", letterSpacing: resgatado ? 0 : "0.06em", cursor: resgatado ? "default" : "pointer", boxShadow: resgatado ? "none" : "0.8cqw 1cqw 0 rgba(0,0,0,.2)" }}
+      >
+        {resgatado ? `tira um print e me manda, ${nameA.toLowerCase()} ♥` : "resgatar meu vale ♥"}
+      </button>
+
+      <Link href="/criar?estilo=retro" style={{ marginTop: "12cqw", fontFamily: HAND, fontSize: "4.6cqw", color: L.soft, textDecoration: "underline", textUnderlineOffset: "1cqw" }}>
         feito com ♥ no FromMyHeart
       </Link>
     </div>
@@ -887,6 +944,8 @@ const CSS = `
 @keyframes scBounce { 0%,100% { transform: translateY(0) } 50% { transform: translateY(1.5cqw) } }
 @keyframes scBeat { 0%,100% { transform: translate(-50%,-50%) scale(1) } 15% { transform: translate(-50%,-50%) scale(1.15) } 30% { transform: translate(-50%,-50%) scale(1) } }
 @keyframes scSpin { to { transform: rotate(360deg) } }
+@keyframes scStamp { 0% { opacity: 0; scale: 2.2 } 60% { opacity: 1; scale: .92 } 100% { opacity: 1; scale: 1 } }
+.sc-stamp { animation: scStamp .45s cubic-bezier(.2,.8,.2,1) both; }
 .sc-beat { animation: scBeat 1.6s ease-in-out infinite; }
 .sc-spin { animation: scSpin 3s linear infinite; }
 .sc-in, .sc-pop { opacity: 0; transition: opacity .8s cubic-bezier(.2,.8,.2,1), translate .8s cubic-bezier(.2,.8,.2,1), scale .8s cubic-bezier(.2,.8,.2,1); transition-delay: var(--d, 0ms); }
