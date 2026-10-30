@@ -104,7 +104,12 @@ function extractOrderInfo(body: any, slugFromQuery: string | null) {
   const qrIds = parseIdList(process.env.KIWIFY_PRODUCT_IDS_QR);
 
   const hasAstralBump = !!productId && astralIds.has(productId);
-  const hasQrBump = !!productId && qrIds.has(productId);
+  // O produto "Retrospectiva do Casal + QR Code personalizado" é reconhecido
+  // também pelo NOME (o nome é você quem define na Kiwify, então é seguro) —
+  // assim não precisa reescrever a variável secreta KIWIFY_PRODUCT_IDS_QR.
+  const productName: string = body?.Product?.product_name ?? body?.product?.name ?? body?.data?.product?.name ?? "";
+  const qrPeloNome = /retrospectiva/i.test(productName) && /qr\s*code/i.test(productName);
+  const hasQrBump = (!!productId && qrIds.has(productId)) || qrPeloNome;
 
   return { isApproved, slug, buyerEmail, rawStatus: status, hasAstralBump, hasQrBump };
 }
