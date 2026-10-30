@@ -53,6 +53,8 @@ function ObrigadoInner() {
   });
   const [estado, setEstado] = useState<"conferindo" | "pago" | "pendente" | "erro">("conferindo");
   const [titulo, setTitulo] = useState("");
+  const [temCartao, setTemCartao] = useState(false);
+  const [ehRetro, setEhRetro] = useState(false);
   const [tentativas, setTentativas] = useState(0);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "");
@@ -76,6 +78,8 @@ function ObrigadoInner() {
         }
         const dados = snap.data();
         setTitulo(dados.title || "");
+        setTemCartao(dados.style === "retro" && !!dados.qrPaid);
+        setEhRetro(dados.style === "retro");
         if (dados.status === "pago") {
           setEstado("pago");
           return;
@@ -118,7 +122,7 @@ function ObrigadoInner() {
       </div>
       <div className="br-pop" style={{ position: "relative", width: "100%", maxWidth: 440, textAlign: "center", background: BR.cream, borderRadius: 28, padding: "30px 22px 28px", boxShadow: `0 8px 0 ${BR.night}` }}>
         {estado === "conferindo" && <Conferindo tentativas={tentativas} />}
-        {estado === "pago" && <Pronto pageUrl={pageUrl} titulo={titulo} />}
+        {estado === "pago" && <Pronto pageUrl={pageUrl} titulo={titulo} temCartao={temCartao} ehRetro={ehRetro} />}
         {estado === "pendente" && <Pendente />}
         {estado === "erro" && <Erro />}
       </div>
@@ -147,7 +151,7 @@ function Conferindo({ tentativas }: { tentativas: number }) {
   );
 }
 
-function Pronto({ pageUrl, titulo }: { pageUrl: string; titulo: string }) {
+function Pronto({ pageUrl, titulo, temCartao, ehRetro }: { pageUrl: string; titulo: string; temCartao: boolean; ehRetro: boolean }) {
   const [copiado, setCopiado] = useState(false);
 
   const copiar = async () => {
@@ -252,14 +256,27 @@ function Pronto({ pageUrl, titulo }: { pageUrl: string; titulo: string }) {
         Ver como ficou →
       </Link>
 
-      {/* QR pra imprimir */}
-      <div style={{ marginTop: 30, paddingTop: 24, borderTop: `1px solid ${B.roseSoft}` }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={qr} alt="QR code da sua página" width={130} height={130} style={{ borderRadius: 12, background: "#fff", padding: 8 }} />
-        <p style={{ fontSize: 12.5, color: B.muted, marginTop: 10, lineHeight: 1.5 }}>
-          Segure a imagem pra salvar. Dá pra imprimir e entregar em mãos.
-        </p>
-      </div>
+      {temCartao && (
+        <Link
+          href={`${pageUrl}/cartao`}
+          target="_blank"
+          style={{ display: "block", marginTop: 16, padding: "14px", borderRadius: 14, border: `1.5px dashed ${B.rose}`, color: B.ink, fontSize: 14.5, fontWeight: 700, textDecoration: "none", background: "#fff" }}
+        >
+          💌 Imprimir o cartão com QR Code
+          <span style={{ display: "block", fontSize: 12.5, fontWeight: 500, color: B.muted, marginTop: 3 }}>pra entregar em mãos junto do presente</span>
+        </Link>
+      )}
+
+      {/* QR simples pra imprimir — na Retrospectiva o QR é o adicional pago (cartão) */}
+      {!ehRetro && (
+        <div style={{ marginTop: 30, paddingTop: 24, borderTop: `1px solid ${B.roseSoft}` }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={qr} alt="QR code da sua página" width={130} height={130} style={{ borderRadius: 12, background: "#fff", padding: 8 }} />
+          <p style={{ fontSize: 12.5, color: B.muted, marginTop: 10, lineHeight: 1.5 }}>
+            Segure a imagem pra salvar. Dá pra imprimir e entregar em mãos.
+          </p>
+        </div>
+      )}
 
       <p style={{ fontSize: 12.5, color: B.muted, marginTop: 26, lineHeight: 1.5 }}>
         Também mandamos esse link no seu e-mail — guarde pra acessar quando quiser.

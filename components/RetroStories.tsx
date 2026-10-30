@@ -309,23 +309,7 @@ function RetroColorido({ page, compact = false }: { page: Doc; compact?: boolean
           <div className="rs-in" style={{ ["--d" as string]: "400ms", fontSize: "4.4cqw", opacity: 0.85, marginTop: "5cqw" }}>
             com você, de novo. ♥
           </div>
-          {page.slug && (
-            <div className="rs-in" style={{ ["--d" as string]: "600ms", marginTop: "8cqw", display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div style={{ position: "relative", background: "#fff", padding: "2cqw", borderRadius: "3cqw" }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/${page.slug}`)}`}
-                  alt="QR code da retrospectiva"
-                  style={{ width: "28cqw", height: "28cqw", display: "block" }}
-                />
-                {page.qrPaid && page.qrPhoto && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={page.qrPhoto} alt="" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "8cqw", height: "8cqw", borderRadius: "50%", border: "0.8cqw solid #fff", objectFit: "cover" }} />
-                )}
-              </div>
-              <div style={{ fontSize: "3.2cqw", opacity: 0.75, marginTop: "2.5cqw" }}>pra você guardar ♥</div>
-            </div>
-          )}
+          <ValeDate sw={S[2]} year={year} nameA={nameA} nameB={nameB} voucher={page.retroVoucher} />
           <div style={{ marginTop: "10cqw", display: "inline-flex", alignItems: "center", gap: "1.5cqw", fontFamily: D_FONT, fontWeight: 800, fontSize: "4cqw" }}>
             <Heart size={13} color={S[2].ac} fill={S[2].ac} /> Nosso {year}
           </div>
@@ -387,6 +371,36 @@ function RetroColorido({ page, compact = false }: { page: Doc; compact?: boolean
 }
 
 // ───────── seções ─────────
+// Vale-date do final (versão colorida). O QR saiu daqui: virou adicional pago,
+// entregue como cartão pra imprimir (app/[slug]/cartao).
+function ValeDate({ sw, year, nameA, nameB, voucher }: { sw: Swatch; year: number; nameA: string; nameB: string; voucher?: string }) {
+  const [resgatado, setResgatado] = useState(false);
+  return (
+    <div className="rs-in" style={{ ["--d" as string]: "600ms", marginTop: "9cqw", width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div style={{ position: "relative", width: "86cqw", background: sw.fg, color: sw.bg, borderRadius: "4cqw", padding: "5cqw 6cqw", textAlign: "left", transform: "rotate(-1.5deg)", boxShadow: "0 3cqw 8cqw rgba(0,0,0,.25)" }}>
+        <div style={{ fontSize: "3cqw", fontWeight: 800, letterSpacing: "0.22em", opacity: 0.7 }}>VALE · Nº 0001</div>
+        <div style={{ fontFamily: D_FONT, fontWeight: 800, fontSize: "11cqw", lineHeight: 1, marginTop: "1.5cqw" }}>
+          Vale um <span style={{ color: sw.ac }}>date</span>
+        </div>
+        <div style={{ fontSize: "4.6cqw", fontWeight: 600, lineHeight: 1.3, marginTop: "2.5cqw" }}>{voucher?.trim() || "um date surpresa planejado por mim"}</div>
+        <div style={{ fontSize: "3.2cqw", lineHeight: 1.6, marginTop: "3cqw", opacity: 0.75 }}>
+          pra {nameA} · de {nameB} · válido em {year + 1}
+        </div>
+        {resgatado && (
+          <div style={{ position: "absolute", right: "6cqw", top: "6cqw", padding: "1cqw 3cqw", border: `0.8cqw solid ${sw.ac}`, color: sw.ac, fontFamily: D_FONT, fontWeight: 800, fontSize: "5cqw", borderRadius: "2cqw", transform: "rotate(12deg)" }}>RESGATADO</div>
+        )}
+      </div>
+      <button
+        onClick={() => setResgatado(true)}
+        disabled={resgatado}
+        style={{ marginTop: "5cqw", padding: "3cqw 6cqw", borderRadius: 99, border: "none", background: resgatado ? "transparent" : sw.ac, color: resgatado ? sw.fg : sw.bg, fontWeight: 800, fontSize: "4cqw", cursor: resgatado ? "default" : "pointer", fontFamily: B_FONT }}
+      >
+        {resgatado ? `tira um print e me manda ♥` : "resgatar meu vale ♥"}
+      </button>
+    </div>
+  );
+}
+
 function CounterSection({ sw, days, year, startDate }: { sw: Swatch; days: NonNullable<ReturnType<typeof computeDays>>; year: number; startDate: string }) {
   const [ref, on] = useInView<HTMLElement>();
   const n = useCountUp(days.inYear, on);

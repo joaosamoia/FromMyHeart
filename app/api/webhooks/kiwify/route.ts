@@ -186,6 +186,7 @@ export async function POST(req: NextRequest) {
       pageTitle: existingData?.title || "",
       pageUrl: `${siteUrl}/${slug}`,
       produto: existingData?.style === "date" ? "date" : existingData?.style === "retro" ? "retro" : "classica",
+      cardUrl: existingData?.style === "retro" && hasQrBump ? `${siteUrl}/${slug}/cartao` : undefined,
     });
   } else {
     console.warn(`Kiwify webhook: sem e-mail disponível pra "${slug}" — confirmação não enviada.`);

@@ -99,7 +99,12 @@ export default async function CouplePage({
     );
   }
 
-  if (page.style === "retro") return <RetroStories page={page} />;
+  // Nome, e-mail e telefone de quem comprou nunca vão pro navegador de quem
+  // recebe a página (componentes de cliente recebem as props serializadas).
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { buyerName, buyerEmail, buyerPhone, ...publico } = page;
 
-  return <CouplePageContent page={page} />;
+  if (page.style === "retro") return <RetroStories page={publico} />;
+
+  return <CouplePageContent page={publico} />;
 }

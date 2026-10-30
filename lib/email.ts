@@ -48,13 +48,14 @@ export async function sendPageReadyEmail(params: {
   pageTitle: string;
   pageUrl: string;
   produto?: Produto;
+  cardUrl?: string; // cartão com QR pra imprimir (adicional da Retrospectiva)
 }) {
   const resend = getResend();
   if (!resend) {
     console.warn("RESEND_API_KEY não configurada — e-mail de confirmação NÃO enviado.");
     return;
   }
-  const { to, buyerName, pageTitle, pageUrl, produto = "classica" } = params;
+  const { to, buyerName, pageTitle, pageUrl, produto = "classica", cardUrl } = params;
   const T = TEXTOS[produto] ?? TEXTOS.classica;
   const nome = buyerName?.trim() ? buyerName.trim().split(" ")[0] : "";
   const titulo = pageTitle?.trim() ? `“${pageTitle.trim()}”` : produto === "date" ? "Seu convite" : produto === "retro" ? "A retrospectiva" : "Sua página";
@@ -84,6 +85,11 @@ export async function sendPageReadyEmail(params: {
           <p style="text-align:center;color:#9C7E78;font-size:13px;word-break:break-all;font-family:Arial,sans-serif;margin:0;">
             ${pageUrl}
           </p>
+          ${
+            cardUrl
+              ? `<p style="text-align:center;margin:22px 0 0;font-family:Arial,sans-serif;font-size:14px;"><a href="${cardUrl}" style="color:${T.accent};font-weight:bold;">💌 Imprimir o cartão com QR Code</a><br/><span style="color:#9C7E78;font-size:12.5px;">pra entregar em mãos junto do presente</span></p>`
+              : ""
+          }
           <p style="text-align:center;color:#B79B95;font-size:12px;margin-top:26px;font-family:Arial,sans-serif;line-height:1.5;">
             Guarde este e-mail — é assim que você acessa seu link sempre que quiser.
           </p>

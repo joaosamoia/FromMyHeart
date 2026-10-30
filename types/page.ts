@@ -54,6 +54,7 @@ export interface CouplePageDoc {
   retroSongs?: RetroSong[]; // top 5 do casal
   retroStats?: RetroStat[]; // "números do casal" (até 4)
   retroPromises?: string[]; // "promessas pro próximo ano" (até 5)
+  retroVoucher?: string; // o que vale o "vale-date" do final (ex: "um jantar no nosso restaurante")
 
   // dados de contato do comprador (não exibidos na página pública)
   buyerName: string;
@@ -105,4 +106,5 @@ export const emptyCouplePageDoc = (): Omit<
   retroSongs: [],
   retroStats: [],
   retroPromises: [],
+  retroVoucher: "",
 });
