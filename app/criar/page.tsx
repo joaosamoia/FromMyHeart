@@ -38,11 +38,11 @@ const KIWIFY_CHECKOUT: Record<string, string> = {
   date: "https://pay.kiwify.com.br/1tedzUy",
   // ⚠️ Crie o produto "Retrospectiva do Casal" na Kiwify e cole o link aqui.
   // O webhook já funciona igual (libera pelo slug que vai no ?s=).
-  retro: "https://pay.kiwify.com.br/TROCAR-PELO-LINK-DA-RETROSPECTIVA",
+  retro: "https://pay.kiwify.com.br/AlRy7LN",
   // Retrospectiva + QR Code personalizado (cartão pra imprimir e entregar em mãos).
-  // Produto/oferta à parte na Kiwify (R$ 34,80) — o ID dele entra também em
-  // KIWIFY_PRODUCT_IDS_QR na Vercel, pro webhook marcar qrPaid.
-  "retro-qr": "https://pay.kiwify.com.br/TROCAR-PELO-LINK-DA-RETROSPECTIVA-COM-QR",
+  // Produto à parte na Kiwify (R$ 34,80). O webhook reconhece pelo nome do
+  // produto ("… QR Code …"), sem precisar mexer em KIWIFY_PRODUCT_IDS_QR.
+  "retro-qr": "https://pay.kiwify.com.br/pds9P8g",
 };
 
 // Monta o link do checkout da Kiwify.
