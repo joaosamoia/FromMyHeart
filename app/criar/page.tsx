@@ -1185,10 +1185,26 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
 // ───────────────── Retrospectiva do Casal — etapas ─────────────────
 async function uploadTo(slug: string, prefix: string, file: File) {
   const blob = await comprimirImagem(file);
-  const ext = blob.type === "image/jpeg" ? "jpg" : (file.name.split(".").pop() || "jpg").toLowerCase();
-  const r = sRef(storage, `pages/${slug}/${prefix}-${Date.now()}.${ext}`);
-  await uploadBytes(r, blob, { contentType: blob.type || file.type });
+  // Alguns Androids entregam a foto sem tipo (""). As regras do Storage só
+  // aceitam "image/*", então sem isso o envio é recusado.
+  const contentType = blob.type || file.type || "image/jpeg";
+  const ext = contentType === "image/jpeg" ? "jpg" : contentType.split("/")[1] || "jpg";
+  const r = sRef(storage, `pages/${slug.replace(/-+$/, "")}/${prefix}-${Date.now()}.${ext}`);
+  await uploadBytes(r, blob, { contentType });
   return getDownloadURL(r);
+}
+
+// Traduz o erro do Firebase Storage pra algo que a pessoa (e você, no suporte)
+// entenda — e manda o detalhe completo pro console do navegador.
+function mensagemErroUpload(e: unknown) {
+  const err = e as { code?: string; message?: string; customData?: { serverResponse?: string } };
+  console.error("[upload] falhou:", err?.code, err?.message, err?.customData?.serverResponse);
+  const raw = `${err?.code ?? ""} ${err?.message ?? ""} ${err?.customData?.serverResponse ?? ""}`;
+  if (/Spark|402|billing|Blaze/i.test(raw)) return "O envio de fotos está desligado no servidor agora. Tente de novo mais tarde. (código: plano do Storage)";
+  if (/unauthorized|403|permission/i.test(raw)) return `O servidor recusou a foto. Tente outra foto em JPG. (código: ${err?.code ?? "403"})`;
+  if (/canceled/i.test(raw)) return "Envio cancelado.";
+  if (/retry-limit|network|offline/i.test(raw)) return "A internet caiu no meio do envio. Tente de novo.";
+  return `Não deu pra enviar essa foto. Tente de novo. (código: ${err?.code ?? "desconhecido"})`;
 }
 
 function RetroCasalStep({ d, setD, set, slugStatus }: any) {
@@ -1203,8 +1219,8 @@ function RetroCasalStep({ d, setD, set, slugStatus }: any) {
     try {
       const url = await uploadTo(d.slug, "capa", file);
       setD((s: any) => ({ ...s, retroCover: url }));
-    } catch {
-      setErroFoto("Não deu pra enviar essa foto. Confira a internet e tente de novo.");
+    } catch (e) {
+      setErroFoto(mensagemErroUpload(e));
     } finally {
       setEnviando(false);
     }
@@ -1344,8 +1360,8 @@ function RetroMesesStep({ d, setD }: any) {
     setUploading(m);
     try {
       upsert(m, { photo: await uploadTo(d.slug, `mes${m + 1}`, file) });
-    } catch {
-      setErroFoto("Não deu pra enviar essa foto. Confira a internet e tente de novo.");
+    } catch (e) {
+      setErroFoto(mensagemErroUpload(e));
     } finally {
       setUploading(null);
     }
