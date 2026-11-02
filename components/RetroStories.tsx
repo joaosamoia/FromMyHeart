@@ -24,6 +24,7 @@ import { Heart, Share2, Music2, Camera, Calendar, ChevronDown } from "lucide-rea
 import type { CouplePageDoc, RetroSong, RetroStat } from "@/types/page";
 import RetroScrapbook from "@/components/RetroScrapbook";
 import MusicDock, { type MusicApi } from "@/components/MusicDock";
+import RetroStarMap, { STARMAP_COLORS } from "@/components/RetroStarMap";
 
 type Doc = Partial<CouplePageDoc> & { slug?: string };
 
@@ -234,11 +235,19 @@ function RetroColorido({ page, compact = false }: { page: Doc; compact?: boolean
       <div style={{ maxWidth: compact ? "none" : 520, margin: "0 auto", containerType: "inline-size", position: "relative" }}>
         {/* ───── abertura ───── */}
         <Section sw={S[0]} minH={compact ? 540 : "100svh"} center blobs={0} on={opened ? undefined : false}>
-          <Kicker>a nossa retrospectiva</Kicker>
+          {coverPhoto && (
+            // foto de capa, tipo capa de álbum
+            <div className="rs-pop" style={{ ["--d" as string]: "0ms", position: "relative", width: "58cqw", aspectRatio: "1", marginBottom: "7cqw", transform: "rotate(-3deg)" }}>
+              <div style={{ position: "absolute", inset: 0, borderRadius: "4cqw", background: S[0].ac2, transform: "translate(3cqw, 3cqw) rotate(5deg)" }} />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={coverPhoto} alt="" style={{ position: "relative", width: "100%", height: "100%", objectFit: "cover", borderRadius: "4cqw", display: "block", boxShadow: "0 3cqw 8cqw rgba(0,0,0,.35)", border: `1.2cqw solid ${S[0].fg}` }} />
+            </div>
+          )}
+          <Kicker d={coverPhoto ? 150 : 0}>a nossa retrospectiva</Kicker>
           <div className="rs-in" style={{ ["--d" as string]: "120ms", fontFamily: D_FONT, fontWeight: 800, fontSize: "11cqw", lineHeight: 1.02, marginTop: "3cqw" }}>
             {nameA} <span style={{ color: S[0].ac2 }}>&</span> {nameB}
           </div>
-          <div className="rs-pop" style={{ ["--d" as string]: "300ms", fontFamily: D_FONT, fontWeight: 800, fontSize: "38cqw", lineHeight: 0.9, letterSpacing: "-0.04em", color: S[0].ac, marginTop: "5cqw" }}>
+          <div className="rs-pop" style={{ ["--d" as string]: "300ms", fontFamily: D_FONT, fontWeight: 800, fontSize: coverPhoto ? "30cqw" : "38cqw", lineHeight: 0.9, letterSpacing: "-0.04em", color: S[0].ac, marginTop: coverPhoto ? "3cqw" : "5cqw" }}>
             {year}
           </div>
           <div className="rs-in" style={{ ["--d" as string]: "600ms", fontSize: "4.4cqw", opacity: 0.9, marginTop: "6cqw", maxWidth: "75cqw", lineHeight: 1.45 }}>
@@ -252,6 +261,23 @@ function RetroColorido({ page, compact = false }: { page: Doc; compact?: boolean
 
         {/* ───── contador ───── */}
         {days && <CounterSection sw={S[1]} days={days} year={year} startDate={page.startDate!} />}
+
+        {/* ───── mapa das estrelas do começo ───── */}
+        {days && (
+          <Section sw={S[4]} center blobs={2}>
+            <Kicker>o céu de quando tudo começou</Kicker>
+            <Title d={120}>As nossas estrelas</Title>
+            <div className="rs-pop" style={{ ["--d" as string]: "300ms", marginTop: "8cqw", width: "80cqw", filter: "drop-shadow(0 3cqw 6cqw rgba(0,0,0,.35))" }}>
+              <RetroStarMap seed={`${page.startDate}${nameA}${nameB}`} colors={STARMAP_COLORS.vivo} id="colorido" />
+            </div>
+            <div className="rs-in" style={{ ["--d" as string]: "600ms", marginTop: "6cqw", fontSize: "3.4cqw", fontWeight: 800, letterSpacing: "0.2em" }}>
+              {days.start.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" }).toUpperCase()}
+            </div>
+            <div className="rs-in" style={{ ["--d" as string]: "750ms", marginTop: "2cqw", fontSize: "4.2cqw", opacity: 0.85 }}>
+              uma constelação só nossa ♥
+            </div>
+          </Section>
+        )}
 
         {/* ───── linha do tempo ───── */}
         {months.length > 0 && <TimelineSection sw={S[2]} months={months} year={year} />}
