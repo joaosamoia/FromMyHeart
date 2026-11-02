@@ -1615,6 +1615,7 @@ function RetroCheckout({ d, saving, error, finish, onBack, bigBtn, qrOn, setQrOn
     `Contador de dias juntos em ${d.retroYear}, ao vivo`,
     nMeses ? `Linha do tempo com ${nMeses} momento(s) do ano` : "Linha do tempo com um momento por mês",
     "A música de vocês tocando quando ela abrir",
+    "Mapa das estrelas do dia em que tudo começou",
     "Card final pra postar no story",
     "Vale-date surpresa no final",
   ];

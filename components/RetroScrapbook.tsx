@@ -24,6 +24,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { CouplePageDoc, RetroSong, RetroStat } from "@/types/page";
 import MusicDock, { type MusicApi } from "@/components/MusicDock";
+import RetroStarMap, { STARMAP_COLORS } from "@/components/RetroStarMap";
 
 type Doc = Partial<CouplePageDoc> & { slug?: string };
 export type ScrapVariant = "sol" | "kraft";
@@ -204,6 +205,7 @@ export default function RetroScrapbook({ page, variant, compact = false }: { pag
         {days && (
           <Sheet L={L} bg={variant === "sol" ? L.paper2 : L.paper} edge stickers={variant === "sol" ? "s1" : undefined}>
             <Counter L={L} days={days} year={year} startDate={page.startDate!} variant={variant} />
+            <StarMapCard L={L} startDate={page.startDate!} seed={`${page.startDate}${nameA}${nameB}`} />
           </Sheet>
         )}
 
@@ -452,6 +454,24 @@ function Counter({ L, days, year, startDate, variant }: { L: Look; days: NonNull
           <div style={{ fontFamily: HAND, fontSize: "5.2cqw", marginTop: "3cqw", color: L.soft }}>…e contando ♥</div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ───────── mapa das estrelas ─────────
+function StarMapCard({ L, startDate, seed }: { L: Look; startDate: string; seed: string }) {
+  const [ref, on] = useInView<HTMLDivElement>();
+  const quando = new Date(startDate + "T00:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
+  return (
+    <div ref={ref} className={on ? "sc-on" : undefined} style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginTop: "16cqw" }}>
+      <Label L={L}>o céu de quando tudo começou</Label>
+      <div className="sc-pop" style={{ ["--d" as string]: "150ms", position: "relative", marginTop: "7cqw", width: "76cqw", background: "#FFFDF8", padding: "6cqw 5cqw 5cqw", boxShadow: "0 2cqw 5cqw rgba(0,0,0,.2)", transform: "rotate(1.5deg)" }}>
+        <Tape L={L} w="18cqw" rot={-6} style={{ top: "-2.4cqw", left: "29cqw" }} />
+        <RetroStarMap seed={seed} colors={STARMAP_COLORS.papel} id="colagem" />
+        <div style={{ fontFamily: TYPE, fontSize: "3.6cqw", letterSpacing: "0.14em", marginTop: "4.5cqw", color: L.ink }}>{quando.toUpperCase()}</div>
+        <div style={{ width: "30cqw", height: "0.4cqw", background: L.accent, opacity: 0.5, margin: "2.5cqw auto" }} />
+        <div style={{ fontFamily: HAND, fontSize: "5.6cqw", lineHeight: 1.15, color: L.soft }}>as nossas estrelas do dia em que tudo começou ♥</div>
+      </div>
     </div>
   );
 }
