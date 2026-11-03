@@ -103,3 +103,43 @@ export async function sendPageReadyEmail(params: {
     console.error("Falha ao enviar e-mail de confirmação:", err);
   }
 }
+
+// E-mail "continue de onde parou": a pessoa salvou o rascunho no /criar e quer
+// terminar depois (ou em outro aparelho). O link reabre o formulário com tudo
+// preenchido, inclusive as fotos que já subiram.
+export async function sendDraftEmail(params: { to: string; nome?: string; link: string; produto?: Produto }) {
+  const resend = getResend();
+  if (!resend) {
+    console.warn("RESEND_API_KEY não configurada — e-mail de rascunho não enviado.");
+    return false;
+  }
+  const { to, nome, link, produto = "classica" } = params;
+  const oQue = produto === "retro" ? "a retrospectiva de vocês" : produto === "date" ? "o seu convite" : "a sua página";
+  const primeiro = nome?.trim() ? nome.trim().split(" ")[0] : "";
+  try {
+    await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+      to,
+      subject: "Seu presente ficou salvo ♥ continue quando quiser",
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#FFF1F5;border-radius:18px;color:#3A1430;">
+          <div style="text-align:center;font-size:36px;line-height:1;">💾</div>
+          <h1 style="text-align:center;font-size:22px;margin:14px 0 8px;">Tá salvo${primeiro ? `, ${primeiro}` : ""}!</h1>
+          <p style="text-align:center;font-size:15px;line-height:1.55;color:#7A4B6B;margin:0;">
+            Guardamos tudo o que você já preencheu de ${oQue} — textos, músicas e fotos.
+            Toque no botão pra continuar de onde parou, em qualquer celular ou computador.
+          </p>
+          <div style="text-align:center;margin:28px 0 16px;">
+            <a href="${link}" style="display:inline-block;padding:15px 30px;background:#E8336D;color:#fff;text-decoration:none;border-radius:99px;font-weight:bold;font-size:15px;">Continuar meu presente</a>
+          </div>
+          <p style="text-align:center;font-size:12px;color:#A07A92;word-break:break-all;margin:0;">${link}</p>
+          <p style="text-align:center;font-size:12px;color:#A07A92;margin-top:22px;line-height:1.5;">Não compartilhe este link: ele abre o seu rascunho.</p>
+        </div>
+      `,
+    });
+    return true;
+  } catch (err) {
+    console.error("Falha ao enviar e-mail de rascunho:", err);
+    return false;
+  }
+}

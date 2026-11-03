@@ -11,17 +11,23 @@
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { doc, setDoc, getDoc } from "firebase/firestore";
-import { ref as sRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
   Heart, ArrowRight, ArrowLeft, Eye, ChevronDown, ChevronUp, Rocket, Sparkles, X,
   Palette, Check, Calendar, Upload, Image as ImageIcon, Wand2, Search, Music,
   Trash2, Plus, Crown, ShieldCheck, Zap, Star, EyeOff, LayoutTemplate, MessageCircle, Mail, Send,
 } from "lucide-react";
-import { db, storage } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { emptyCouplePageDoc, type CoupleMoment, type RetroMonth, type RetroSong, type RetroStat } from "@/types/page";
 import CouplePageContent, { THEMES, getTheme, MOMENT_ICONS } from "@/components/CouplePageContent";
 import DatePage, { DATE_TEMPLATES, type DateTemplateId } from "@/components/DatePage";
 import { BR, D_FONT, BRAND_CSS, Blobs, Logo } from "@/components/brand";
+import { track, eventoEtapa, slugEtapa, type Produto } from "@/lib/funil";
+import { OfertaBanner } from "@/components/Oferta";
+import ProvaSocial from "@/components/ProvaSocial";
+import {
+  OPCIONAIS, AjudaEtapa, BarraEtapas, TempoRestante, Pendencias, SalvarDepois, BotaoSalvar, BarraEnvio,
+  minutosRestantes, etapaVazia, salvarRascunhoNuvem, carregarRascunhoNuvem, uploadTo, enviarVarias,
+} from "./fluxo";
 import { musicLinkStatus, embedSrc } from "@/components/MusicDock";
 import RetroStories, { RETRO_THEMES, SCRAP_THEMES, DEFAULT_RETRO_THEME, MESES, RETRO_STAT_IDEAS } from "@/components/RetroStories";
 
@@ -146,24 +152,6 @@ function useSlugStatus(slug: string): SlugStatus {
 }
 const slugLivre = (st: SlugStatus) => st === "ok" || st === "error"; // erro de rede não trava a pessoa
 
-// Fotos de celular chegam com 4–12 MB; reduz pra 1600px/JPEG antes de subir
-// (upload muito mais rápido e página mais leve pra quem recebe).
-async function comprimirImagem(file: File): Promise<Blob> {
-  if (!file.type.startsWith("image/") || file.type === "image/gif") return file;
-  try {
-    const bmp = await createImageBitmap(file);
-    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
-    if (scale === 1 && file.size < 900_000) return file;
-    const c = document.createElement("canvas");
-    c.width = Math.round(bmp.width * scale);
-    c.height = Math.round(bmp.height * scale);
-    c.getContext("2d")?.drawImage(bmp, 0, 0, c.width, c.height);
-    return await new Promise<Blob>((res) => c.toBlob((b) => res(b ?? file), "image/jpeg", 0.82));
-  } catch {
-    return file;
-  }
-}
-
 function SlugHint({ status }: { status: SlugStatus }) {
   const map: Record<SlugStatus, [string, string] | null> = {
     empty: null,
@@ -191,7 +179,9 @@ export default function CriarPage() {
 function CriarInner() {
   // Quem chega pela landing do Date (/date) vem com ?estilo=date — já entra no
   // fluxo certo, sem passar pela tela de escolha de estilo.
-  const estiloParam = useSearchParams().get("estilo");
+  const sp = useSearchParams();
+  const estiloParam = sp.get("estilo");
+  const rascunhoParam = sp.get("rascunho");
   const veioDaLandingDate = estiloParam === "date";
   const veioDaLandingRetro = estiloParam === "retro";
 
@@ -199,6 +189,10 @@ function CriarInner() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [immersive, setImmersive] = useState(false);
+  // etapas já abertas — é o que deixa marcar "feita" / "pulada" na barra
+  const [vistos, setVistos] = useState<number[]>([]);
+  const [salvarAberto, setSalvarAberto] = useState(false);
+  const [salvoNuvemEm, setSalvoNuvemEm] = useState<number | null>(null);
 
   const [d, setD] = useState({
     ...emptyCouplePageDoc(),
@@ -209,22 +203,51 @@ function CriarInner() {
   const set = (k: keyof typeof d) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setD((s) => ({ ...s, [k]: e.target.value }));
   const slugStatus = useSlugStatus(d.slug);
+  const produto: Produto = d.style === "retro" ? "retro" : d.style === "date" ? "date" : "classica";
 
-  // Rascunho salvo no aparelho: se a pessoa fechar a aba, recarregar ou voltar
-  // do checkout, continua de onde parou em vez de perder tudo.
+  // Rascunho: fica no aparelho (localStorage) E na nuvem (/api/rascunho).
+  // Se a pessoa chegar por um link "?rascunho=..." (o do e-mail), carrega da
+  // nuvem — funciona até em outro celular. Senão, usa o que estiver no aparelho.
   const restored = useRef(false);
   const [draftNotice, setDraftNotice] = useState(false);
   useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("fmh_draft_v1") || "null");
-      const temAlgo = saved?.d && (saved.d.slug || saved.d.retroNameA || saved.d.title || saved.d.whatsapp);
-      if (temAlgo && (!estiloParam || saved.d.style === estiloParam)) {
-        setD((x) => ({ ...x, ...saved.d }));
-        setStep(Number(saved.step) || 0);
-        setDraftNotice(true);
+    let cancelado = false;
+    const aplicar = (saved: any, origem: "nuvem" | "local") => {
+      const { _vistos, ...dSalvo } = saved.d ?? {};
+      void _vistos;
+      setD((x) => ({ ...x, ...dSalvo }));
+      setStep(Number(saved.step) || 0);
+      const v = saved.vistos ?? saved.d?._vistos;
+      if (Array.isArray(v)) setVistos(v.filter((n: unknown) => typeof n === "number"));
+      setDraftNotice(true);
+      if (origem === "nuvem") {
+        setSalvoNuvemEm(Date.now());
+        track(saved.d?.style === "retro" ? "retro" : saved.d?.style === "date" ? "date" : "classica", "retomou", { unico: true });
       }
-    } catch {}
-    restored.current = true;
+    };
+    const local = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem("fmh_draft_v1") || "null");
+        const temAlgo = saved?.d && (saved.d.slug || saved.d.retroNameA || saved.d.title || saved.d.whatsapp);
+        if (temAlgo && (!estiloParam || saved.d.style === estiloParam)) aplicar(saved, "local");
+      } catch {}
+      restored.current = true;
+    };
+    if (rascunhoParam && /^[A-Za-z0-9]{24}$/.test(rascunhoParam)) {
+      carregarRascunhoNuvem(rascunhoParam).then((r) => {
+        if (cancelado) return;
+        if (r?.d) {
+          try {
+            localStorage.setItem("fmh_draft_id", rascunhoParam);
+          } catch {}
+          aplicar(r, "nuvem");
+          restored.current = true;
+        } else local();
+      });
+    } else local();
+    return () => {
+      cancelado = true;
+    };
     // só na abertura da página
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -232,16 +255,47 @@ function CriarInner() {
     if (!restored.current) return;
     const t = window.setTimeout(() => {
       try {
-        localStorage.setItem("fmh_draft_v1", JSON.stringify({ d, step }));
+        localStorage.setItem("fmh_draft_v1", JSON.stringify({ d, step, vistos }));
       } catch {}
     }, 400);
     return () => window.clearTimeout(t);
+  }, [d, step, vistos]);
+
+  // Cópia na nuvem: só depois que a pessoa já preencheu algo que valha guardar
+  // (os nomes ou o link), e no máximo a cada 6 s enquanto ela digita.
+  const temConteudo = !!(d.slug || d.retroNameA || d.retroNameB || d.title || d.whatsapp);
+  useEffect(() => {
+    if (!restored.current || !temConteudo) return;
+    const t = window.setTimeout(() => {
+      salvarRascunhoNuvem({ ...d, _vistos: vistos }, step).then((r) => {
+        if (r?.ok) {
+          setSalvoNuvemEm(Date.now());
+          track(produto, "rascunho", { unico: true });
+        }
+      });
+    }, 6000);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [d, step]);
+  // ...e uma última cópia quando ela sai do app (troca de aba, vai pro WhatsApp)
+  const ultimo = useRef({ d, step, temConteudo });
+  useEffect(() => {
+    ultimo.current = { d, step, temConteudo };
+  });
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === "hidden" && ultimo.current.temConteudo) salvarRascunhoNuvem(ultimo.current.d, ultimo.current.step);
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
+  }, []);
+
   const recomecar = () => {
     try {
       localStorage.removeItem("fmh_draft_v1");
+      localStorage.removeItem("fmh_draft_id");
     } catch {}
-    window.location.reload();
+    window.location.href = window.location.pathname + (estiloParam ? `?estilo=${estiloParam}` : "");
   };
 
   const STEPS = getSteps(d.style);
@@ -250,14 +304,43 @@ function CriarInner() {
   const last = stepC === STEPS.length - 1;
   const name = STEPS[stepC];
 
-  const canNext = () => {
-    if (name === "Nome") return d.title.trim() !== "" && slugLivre(slugStatus) && d.startDate !== "";
-    if (name === "Mensagem") return d.message.trim() !== "";
-    if (name === "Date") return (d.whatsapp ?? "").replace(/\D/g, "").length >= 10 && slugLivre(slugStatus);
-    if (name === "Casal") return (d.retroNameA ?? "").trim() !== "" && (d.retroNameB ?? "").trim() !== "" && slugLivre(slugStatus) && d.startDate !== "";
+  // Etapas obrigatórias: só o que a página precisa pra existir.
+  const etapaOk = (n: string) => {
+    if (n === "Nome") return d.title.trim() !== "" && slugLivre(slugStatus) && d.startDate !== "";
+    if (n === "Mensagem") return d.message.trim() !== "";
+    if (n === "Date") return (d.whatsapp ?? "").replace(/\D/g, "").length >= 10 && slugLivre(slugStatus);
+    if (n === "Casal") return (d.retroNameA ?? "").trim() !== "" && (d.retroNameB ?? "").trim() !== "" && slugLivre(slugStatus) && d.startDate !== "";
     return true;
   };
+  const canNext = () => etapaOk(name);
   const ok = canNext();
+  // Dá pra pular pra qualquer etapa até a primeira obrigatória que falta.
+  const travaEm = STEPS.findIndex((n) => !etapaOk(n));
+  const liberadoAte = travaEm === -1 ? STEPS.length - 1 : travaEm;
+  const irPara = (i: number) => {
+    if (i < 0 || i > liberadoAte) return;
+    setStep(i);
+    window.scrollTo({ top: 0 });
+    document.querySelector(".scr-quiz")?.scrollTo({ top: 0 });
+  };
+  const opcional = OPCIONAIS.has(name);
+  const vazia = etapaVazia(name, d);
+  const pular = () => {
+    track(produto, `pulou:${slugEtapa(name)}`);
+    irPara(stepC + 1);
+  };
+
+  // marca a etapa atual como vista (ajuste de estado durante o render, sem efeito)
+  if (!vistos.includes(stepC)) setVistos([...vistos, stepC]);
+
+  // Analytics: "começou" = escolheu o produto e entrou na 1ª etapa dele; depois,
+  // "viu a etapa N". Cada um conta 1x por sessão. (A tela de escolha do estilo
+  // fica de fora porque ali ainda não dá pra saber qual produto é.)
+  useEffect(() => {
+    if (stepC < 1) return;
+    track(produto, "inicio", { unico: true });
+    track(produto, eventoEtapa(stepC, name), { unico: true });
+  }, [produto, stepC, name]);
 
   return (
     <div style={{ minHeight: "100vh", background: P.bg, fontFamily: "Inter, system-ui, sans-serif", display: "flex", flexWrap: "wrap" }}>
@@ -270,7 +353,9 @@ function CriarInner() {
         .qi { animation: stepIn .45s ease both; }
         .qinput:focus { border-color:${P.pinkBorder} !important; box-shadow:0 0 0 3px ${P.pinkSoft}; }
         .drop:hover { border-color:${P.pinkBorder} !important; background:${P.pinkSoft} !important; }
-        .scr::-webkit-scrollbar{ width:0; }
+        .scr::-webkit-scrollbar{ width:0; height:0; }
+        /* iPhone dá zoom sozinho em campo com fonte < 16px — e não desfaz. */
+        @media (max-width: 900px) { .qinput, select.qinput, textarea.qinput { font-size:16px !important; } .quiz-logo { margin-bottom: 8px !important; } }
         @media (max-width: 900px) { .preview-col { display:none !important; } }
         /* No celular a coluna de preview não cabe, mas o preview é justamente
            o que vende — então em vez de esconder e pronto, damos um botão
@@ -290,7 +375,7 @@ function CriarInner() {
       {/* ───────── ESQUERDA: QUIZ ───────── */}
       <div style={{ flex: "1 1 440px", minWidth: 320, display: "flex", flexDirection: "column", background: `linear-gradient(180deg, ${P.bgTint}, ${P.bg})`, minHeight: "100vh" }}>
         <div style={{ padding: "18px 28px 0" }}>
-          <div style={{ marginBottom: 18 }}>
+          <div className="quiz-logo" style={{ marginBottom: 18 }}>
             <Logo color={P.ink} size={30} />
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
@@ -302,9 +387,15 @@ function CriarInner() {
           <div style={{ height: 6, borderRadius: 99, background: P.pinkSoft, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${progress}%`, borderRadius: 99, background: `linear-gradient(90deg,${P.pink},${BR.orange})`, transition: "width .5s ease" }} />
           </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", margin: "9px 0 10px" }}>
+            <TempoRestante min={minutosRestantes(STEPS, stepC)} />
+            {stepC > 0 && <BotaoSalvar onClick={() => setSalvarAberto(true)} salvoEm={salvoNuvemEm} />}
+          </div>
+          {stepC > 0 && <BarraEtapas steps={STEPS} atual={stepC} liberadoAte={liberadoAte} vistos={vistos} d={d} emoji={EMOJI} onGo={irPara} />}
         </div>
 
-        <div className="scr" style={{ flex: 1, overflowY: "auto", padding: "32px 28px 20px" }}>
+        <div className="scr scr-quiz" style={{ flex: 1, overflowY: "auto", padding: "22px 28px 20px" }}>
+          {d.style === "retro" && (stepC <= 1 || last) && <OfertaBanner variante="compacta" />}
           <div key={stepC} className="qi">
             {draftNotice && stepC > 0 && (
               <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 12, background: "#fff", border: `1px solid ${P.cardBorder}`, marginBottom: 18, fontSize: 13, color: P.ink }}>
@@ -314,7 +405,11 @@ function CriarInner() {
                 </button>
               </div>
             )}
+            <AjudaEtapa key={name} name={name} />
             <StepBody
+              irPara={irPara}
+              steps={STEPS}
+              produto={produto}
               name={name}
               slugStatus={slugStatus}
               d={d}
@@ -333,17 +428,23 @@ function CriarInner() {
           <div style={{ borderTop: `1px solid ${P.cardBorder}`, background: "rgba(255,255,255,0.6)", backdropFilter: "blur(6px)", padding: "12px 20px" }}>
             <div style={{ textAlign: "center", fontSize: 12, color: P.sub, marginBottom: 10 }}>
               {EMOJI[name]} {name} · etapa {stepC + 1} de {STEPS.length}
+              {opcional && <b style={{ color: "#9A7300" }}> · opcional, dá pra fazer depois</b>}
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <button
-                onClick={() => setStep((s) => Math.max(0, s - 1))}
+                onClick={() => irPara(Math.max(0, stepC - 1))}
                 disabled={stepC === 0}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", color: stepC === 0 ? "#D8BFD0" : P.sub, fontSize: 14, cursor: stepC === 0 ? "default" : "pointer" }}
               >
                 {stepC === 0 ? <X size={16} /> : <ArrowLeft size={16} />} {stepC === 0 ? "Cancelar" : "Voltar"}
               </button>
+              {opcional && vazia && (
+                <button onClick={pular} style={{ marginLeft: "auto", marginRight: 12, background: "none", border: "none", color: P.sub, fontSize: 14, fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}>
+                  Pular
+                </button>
+              )}
               <button
-                onClick={() => ok && setStep(stepC + 1)}
+                onClick={() => ok && irPara(stepC + 1)}
                 disabled={!ok}
                 style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 26px", borderRadius: 99, border: "none", cursor: ok ? "pointer" : "default", fontSize: 14, fontWeight: 600, color: "#fff", opacity: ok ? 1 : 0.55, background: P.pink, boxShadow: ok ? STICKER : "none" }}
               >
@@ -388,6 +489,17 @@ function CriarInner() {
       </div>
 
       {immersive && <ImmersivePreview d={d} onClose={() => setImmersive(false)} />}
+      {salvarAberto && (
+        <SalvarDepois
+          d={d}
+          step={stepC}
+          onClose={() => setSalvarAberto(false)}
+          onSaved={(email) => {
+            setSalvoNuvemEm(Date.now());
+            if (!d.buyerEmail) setD((x) => ({ ...x, buyerEmail: email }));
+          }}
+        />
+      )}
 
       <button
         className="preview-mobile"
@@ -415,7 +527,7 @@ function CriarInner() {
 }
 
 // ───────────────── etapas ─────────────────
-function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBack, slugStatus }: any) {
+function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBack, slugStatus, irPara, steps, produto }: any) {
   if (name === "Estilo")
     return (
       <>
@@ -455,6 +567,7 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
             );
           })}
         </div>
+        <ProvaSocial variante="clara" />
       </>
     );
 
@@ -634,20 +747,28 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
     );
   }
 
-  return <FinalStep d={d} setD={setD} saving={saving} setSaving={setSaving} error={error} setError={setError} onBack={onBack} />;
+  return <FinalStep d={d} setD={setD} saving={saving} setSaving={setSaving} error={error} setError={setError} onBack={onBack} irPara={irPara} steps={steps} produto={produto} />;
 }
 
 function FotosStep({ d, setD }: any) {
+  const [envio, setEnvio] = useState({ feitas: 0, total: 0 });
+  const [erro, setErro] = useState("");
+  // Antes subia uma por vez, sem comprimir (foto de 8 MB no 4G = minutos) e sem
+  // aviso de erro. Agora: comprime, sobe 3 por vez, mostra o progresso e tenta
+  // de novo sozinho se a internet oscilar.
   const onFiles = async (files: FileList | null) => {
-    if (!files || !d.slug) return;
-    const uploaded: string[] = [];
-    for (const file of Array.from(files).slice(0, 10 - d.photos.length)) {
-      const path = `pages/${d.slug}/${Date.now()}-${file.name}`;
-      const r = sRef(storage, path);
-      await uploadBytes(r, file);
-      uploaded.push(await getDownloadURL(r));
+    if (!files?.length || !d.slug) return;
+    setErro("");
+    const lista = Array.from(files).slice(0, 10 - d.photos.length);
+    const { urls, erros } = await enviarVarias(d.slug, (i) => `foto${i + 1}`, lista, (feitas, total) => setEnvio({ feitas, total }));
+    const ok = urls.filter(Boolean) as string[];
+    setD((s: any) => ({ ...s, photos: [...s.photos, ...ok].slice(0, 10) }));
+    if (ok.length) track("classica", "upload_ok");
+    if (erros.length) {
+      track("classica", "upload_erro");
+      setErro(`${erros.length} foto(s) não subiram. ${mensagemErroUpload(erros[0])}`);
     }
-    setD((s: any) => ({ ...s, photos: [...s.photos, ...uploaded].slice(0, 10) }));
+    setEnvio({ feitas: 0, total: 0 });
   };
   return (
     <>
@@ -661,14 +782,16 @@ function FotosStep({ d, setD }: any) {
       {!d.slug && <p style={{ color: "#c0392b", fontSize: 13, marginBottom: 10 }}>Volte e defina o link da página antes de subir fotos.</p>}
       {d.photos.length < 10 && (
         <label className="drop" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "30px 16px", borderRadius: 16, border: `2px dashed ${P.pinkBorder}`, background: "rgba(255,255,255,0.4)", cursor: d.slug ? "pointer" : "not-allowed", opacity: d.slug ? 1 : 0.5, transition: "all .2s" }}>
-          <input type="file" accept="image/*" multiple disabled={!d.slug} onChange={(e) => onFiles(e.target.files)} style={{ display: "none" }} />
+          <input type="file" accept="image/*" multiple disabled={!d.slug || !!envio.total} onChange={(e) => { onFiles(e.target.files); e.target.value = ""; }} style={{ display: "none" }} />
           <div style={{ width: 46, height: 46, borderRadius: "50%", background: P.pinkSoft, display: "grid", placeItems: "center" }}>
             <Upload size={20} color={P.pink} />
           </div>
           <div style={{ fontSize: 15, fontWeight: 600, color: P.ink }}>Adicionar fotos</div>
-          <div style={{ fontSize: 12.5, color: P.sub }}>Até 10 fotos (opcional)</div>
+          <div style={{ fontSize: 12.5, color: P.sub }}>Escolha várias de uma vez · até 10 (opcional)</div>
         </label>
       )}
+      <BarraEnvio feitas={envio.feitas} total={envio.total} />
+      {erro && <p style={{ color: "#C0392B", fontSize: 13, marginTop: 8 }}>{erro}</p>}
       {d.photos.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginTop: 14 }}>
           {d.photos.map((p: string, i: number) => (
@@ -766,9 +889,11 @@ function TimelineStep({ d, setD }: any) {
 
   const setPhoto = async (i: number, file?: File) => {
     if (!file || !d.slug) return;
-    const r = sRef(storage, `pages/${d.slug}/moment-${Date.now()}-${file.name}`);
-    await uploadBytes(r, file);
-    update(i, { photo: await getDownloadURL(r) });
+    try {
+      update(i, { photo: await uploadTo(d.slug, `momento${i + 1}`, file) });
+    } catch (e) {
+      alert(mensagemErroUpload(e));
+    }
   };
 
   return (
@@ -836,7 +961,7 @@ const PLANS = [
   { id: "eterno" as const, name: "Plano Eterno", tag: "Para sempre, como o seu amor", from: "R$ 79,90", price: "R$ 39,90", save: "R$ 40", crown: true, best: true, feats: ["Fotos ilimitadas", "Tudo do plano 1 Dia", "Livro de visitas para amigos", "Nunca expira"] },
 ];
 
-function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any) {
+function FinalStep({ d, setD, saving, setSaving, error, setError, onBack, irPara, steps, produto }: any) {
   const [phase, setPhase] = useState(0); // 0 conta · 1 planos
   const [showPass, setShowPass] = useState(false);
   const [plan, setPlan] = useState<"1dia" | "eterno">("eterno");
@@ -859,10 +984,12 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
 
   const onQrPhoto = async (file?: File) => {
     if (!file || !d.slug) return;
-    const r = sRef(storage, `pages/${d.slug}/qr-${Date.now()}-${file.name}`);
-    await uploadBytes(r, file);
-    const url = await getDownloadURL(r);
-    setD((s: any) => ({ ...s, qrPhoto: url }));
+    try {
+      const url = await uploadTo(d.slug, "qr", file);
+      setD((s: any) => ({ ...s, qrPhoto: url }));
+    } catch (e) {
+      setError(mensagemErroUpload(e));
+    }
   };
 
   const finish = async () => {
@@ -871,6 +998,7 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
     // o link nunca termina em hífen (ex.: "joao-" enquanto a pessoa digitava)
     const dd = { ...d, slug: d.slug.replace(/-+$/, "") };
     guardarMeuSlug(dd.slug);
+    track(produto, "checkout", { unico: true });
     try {
       if (dd.style === "retro") {
         await setDoc(doc(db, "pages", dd.slug), {
@@ -936,6 +1064,7 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
     return (
       <>
         <Head title="Último passo!" sub="Seus dados para receber o presente." />
+        {steps && irPara && <Pendencias steps={steps} d={d} onGo={irPara} />}
         <div style={{ width: 58, height: 58, borderRadius: "50%", background: P.pinkSoft, display: "grid", placeItems: "center", margin: "0 auto 18px" }}>
           <Heart size={26} color={P.pink} fill={P.pink} />
         </div>
@@ -1188,17 +1317,6 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack }: any)
 }
 
 // ───────────────── Retrospectiva do Casal — etapas ─────────────────
-async function uploadTo(slug: string, prefix: string, file: File) {
-  const blob = await comprimirImagem(file);
-  // Alguns Androids entregam a foto sem tipo (""). As regras do Storage só
-  // aceitam "image/*", então sem isso o envio é recusado.
-  const contentType = blob.type || file.type || "image/jpeg";
-  const ext = contentType === "image/jpeg" ? "jpg" : contentType.split("/")[1] || "jpg";
-  const r = sRef(storage, `pages/${slug.replace(/-+$/, "")}/${prefix}-${Date.now()}.${ext}`);
-  await uploadBytes(r, blob, { contentType });
-  return getDownloadURL(r);
-}
-
 // Traduz o erro do Firebase Storage pra algo que a pessoa (e você, no suporte)
 // entenda — e manda o detalhe completo pro console do navegador.
 function mensagemErroUpload(e: unknown) {
@@ -1224,8 +1342,10 @@ function RetroCasalStep({ d, setD, set, slugStatus }: any) {
     try {
       const url = await uploadTo(d.slug, "capa", file);
       setD((s: any) => ({ ...s, retroCover: url }));
+      track("retro", "upload_ok");
     } catch (e) {
       setErroFoto(mensagemErroUpload(e));
+      track("retro", "upload_erro");
     } finally {
       setEnviando(false);
     }
@@ -1273,7 +1393,7 @@ function RetroCasalStep({ d, setD, set, slugStatus }: any) {
         )}
         <div style={{ flex: 1 }}>
           <label className="drop" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, border: `1.5px dashed ${P.pinkBorder}`, cursor: podeFoto ? "pointer" : "not-allowed", fontSize: 13.5, color: P.pink, opacity: podeFoto ? 1 : 0.5, background: "#fff" }}>
-            <input type="file" accept="image/*" disabled={!podeFoto || enviando} onChange={(e) => onCover(e.target.files?.[0])} style={{ display: "none" }} />
+            <input type="file" accept="image/*" disabled={!podeFoto || enviando} onChange={(e) => { onCover(e.target.files?.[0]); e.target.value = ""; }} style={{ display: "none" }} />
             <Upload size={15} /> {enviando ? "Enviando…" : d.retroCover ? "Trocar foto" : "Escolher foto"}
           </label>
           <div style={{ fontSize: 12, color: P.sub, marginTop: 6, lineHeight: 1.4 }}>
@@ -1362,20 +1482,60 @@ function RetroMesesStep({ d, setD }: any) {
   const remove = (m: number) => setD((s: any) => ({ ...s, retroMonths: (s.retroMonths ?? []).filter((x: RetroMonth) => x.month !== m) }));
   const onPhoto = async (m: number, file?: File) => {
     if (!file || !d.slug) return;
+    setErroFoto("");
     setUploading(m);
     try {
       upsert(m, { photo: await uploadTo(d.slug, `mes${m + 1}`, file) });
+      track("retro", "upload_ok");
     } catch (e) {
       setErroFoto(mensagemErroUpload(e));
+      track("retro", "upload_erro");
     } finally {
       setUploading(null);
     }
+  };
+
+  // Várias fotos de uma vez: cada foto vai pra um mês sem foto, em ordem,
+  // começando pelo mês aberto. Depois a pessoa só escreve as legendas.
+  const [envio, setEnvio] = useState({ feitas: 0, total: 0 });
+  const [avisoVarias, setAvisoVarias] = useState("");
+  const onVarias = async (lista: FileList | null) => {
+    if (!lista?.length || !d.slug) return;
+    setErroFoto("");
+    setAvisoVarias("");
+    const inicio = open ?? 0;
+    const ordem = [...Array(12).keys()].map((k) => (inicio + k) % 12);
+    const livres = ordem.filter((m) => !get(m)?.photo);
+    const files = Array.from(lista).slice(0, livres.length);
+    if (lista.length > livres.length) setAvisoVarias(`Só cabem mais ${livres.length} foto(s) — uma por mês. As outras ficaram de fora.`);
+    if (!files.length) return;
+    const { urls, erros } = await enviarVarias(d.slug, (i) => `mes${livres[i] + 1}`, files, (feitas, total) => setEnvio({ feitas, total }));
+    urls.forEach((u, i) => u && upsert(livres[i], { photo: u }));
+    const okN = urls.filter(Boolean).length;
+    if (okN) track("retro", "upload_ok");
+    if (erros.length) {
+      track("retro", "upload_erro");
+      setErroFoto(`${erros.length} foto(s) não subiram. ${mensagemErroUpload(erros[0])}`);
+    }
+    setEnvio({ feitas: 0, total: 0 });
+    const primeira = urls.findIndex(Boolean);
+    if (primeira >= 0) setOpen(livres[primeira]);
+    if (okN > 1) setAvisoVarias((a) => a || `${okN} fotos distribuídas nos meses. Agora toque em cada mês e escreva o que aconteceu. ✍️`);
   };
 
   return (
     <>
       <Head title="A linha do tempo do ano" sub="Escolha os meses que marcaram vocês. Não precisa preencher todos." />
       {!d.slug && <p style={{ color: "#c0392b", fontSize: 13, marginBottom: 10 }}>Volte e defina o link antes de subir fotos.</p>}
+      <label
+        className="drop"
+        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px 14px", marginBottom: 14, borderRadius: 14, border: `1.5px dashed ${P.pinkBorder}`, background: "#fff", cursor: d.slug && !envio.total ? "pointer" : "not-allowed", opacity: d.slug ? 1 : 0.5, fontSize: 14, fontWeight: 600, color: P.ink }}
+      >
+        <input type="file" accept="image/*" multiple disabled={!d.slug || !!envio.total} onChange={(e) => { onVarias(e.target.files); e.target.value = ""; }} style={{ display: "none" }} />
+        <ImageIcon size={17} color={P.pink} /> Escolher várias fotos de uma vez
+      </label>
+      <BarraEnvio feitas={envio.feitas} total={envio.total} />
+      {avisoVarias && <p style={{ fontSize: 12.5, color: P.ink, background: P.pinkSoft, padding: "9px 12px", borderRadius: 10, margin: "0 0 14px", lineHeight: 1.45 }}>{avisoVarias}</p>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 16 }}>
         {MESES.map((nome, m) => {
           const filled = !!(get(m)?.title?.trim() || get(m)?.photo);
@@ -1387,7 +1547,7 @@ function RetroMesesStep({ d, setD }: any) {
               style={{ position: "relative", padding: "10px 4px", borderRadius: 12, cursor: "pointer", fontSize: 12.5, fontWeight: 600, background: active ? P.pink : filled ? P.pinkSoft : "#fff", color: active ? "#fff" : P.ink, border: `1.5px solid ${active ? P.pink : filled ? P.pinkBorder : P.cardBorder}` }}
             >
               {nome.slice(0, 3)}
-              {filled && !active && <span style={{ position: "absolute", top: 4, right: 6, fontSize: 9, color: P.pink }}>●</span>}
+              {filled && !active && <span style={{ position: "absolute", top: 3, right: 5, fontSize: 9, color: P.pink }}>{get(m)?.photo ? "📷" : "●"}</span>}
             </button>
           );
         })}
@@ -1417,7 +1577,7 @@ function RetroMesesStep({ d, setD }: any) {
             </div>
           ) : (
             <label className="drop" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, border: `1.5px dashed ${P.pinkBorder}`, cursor: d.slug ? "pointer" : "not-allowed", fontSize: 13, color: P.pink, opacity: d.slug ? 1 : 0.5 }}>
-              <input type="file" accept="image/*" disabled={!d.slug} onChange={(e) => onPhoto(open, e.target.files?.[0])} style={{ display: "none" }} />
+              <input type="file" accept="image/*" disabled={!d.slug || uploading !== null} onChange={(e) => { onPhoto(open, e.target.files?.[0]); e.target.value = ""; }} style={{ display: "none" }} />
               <Upload size={15} /> {uploading === open ? "Enviando..." : "Adicionar foto (vertical fica melhor)"}
             </label>
           )}
@@ -1660,6 +1820,7 @@ function RetroCheckout({ d, saving, error, finish, onBack, bigBtn, qrOn, setQrOn
       </div>
       {error && <p style={{ color: "#c0392b", fontSize: 13, textAlign: "center", marginTop: 10 }}>{error}</p>}
       {bigBtn(saving ? "Salvando..." : "Liberar nossa retrospectiva", finish, saving)}
+      <ProvaSocial variante="clara" max={2} />
       <div style={{ textAlign: "center" }}>
         <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", color: P.sub, fontSize: 14, cursor: "pointer", marginTop: 14 }}>
           <ArrowLeft size={15} /> Voltar
