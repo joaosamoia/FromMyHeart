@@ -9,6 +9,9 @@
 
 import Link from "next/link";
 import { BR, D_FONT, B_FONT, BRAND_CSS, Blobs, Logo, Kicker, Marquee } from "@/components/brand";
+import { OfertaBanner } from "@/components/Oferta";
+import ProvaSocial from "@/components/ProvaSocial";
+import { DEPOIMENTOS } from "@/lib/prova-social";
 
 const PRODUTOS = [
   {
@@ -113,6 +116,9 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ───────── OFERTA DE FIM DE ANO (contador real: Natal → virada) ───────── */}
+      <OfertaBanner variante="home" />
+
       <Marquee items={["Retrospectiva do casal", "Página de amor", "Convite de date", "Mapa estelar", "QR Code pra imprimir", "Link na hora"]} />
 
       {/* ───────── PRODUTOS ───────── */}
@@ -190,6 +196,19 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ───────── PROVA SOCIAL (só aparece com depoimentos reais em lib/prova-social.ts) ───────── */}
+      {DEPOIMENTOS.length > 0 && (
+        <section style={{ padding: "60px 20px 0", maxWidth: 600, margin: "0 auto" }}>
+          <Kicker color={BR.pinkHot}>quem já deu de presente</Kicker>
+          <h2 style={{ fontFamily: D_FONT, fontWeight: 800, fontSize: "clamp(32px, 8vw, 46px)", lineHeight: 1, letterSpacing: "-0.03em", margin: "10px 0 22px" }}>
+            Teve choro.
+            <br />
+            <span style={{ color: BR.yellow }}>Muito choro.</span>
+          </h2>
+          <ProvaSocial variante="escura" max={4} />
+        </section>
+      )}
 
       {/* ───────── EXEMPLO ───────── */}
       <section style={{ padding: "60px 20px", maxWidth: 600, margin: "0 auto", textAlign: "center" }}>

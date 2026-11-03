@@ -22,6 +22,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { sendPageReadyEmail } from "@/lib/email";
+import { contarEvento } from "@/lib/funil-server";
 
 // Verificação do webhook. A Kiwify chama esse campo simplesmente de "Token"
 // (não especifica se é uma chave de HMAC ou um valor comparado diretamente),
@@ -179,6 +180,13 @@ export async function POST(req: NextRequest) {
     `Kiwify webhook: página "${slug}" liberada com sucesso.` +
       `${hasAstralBump ? " (+ Mapa Estelar)" : ""}${hasQrBump ? " (+ QR Personalizado)" : ""}`
   );
+
+  // Conta a venda no funil (/admin/funil) — fecha a conta "começou → pagou".
+  const produtoFunil = existingData?.style === "retro" ? "retro" : existingData?.style === "date" ? "date" : "classica";
+  // (só na primeira confirmação: a Kiwify pode reenviar o mesmo webhook)
+  if (existingData?.status !== "pago") {
+    await contarEvento(produtoFunil, "pago").catch((e) => console.error("[funil] não contou a venda:", e));
+  }
 
   // Dispara o e-mail com o link da página — é a forma confiável de entrega,
   // independente do que acontecer na sessão do navegador do cliente.
