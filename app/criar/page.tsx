@@ -1625,7 +1625,7 @@ function RetroMusicasStep({ d, setD }: any) {
       <div style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 14px", borderRadius: 12, background: P.pinkSoft, border: `1px solid ${P.cardBorder}`, marginBottom: 14, fontSize: 13, color: P.ink, lineHeight: 1.45 }}>
         <Music size={18} color={P.pink} style={{ flexShrink: 0, marginTop: 1 }} />
         <span>
-          A <b>música nº 1 começa a tocar</b> quando a pessoa abrir o presente. Cole o link dela do Spotify ou do YouTube.
+          A <b>música nº 1 fica num player</b> na página, pra pessoa dar play quando quiser. Cole o link dela do Spotify ou do YouTube.
         </span>
       </div>
       {songs.map((s, i) => (
@@ -1633,7 +1633,7 @@ function RetroMusicasStep({ d, setD }: any) {
           <span style={{ fontFamily: "'Bricolage Grotesque', Inter, sans-serif", fontWeight: 700, fontSize: 22, color: P.pink, width: 20, lineHeight: "40px" }}>{i + 1}</span>
           <div style={{ flex: 1, display: "grid", gap: 8 }}>
             <input className="qinput" value={s.title} onChange={(e) => update(i, { title: e.target.value })} placeholder="Música - Artista" style={inp} />
-            <input className="qinput" value={s.url ?? ""} onChange={(e) => update(i, { url: e.target.value.trim() })} placeholder={i === 0 ? "Link do Spotify ou YouTube (essa toca ao abrir ♪)" : "Link do Spotify ou YouTube (opcional)"} inputMode="url" autoCapitalize="none" style={{ ...inp, fontSize: 12.5, padding: "9px 12px", borderColor: musicLinkStatus(s.url)?.ok === false ? "#C0392B" : P.cardBorder }} />
+            <input className="qinput" value={s.url ?? ""} onChange={(e) => update(i, { url: e.target.value.trim() })} placeholder={i === 0 ? "Link do Spotify ou YouTube (essa vai no player ♪)" : "Link do Spotify ou YouTube (opcional)"} inputMode="url" autoCapitalize="none" style={{ ...inp, fontSize: 12.5, padding: "9px 12px", borderColor: musicLinkStatus(s.url)?.ok === false ? "#C0392B" : P.cardBorder }} />
             {musicLinkStatus(s.url) && (
               <div style={{ fontSize: 12, lineHeight: 1.4, color: musicLinkStatus(s.url)?.ok ? "#1F9D72" : "#C0392B" }}>
                 {musicLinkStatus(s.url)?.ok ? "✓ " : ""}
@@ -1642,7 +1642,7 @@ function RetroMusicasStep({ d, setD }: any) {
             )}
             {i === 0 && embedSrc(s.url) && (
               <div>
-                <div style={{ fontSize: 11.5, color: P.sub, margin: "2px 0 6px" }}>Teste aqui: é essa que vai tocar quando a pessoa abrir.</div>
+                <div style={{ fontSize: 11.5, color: P.sub, margin: "2px 0 6px" }}>Teste aqui: é essa que vai aparecer no player.</div>
                 <iframe key={embedSrc(s.url)!} title="prévia da música" src={embedSrc(s.url)!} width="100%" height={/spotify/.test(embedSrc(s.url)!) ? 80 : 160} allow="autoplay; encrypted-media; clipboard-write" loading="lazy" style={{ border: "none", borderRadius: 10, display: "block" }} />
               </div>
             )}
@@ -1792,7 +1792,7 @@ function RetroCheckout({ d, saving, error, finish, onBack, bigBtn, qrOn, setQrOn
     "Visual de colagem ou colorido, você escolhe",
     `Contador de dias juntos em ${d.retroYear}, ao vivo`,
     nMeses ? `Linha do tempo com ${nMeses} momento(s) do ano` : "Linha do tempo com um momento por mês",
-    "A música de vocês tocando quando ela abrir",
+    "Um player com a música de vocês, pronto pra dar play",
     "Mapa das estrelas do dia em que tudo começou",
     "Card final pra postar no story",
     "Vale-date surpresa no final",

@@ -192,7 +192,7 @@ export async function POST(req: NextRequest) {
   // independente do que acontecer na sessão do navegador do cliente.
   const finalEmail = buyerEmail || existingData?.buyerEmail;
   if (finalEmail) {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin).replace(/\/+$/, "");
     await sendPageReadyEmail({
       to: finalEmail,
       buyerName: existingData?.buyerName || "",

@@ -14,8 +14,8 @@
 //
 // É uma página de rolagem (igual à Clássica): capa "toque para abrir" →
 // abertura → contador → linha do tempo → mixtape (top 5) → recibo do ano
-// (números) → promessas → carta → final com QR. A música nº 1 começa a tocar
-// no toque da capa (ver MusicDock).
+// (números) → promessas → carta → final com QR. A música nº 1 fica num player
+// embaixo, pra pessoa dar play se quiser (ver MusicDock).
 //
 // Tamanhos em cqw (unidade do container) pra escalar do preview do quiz até a
 // tela cheia do celular.
@@ -185,8 +185,8 @@ export default function RetroScrapbook({ page, variant, compact = false }: { pag
   const music = useRef<MusicApi | null>(null);
 
   const open = () => {
-    // precisa ser AQUI, dentro do toque, pro navegador deixar tocar som
-    music.current?.play();
+    // a música NÃO começa sozinha: o player fica embaixo e a pessoa decide
+    // se quer dar play (som surpresa no meio da rua/trabalho constrange).
     setOpened(true);
   };
 
@@ -250,7 +250,7 @@ export default function RetroScrapbook({ page, variant, compact = false }: { pag
           url={songs[0]?.url}
           title={songs[0]?.title ?? ""}
           apiRef={music}
-          look={{ bg: "#FFFDF7", fg: L.ink, ac: L.accent, font: HAND, radius: 6 }}
+          capa={page.retroCover || page.retroMonths?.find((m) => m.photo)?.photo}
         />
       )}
 
@@ -559,7 +559,7 @@ function Mixtape({ L, songs, year, nameA, nameB }: { L: Look; songs: RetroSong[]
                   {nome}
                   {artista && <span style={{ color: L.soft, fontSize: "4.6cqw" }}> — {artista}</span>}
                 </span>
-                {i === 0 && <span style={{ fontFamily: HAND, fontSize: "4.4cqw", color: L.accent, whiteSpace: "nowrap" }}>♪ tocando</span>}
+                {i === 0 && <span style={{ fontFamily: HAND, fontSize: "4.4cqw", color: L.accent, whiteSpace: "nowrap" }}>♪ no player</span>}
               </div>
             );
           })}

@@ -15,6 +15,7 @@
 // qualquer impressora (de casa ou da gráfica) e sobra cartão reserva.
 import type { CouplePageDoc } from "@/types/page";
 import QRCode from "qrcode";
+import { headers } from "next/headers";
 import PrintButton from "./PrintButton";
 
 const NOISE = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.25  0 0 0 0 0.18  0 0 0 0 0.1  0 0 0 .13 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")`;
@@ -218,7 +219,14 @@ export default async function CardView({
   const m = M.id as ModeloId;
   const fi = Math.min(FRASES.length - 1, Math.max(0, Number(fraseParam) || 0));
   const L = page.theme === "scrap-sol" || page.theme === "scrap-rosa" || page.theme === "scrap-creme" ? LOOKS.sol : LOOKS.kraft;
-  const url = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/${slug}`;
+  // O QR de CADA cliente aponta pro link da página dele: domínio + /slug.
+  // Sem a NEXT_PUBLIC_SITE_URL na Vercel, usa o domínio de onde o cartão foi
+  // aberto — assim o QR nunca sai sem domínio (o que não abriria nada).
+  const h = await headers();
+  const origem =
+    (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/+$/, "") ||
+    `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host") ?? "datecriativo.fun"}`;
+  const url = `${origem}/${slug}`;
   const foto = page.qrPhoto || page.retroCover || page.retroMonths?.find((x) => x.photo)?.photo;
   const ano = page.retroYear ?? new Date().getFullYear();
   const qr = await QRCode.toString(url, { type: "svg", errorCorrectionLevel: "H", margin: 0, color: { dark: TINTA[m] || L.ink, light: FUNDO_QR[m] } });
