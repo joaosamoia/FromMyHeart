@@ -177,7 +177,12 @@ export default function RetroScrapbook({ page, variant, compact = false }: { pag
     () => [...new Set([page.retroCover, ...months.map((m) => m.photo), ...(page.photos ?? [])].filter(Boolean))] as string[],
     [page.retroCover, months, page.photos]
   );
-  const songs = (page.retroSongs ?? []).filter((s) => s.title?.trim()).slice(0, 5);
+  // Música vale se tiver nome OU link (antes, quem só colava o link perdia a
+  // música). Sem nome, aparece como "Nossa música nº N".
+  const songs = (page.retroSongs ?? [])
+    .filter((s) => s.title?.trim() || s.url?.trim())
+    .slice(0, 5)
+    .map((s, i) => ({ ...s, title: s.title?.trim() || `Nossa música nº ${i + 1}` }));
   // o player usa a 1ª música que tiver link que dá pra tocar (senão, a nº 1 com busca no Spotify)
   const tocavel = songs.find((s) => parseMusic(s.url)) ?? songs[0];
   const stats = (page.retroStats ?? []).filter((s) => s.value?.trim() && s.label?.trim()).slice(0, 5);
