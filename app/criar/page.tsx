@@ -106,6 +106,16 @@ const SUGGESTIONS = [
 
 // ───────── link da página (slug) ─────────
 // Rotas do próprio site que não podem virar link de cliente.
+// O endereço que aparece antes do link (ex.: datecriativo.fun/). Vem da
+// NEXT_PUBLIC_SITE_URL da Vercel, então troca sozinho se o domínio mudar.
+const DOMINIO = (() => {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_SITE_URL || "").host || "seu-link";
+  } catch {
+    return "seu-link";
+  }
+})();
+
 const SLUGS_RESERVADOS = ["criar", "date", "obrigado", "retrospectiva", "api", "admin", "exemplo"];
 const limparSlug = (v: string) => v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9-]/g, "-").replace(/-{2,}/g, "-").replace(/^-/, "").slice(0, 40);
 function meusSlugs(): string[] {
@@ -354,8 +364,16 @@ function CriarInner() {
         .qinput:focus { border-color:${P.pinkBorder} !important; box-shadow:0 0 0 3px ${P.pinkSoft}; }
         .drop:hover { border-color:${P.pinkBorder} !important; background:${P.pinkSoft} !important; }
         .scr::-webkit-scrollbar{ width:0; height:0; }
+        /* No iPhone o campo de data tem largura própria e "vaza" por cima do
+           vizinho; sem a aparência nativa ele respeita a coluna. */
+        .qinput[type="date"] { -webkit-appearance:none; appearance:none; display:block; width:100%; min-width:0; max-width:100%; min-height:48px; box-sizing:border-box; color:${P.ink}; }
+        .qinput[type="date"]::-webkit-date-and-time-value { text-align:center; margin:0; }
+        .qinput[type="date"]::-webkit-calendar-picker-indicator { margin-left:0; }
+        select.qinput { min-height:48px; color:${P.ink}; }
+        input.qinput, textarea.qinput, select.qinput { color:${P.ink}; -webkit-text-fill-color:${P.ink}; }
+        input.qinput::placeholder, textarea.qinput::placeholder { color:#B79AB8; -webkit-text-fill-color:#B79AB8; opacity:1; }
         /* iPhone dá zoom sozinho em campo com fonte < 16px — e não desfaz. */
-        @media (max-width: 900px) { .qinput, select.qinput, textarea.qinput { font-size:16px !important; } .quiz-logo { margin-bottom: 8px !important; } }
+        @media (max-width: 900px) { .qinput, select.qinput, textarea.qinput { font-size:16px !important; } .quiz-logo { margin-bottom: 8px !important; } .scr-quiz { padding-bottom: 84px !important; } }
         @media (max-width: 900px) { .preview-col { display:none !important; } }
         /* No celular a coluna de preview não cabe, mas o preview é justamente
            o que vende — então em vez de esconder e pronto, damos um botão
@@ -616,13 +634,13 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
         <label style={lbl}>
           <span style={lblTxt}>Link da sua página</span>
           <div style={{ display: "flex", alignItems: "center", border: `1.5px solid ${P.cardBorder}`, borderRadius: 12, background: P.card }}>
-            <span style={{ padding: "12px 4px 12px 14px", color: P.sub, fontSize: 14 }}>seusite.com/</span>
+            <span style={{ padding: "12px 2px 12px 14px", color: P.sub, fontSize: 14, flexShrink: 0, whiteSpace: "nowrap" }}>{DOMINIO}/</span>
             <input
               className="qinput"
               value={d.slug}
               onChange={(e) => setD((s: any) => ({ ...s, slug: limparSlug(e.target.value) }))}
               placeholder="joao-e-maria"
-              style={{ flex: 1, border: "none", outline: "none", padding: "12px 14px 12px 0", fontSize: 14, background: "transparent" }}
+              style={{ flex: 1, minWidth: 0, border: "none", outline: "none", padding: "12px 14px 12px 0", fontSize: 14, background: "transparent", color: P.ink, WebkitTextFillColor: P.ink, fontWeight: 600 }}
             />
           </div>
         </label>
@@ -731,13 +749,13 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
         <label style={lbl}>
           <span style={lblTxt}>Link da página</span>
           <div style={{ display: "flex", alignItems: "center", border: `1.5px solid ${P.cardBorder}`, borderRadius: 12, background: P.card }}>
-            <span style={{ padding: "12px 4px 12px 14px", color: P.sub, fontSize: 14 }}>seusite.com/</span>
+            <span style={{ padding: "12px 2px 12px 14px", color: P.sub, fontSize: 14, flexShrink: 0, whiteSpace: "nowrap" }}>{DOMINIO}/</span>
             <input
               className="qinput"
               value={d.slug}
               onChange={(e) => setD((s: any) => ({ ...s, slug: limparSlug(e.target.value) }))}
               placeholder="aceita-um-date"
-              style={{ flex: 1, border: "none", outline: "none", padding: "12px 14px 12px 0", fontSize: 14, background: "transparent" }}
+              style={{ flex: 1, minWidth: 0, border: "none", outline: "none", padding: "12px 14px 12px 0", fontSize: 14, background: "transparent", color: P.ink, WebkitTextFillColor: P.ink, fontWeight: 600 }}
             />
           </div>
         </label>
@@ -915,8 +933,8 @@ function TimelineStep({ d, setD }: any) {
               <Trash2 size={16} />
             </button>
           </div>
-          <div style={{ display: "flex", gap: 10, marginBottom: 4 }}>
-            <label style={{ flex: 1 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10, marginBottom: 4 }}>
+            <label style={{ minWidth: 0 }}>
               <span style={lblTxt}>Data</span>
               <input type="date" className="qinput" value={m.date} onChange={(e) => update(i, { date: e.target.value })} style={{ ...inp, padding: "10px", colorScheme: "light" }} />
             </label>
@@ -1356,7 +1374,7 @@ function RetroCasalStep({ d, setD, set, slugStatus }: any) {
       <label style={lbl}>
         <span style={lblTxt}>Link da retrospectiva</span>
         <div style={{ display: "flex", alignItems: "center", border: `1.5px solid ${slugStatus === "taken" ? "#C0392B" : P.cardBorder}`, borderRadius: 12, background: P.card }}>
-          <span style={{ padding: "12px 4px 12px 14px", color: P.sub, fontSize: 14 }}>frommyheart/</span>
+          <span style={{ padding: "12px 2px 12px 14px", color: P.sub, fontSize: 14, flexShrink: 0, whiteSpace: "nowrap" }}>{DOMINIO}/</span>
           <input
             className="qinput"
             value={d.slug}
@@ -1364,18 +1382,18 @@ function RetroCasalStep({ d, setD, set, slugStatus }: any) {
             placeholder={`nosso-${anoAtual}`}
             autoCapitalize="none"
             autoCorrect="off"
-            style={{ flex: 1, border: "none", outline: "none", padding: "12px 14px 12px 0", fontSize: 14, background: "transparent" }}
+            style={{ flex: 1, minWidth: 0, border: "none", outline: "none", padding: "12px 14px 12px 0", fontSize: 14, background: "transparent", color: P.ink, WebkitTextFillColor: P.ink, fontWeight: 600 }}
           />
         </div>
       </label>
       <SlugHint status={slugStatus} />
 
       <div style={{ display: "flex", gap: 10 }}>
-        <label style={{ ...lbl, flex: 1 }}>
+        <label style={{ ...lbl, flex: 1, minWidth: 0 }}>
           <span style={lblTxt}>Seu nome</span>
           <input className="qinput" value={d.retroNameB ?? ""} onChange={set("retroNameB")} placeholder="João" maxLength={20} style={inp} />
         </label>
-        <label style={{ ...lbl, flex: 1 }}>
+        <label style={{ ...lbl, flex: 1, minWidth: 0 }}>
           <span style={lblTxt}>Nome de quem vai receber</span>
           <input className="qinput" value={d.retroNameA ?? ""} onChange={set("retroNameA")} placeholder="Maria" maxLength={20} style={inp} />
         </label>
@@ -1403,12 +1421,12 @@ function RetroCasalStep({ d, setD, set, slugStatus }: any) {
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 10 }}>
-        <label style={{ ...lbl, flex: 1.4 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.35fr) minmax(0,1fr)", gap: 10, alignItems: "end" }}>
+        <label style={{ ...lbl, minWidth: 0 }}>
           <span style={lblTxt}>Quando vocês começaram?</span>
           <input className="qinput" type="date" value={d.startDate} max={new Date().toISOString().slice(0, 10)} onChange={set("startDate")} style={{ ...inp, textAlign: "center", colorScheme: "light", cursor: "pointer" }} />
         </label>
-        <label style={{ ...lbl, flex: 1 }}>
+        <label style={{ ...lbl, minWidth: 0 }}>
           <span style={lblTxt}>Ano da retrospectiva</span>
           <select className="qinput" value={d.retroYear} onChange={(e) => setD((s: any) => ({ ...s, retroYear: Number(e.target.value) }))} style={{ ...inp, cursor: "pointer" }}>
             {[anoAtual, anoAtual - 1].map((y) => (
