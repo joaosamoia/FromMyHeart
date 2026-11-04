@@ -274,7 +274,7 @@ export default function MusicDock({
         <div style={{ width: 48, height: 48, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: "#282828", display: "grid", placeItems: "center" }}>
           {capa ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={capa} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", animation: playing ? "mdSpin 9s linear infinite" : undefined, borderRadius: playing ? "50%" : 0, transition: "border-radius .4s" }} />
+            <img src={capa} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
             <Music2 size={20} color={VERDE} />
           )}
