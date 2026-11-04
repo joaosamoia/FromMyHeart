@@ -122,8 +122,9 @@ export default function MusicDock({
   const wantPlay = useRef(false);
   const [min, setMin] = useState(false);
   const [playing, setPlaying] = useState(false);
-  // se o navegador bloquear o play automático, mostramos um aviso pra tocar no ▶
-  const [needTap, setNeedTap] = useState(false);
+  // a música não toca sozinha: até a pessoa dar o primeiro play, um aviso
+  // gentil mostra onde tocar
+  const [jaTocou, setJaTocou] = useState(false);
   const kind = music?.kind;
   const id = music?.id;
 
@@ -142,7 +143,7 @@ export default function MusicDock({
           c.addListener("playback_update", (e) => {
             const tocando = !e.data.isPaused;
             setPlaying(tocando);
-            if (tocando) setNeedTap(false);
+            if (tocando) setJaTocou(true);
           });
           if (wantPlay.current) c.play();
         });
@@ -163,7 +164,7 @@ export default function MusicDock({
             onStateChange: (e: YTStateEvent) => {
               const tocando = e.data === 1; // 1 = tocando
               setPlaying(tocando);
-              if (tocando) setNeedTap(false);
+              if (tocando) setJaTocou(true);
             },
           },
         });
@@ -179,15 +180,7 @@ export default function MusicDock({
         // 3,5s depois, se ainda não começou, pede um toque no ▶ (iPhone e alguns
         // navegadores não deixam o iframe tocar sozinho)
         window.clearTimeout(checkTimer);
-        checkTimer = window.setTimeout(() => {
-          setPlaying((p) => {
-            if (!p) {
-              setNeedTap(true);
-              setMin(false);
-            }
-            return p;
-          });
-        }, 3500);
+        checkTimer = window.setTimeout(() => setMin(false), 3500);
       },
     };
     return () => {
@@ -230,9 +223,9 @@ export default function MusicDock({
         </span>
         {min ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
       </button>
-      {needTap && !playing && (
-        <div style={{ margin: "0 10px 8px", padding: "8px 12px", borderRadius: 8, background: look.ac, color: "#fff", fontFamily: look.font, fontSize: 15, textAlign: "center", animation: "mdPulse 1.4s ease-in-out infinite" }}>
-          toque no ▶ aqui embaixo pra ouvir a nossa música ♥
+      {!jaTocou && !playing && (
+        <div style={{ margin: "0 10px 8px", padding: "7px 12px", borderRadius: 8, background: look.ac, color: "#fff", fontFamily: look.font, fontSize: 14.5, textAlign: "center" }}>
+          dá o play ▶ aqui embaixo pra ouvir a nossa música ♥
         </div>
       )}
       <style>{`@keyframes mdPulse{0%,100%{opacity:1}50%{opacity:.75}} @keyframes mdSpin{to{transform:rotate(360deg)}} .md-spin{animation:mdSpin 2.4s linear infinite}`}</style>

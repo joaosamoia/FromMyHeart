@@ -351,7 +351,7 @@ function RetroColorido({ page, compact = false }: { page: Doc; compact?: boolean
       {!compact && (
         <button
           onClick={() => {
-            music.current?.play(); // dentro do toque, senão o navegador bloqueia o som
+            // a música não começa sozinha: o player fica embaixo pra pessoa dar play
             setOpened(true);
           }}
           aria-hidden={opened}

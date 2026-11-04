@@ -61,7 +61,7 @@ export function etapaVazia(name: string, d: any): boolean {
 // O que a pessoa perde se pular — aparece na lista antes de pagar.
 const O_QUE_FALTA: Record<string, string> = {
   Meses: "a linha do tempo com os momentos do ano",
-  Músicas: "a trilha sonora (e a música tocando ao abrir)",
+  Músicas: "a trilha sonora (e o player com a música de vocês)",
   Números: "os números do casal",
   Promessas: "as promessas pro ano que vem",
   Fotos: "as fotos de vocês",
@@ -85,7 +85,7 @@ export const AJUDA: Record<string, Ajuda> = {
     exemplos: ["Jan · Primeira viagem juntos pra praia", "Mar · O jantar que deu tudo errado (e foi perfeito)", "Jun · Nosso aniversário de namoro", "Out · Conheci sua família ♥"],
   },
   Músicas: {
-    dica: "A música nº 1 toca quando a pessoa abrir. Coloque a que mais representa vocês.",
+    dica: "A música nº 1 fica num player na página, pronta pra pessoa dar play. Coloque a que mais representa vocês.",
     exemplos: ["A música do primeiro encontro", "A que tocou na primeira viagem", "Aquela que vocês cantam no carro"],
   },
   Números: {
