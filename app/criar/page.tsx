@@ -1618,6 +1618,18 @@ function RetroMusicasStep({ d, setD }: any) {
   const add = (title = "") => setD((s: any) => ({ ...s, retroSongs: [...(s.retroSongs ?? []), { title, url: "" }].slice(0, 5) }));
   const remove = (i: number) => setD((s: any) => ({ ...s, retroSongs: (s.retroSongs ?? []).filter((_: any, j: number) => j !== i) }));
   const sugestoes = SUGGESTIONS.flatMap((g) => g.songs).filter((t) => !songs.some((s) => s.title === t)).slice(0, 6);
+  // Colou o link e deixou o nome vazio? Busca o nome da música pelo link.
+  const preencherNome = async (i: number, url: string) => {
+    try {
+      const r = await fetch(`/api/musica-titulo?url=${encodeURIComponent(url)}`);
+      const { title } = (await r.json()) as { title?: string };
+      if (!title) return;
+      setD((x: any) => ({
+        ...x,
+        retroSongs: (x.retroSongs ?? []).map((m: RetroSong, j: number) => (j === i && !m.title.trim() && m.url === url ? { ...m, title } : m)),
+      }));
+    } catch {}
+  };
 
   return (
     <>
@@ -1632,8 +1644,8 @@ function RetroMusicasStep({ d, setD }: any) {
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 12, padding: 12, borderRadius: 14, background: "#fff", border: `1px solid ${P.cardBorder}` }}>
           <span style={{ fontFamily: "'Bricolage Grotesque', Inter, sans-serif", fontWeight: 700, fontSize: 22, color: P.pink, width: 20, lineHeight: "40px" }}>{i + 1}</span>
           <div style={{ flex: 1, display: "grid", gap: 8 }}>
-            <input className="qinput" value={s.title} onChange={(e) => update(i, { title: e.target.value })} placeholder="Música - Artista" style={inp} />
-            <input className="qinput" value={s.url ?? ""} onChange={(e) => update(i, { url: e.target.value.trim() })} placeholder={i === 0 ? "Link do Spotify ou YouTube (essa vai no player ♪)" : "Link do Spotify ou YouTube (opcional)"} inputMode="url" autoCapitalize="none" style={{ ...inp, fontSize: 12.5, padding: "9px 12px", borderColor: musicLinkStatus(s.url)?.ok === false ? "#C0392B" : P.cardBorder }} />
+            <input className="qinput" value={s.title} onChange={(e) => update(i, { title: e.target.value })} placeholder="Música - Artista (ou cole só o link abaixo)" style={inp} />
+            <input className="qinput" value={s.url ?? ""} onChange={(e) => { const url = e.target.value.trim(); update(i, { url }); if (!s.title.trim() && parseMusic(url)) preencherNome(i, url); }} placeholder={i === 0 ? "Link do Spotify ou YouTube (essa vai no player ♪)" : "Link do Spotify ou YouTube (opcional)"} inputMode="url" autoCapitalize="none" style={{ ...inp, fontSize: 12.5, padding: "9px 12px", borderColor: musicLinkStatus(s.url)?.ok === false ? "#C0392B" : P.cardBorder }} />
             {musicLinkStatus(s.url) && (
               <div style={{ fontSize: 12, lineHeight: 1.4, color: musicLinkStatus(s.url)?.ok ? "#1F9D72" : "#C0392B" }}>
                 {musicLinkStatus(s.url)?.ok ? "✓ " : ""}

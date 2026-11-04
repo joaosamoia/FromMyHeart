@@ -42,7 +42,7 @@ export function etapaVazia(name: string, d: any): boolean {
     case "Meses":
       return !(d.retroMonths ?? []).some((m: any) => m.title?.trim() || m.photo);
     case "Músicas":
-      return !(d.retroSongs ?? []).some((s: any) => s.title?.trim());
+      return !(d.retroSongs ?? []).some((s: any) => s.title?.trim() || s.url?.trim());
     case "Números":
       return !(d.retroStats ?? []).some((s: any) => s.value?.trim() && s.label?.trim());
     case "Promessas":
