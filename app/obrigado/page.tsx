@@ -294,25 +294,95 @@ function Pendente() {
       </h1>
       <p style={{ fontSize: 14.5, color: B.muted, lineHeight: 1.55, margin: 0 }}>
         Seu pagamento ainda está sendo confirmado. Assim que cair, você recebe o link no e-mail
-        automaticamente — pode fechar esta página tranquilo.
+        automaticamente (confira também a aba Promoções) — pode fechar esta página tranquilo.
       </p>
     </>
   );
 }
 
 function Erro() {
+  // Comum no Pix: a pessoa paga, a Kiwify manda e-mail/WhatsApp e ela abre o
+  // "acessar" em outro navegador (sem o link guardado). Aqui ela acha o
+  // presente pelo e-mail da compra + 4 últimos dígitos do celular: o link
+  // aparece na tela na hora, e também vai pro e-mail.
+  const [email, setEmail] = useState("");
+  const [fone, setFone] = useState("");
+  const [estado, setEstado] = useState<"" | "enviando" | "ok" | "erro">("");
+  const [links, setLinks] = useState<{ url: string; titulo: string; cartao: string | null }[]>([]);
+  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const enviar = async () => {
+    setEstado("enviando");
+    try {
+      const r = await fetch("/api/reenviar-link", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: email.trim(), fone4: fone }) });
+      const j = await r.json().catch(() => ({}));
+      setLinks(Array.isArray(j.links) ? j.links : []);
+      setEstado(r.ok ? "ok" : "erro");
+    } catch {
+      setEstado("erro");
+    }
+  };
+  const campo: React.CSSProperties = { width: "100%", boxSizing: "border-box", padding: "14px 16px", borderRadius: 14, border: `1.5px solid ${B.roseSoft}`, fontSize: 16, color: B.ink, background: "#fff", outline: "none" };
+
+  if (estado === "ok" && links.length)
+    return (
+      <>
+        <div style={{ fontSize: 46 }}>🎉</div>
+        <h1 style={{ fontFamily: D_FONT, fontWeight: 800, letterSpacing: "-0.02em", fontSize: 27, color: B.ink, margin: "14px 0 14px", lineHeight: 1.1 }}>Achamos o seu presente!</h1>
+        <div style={{ display: "grid", gap: 12, textAlign: "left" }}>
+          {links.map((l) => (
+            <div key={l.url} style={{ padding: 14, borderRadius: 16, background: "#fff", border: `1px solid ${B.roseSoft}` }}>
+              <div style={{ fontWeight: 700, color: B.ink, fontSize: 15 }}>{l.titulo}</div>
+              <a href={l.url} style={{ display: "block", color: B.rose, fontSize: 14, wordBreak: "break-all", margin: "4px 0 10px" }}>{l.url}</a>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <a href={l.url} style={{ padding: "10px 16px", borderRadius: 99, background: B.rose, color: "#fff", fontWeight: 700, fontSize: 14, textDecoration: "none" }}>Abrir a página</a>
+                {l.cartao && (
+                  <a href={l.cartao} style={{ padding: "10px 16px", borderRadius: 99, background: BR.wine, color: "#fff", fontWeight: 700, fontSize: 14, textDecoration: "none" }}>Imprimir o cartão QR</a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize: 13, color: B.muted, lineHeight: 1.5, margin: "14px 0 0" }}>Copie o link e mande pra pessoa pelo WhatsApp. ♥</p>
+      </>
+    );
+
   return (
     <>
-      <div style={{ fontSize: 46 }}>🔎</div>
-      <h1 style={{ fontFamily: D_FONT, fontWeight: 800, letterSpacing: "-0.02em", fontSize: 28, color: B.ink, margin: "16px 0 8px" }}>
-        Não encontramos essa página
+      <div style={{ fontSize: 46 }}>💌</div>
+      <h1 style={{ fontFamily: D_FONT, fontWeight: 800, letterSpacing: "-0.02em", fontSize: 27, color: B.ink, margin: "14px 0 8px", lineHeight: 1.1 }}>
+        Vamos achar o seu presente
       </h1>
-      <p style={{ fontSize: 14.5, color: B.muted, lineHeight: 1.55, margin: "0 0 20px" }}>
-        Se você acabou de pagar, confira seu e-mail — o link foi enviado pra lá.
-      </p>
-      <Link href="/" style={{ fontSize: 14, color: B.rose, fontWeight: 700, textDecoration: "none" }}>
-        Voltar ao início
-      </Link>
+      {estado === "ok" ? (
+        <p style={{ fontSize: 14.5, color: B.muted, lineHeight: 1.55, margin: "0 0 18px" }}>
+          Se esse e-mail tiver uma compra confirmada, o link está indo pra <b>{email.trim()}</b> (confira também a aba Promoções e o spam). Se o Pix acabou de ser pago, espere 1 minutinho e tente de novo, com os 4 últimos dígitos do celular pra ver o link aqui mesmo.
+        </p>
+      ) : (
+        <p style={{ fontSize: 14.5, color: B.muted, lineHeight: 1.55, margin: "0 0 16px" }}>
+          Use o mesmo e-mail e celular da compra. O link da sua página (e do cartão com QR, se você comprou) aparece aqui na hora.
+        </p>
+      )}
+      <input type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" style={campo} />
+      <input
+        inputMode="numeric"
+        autoComplete="tel"
+        value={fone}
+        onChange={(e) => setFone(e.target.value.replace(/\D/g, "").slice(-4))}
+        placeholder="4 últimos dígitos do celular"
+        style={{ ...campo, marginTop: 10 }}
+      />
+      {estado === "erro" && <div style={{ fontSize: 13, color: "#C0392B", marginTop: 8 }}>Não deu pra buscar agora. Tente de novo em instantes.</div>}
+      <button
+        onClick={enviar}
+        disabled={!ok || estado === "enviando"}
+        style={{ width: "100%", marginTop: 12, padding: 15, borderRadius: 99, border: "none", background: B.rose, color: "#fff", fontFamily: D_FONT, fontWeight: 800, fontSize: 16, cursor: ok ? "pointer" : "default", opacity: ok ? 1 : 0.55, boxShadow: ok ? `0 5px 0 ${BR.wine}` : "none" }}
+      >
+        {estado === "enviando" ? "Buscando…" : "Encontrar meu presente"}
+      </button>
+      <div style={{ marginTop: 18 }}>
+        <Link href="/" style={{ fontSize: 13.5, color: B.rose, fontWeight: 700, textDecoration: "none" }}>
+          Voltar ao início
+        </Link>
+      </div>
     </>
   );
 }

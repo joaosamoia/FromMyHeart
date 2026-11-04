@@ -196,8 +196,39 @@ export default function MusicDock({
     };
   }, [kind, id, apiRef]);
 
-  if (!music) return null;
   const [nome, artista] = separar(title);
+  // Sem link que dê pra tocar (a pessoa só escreveu o nome da música): em vez
+  // de sumir com o player, o botão verde abre a música no Spotify.
+  if (!music) {
+    if (!title.trim()) return null;
+    return (
+      <div style={{ position: "fixed", left: "50%", bottom: 12, transform: "translateX(-50%)", width: "calc(100% - 20px)", maxWidth: 460, zIndex: 30, background: "#181818", color: "#fff", borderRadius: 12, boxShadow: "0 12px 32px rgba(0,0,0,.45)", fontFamily: "Inter, system-ui, sans-serif", display: "flex", alignItems: "center", gap: 12, padding: 12 }}>
+        <div style={{ width: 48, height: 48, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: "#282828", display: "grid", placeItems: "center" }}>
+          {capa ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={capa} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <Music2 size={20} color={VERDE} />
+          )}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{nome}</div>
+          <div style={{ fontSize: 12.5, color: "#b3b3b3", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>{artista || "a nossa música ♥"}</div>
+        </div>
+        <a
+          href={`https://open.spotify.com/search/${encodeURIComponent(title)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Ouvir a nossa música no Spotify"
+          style={{ width: 46, height: 46, borderRadius: "50%", background: VERDE, display: "grid", placeItems: "center", flexShrink: 0 }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden style={{ marginLeft: 3 }}>
+            <path d="M6 4.2v15.6a1 1 0 0 0 1.5.86l13-7.8a1 1 0 0 0 0-1.72l-13-7.8A1 1 0 0 0 6 4.2Z" fill="#000" />
+          </svg>
+        </a>
+      </div>
+    );
+  }
 
   const alternar = () => {
     if (playing) {

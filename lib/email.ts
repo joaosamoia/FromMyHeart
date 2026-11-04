@@ -15,7 +15,7 @@ function getResend() {
 type Produto = "classica" | "date" | "retro";
 const TEXTOS: Record<Produto, { assunto: string; emoji: string; titulo: string; linha: string; botao: string; accent: string; bg: string }> = {
   classica: {
-    assunto: "Sua página de amor está pronta! 💕",
+    assunto: "Seu pedido: o link da sua página de amor",
     emoji: "💌",
     titulo: "Prontinho",
     linha: "já está no ar e pronta pra emocionar.",
@@ -24,7 +24,7 @@ const TEXTOS: Record<Produto, { assunto: string; emoji: string; titulo: string; 
     bg: "#FEEBE4",
   },
   date: {
-    assunto: "Seu convite está pronto!",
+    assunto: "Seu pedido: o link do seu convite",
     emoji: "",
     titulo: "Pronto",
     linha: "está no ar. Agora é só mandar pra pessoa e esperar a resposta.",
@@ -33,7 +33,7 @@ const TEXTOS: Record<Produto, { assunto: string; emoji: string; titulo: string; 
     bg: "#FFF1E9",
   },
   retro: {
-    assunto: "A retrospectiva de vocês está pronta! 🎉",
+    assunto: "Seu pedido: o link da retrospectiva de vocês",
     emoji: "🎞️",
     titulo: "Prontinho",
     linha: "está no ar. Manda o link e deixa a pessoa reviver o ano de vocês.",
@@ -67,7 +67,21 @@ export async function sendPageReadyEmail(params: {
       // "contato@seusite.com" — melhora a entregabilidade e a marca.
       from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
       to,
+      // e-mail de pedido (transacional): assunto direto, sem emoji, versão em
+      // texto puro e resposta pra uma pessoa — tudo isso ajuda o Gmail a pôr
+      // na caixa Principal em vez de Promoções.
+      ...(process.env.RESEND_REPLY_TO ? { replyTo: process.env.RESEND_REPLY_TO } : {}),
       subject: T.assunto,
+      text: [
+        `${T.titulo}${nome ? `, ${nome}` : ""}!`,
+        "",
+        `${titulo} ${T.linha}`,
+        "",
+        `Link: ${pageUrl}`,
+        ...(cardUrl ? ["", `Cartão com QR Code pra imprimir: ${cardUrl}`] : []),
+        "",
+        "Guarde este e-mail: é assim que você acessa seu link sempre que quiser.",
+      ].join("\n"),
       html: `
         <div style="font-family:Georgia,'Times New Roman',serif;max-width:480px;margin:0 auto;padding:34px 26px;background:${T.bg};border-radius:18px;">
           ${T.emoji ? `<div style="text-align:center;font-size:40px;line-height:1;">${T.emoji}</div>` : ""}
