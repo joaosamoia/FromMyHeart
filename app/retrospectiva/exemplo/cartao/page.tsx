@@ -6,13 +6,14 @@ import CardView from "@/app/[slug]/cartao/CardView";
 
 export const metadata: Metadata = { title: "Exemplo · Cartão com QR Code", robots: { index: false } };
 
-export default async function CartaoExemplo({ searchParams }: { searchParams: Promise<{ tema?: string; modelo?: string }> }) {
-  const { tema, modelo } = await searchParams;
+export default async function CartaoExemplo({ searchParams }: { searchParams: Promise<{ tema?: string; modelo?: string; frase?: string }> }) {
+  const { tema, modelo, frase } = await searchParams;
   const ano = new Date().getFullYear();
   return (
     <CardView
       slug="retrospectiva/exemplo"
       modelo={modelo}
+      frase={frase}
       baseHref={`/retrospectiva/exemplo/cartao${tema ? `?tema=${tema}` : ""}`}
       page={{ theme: tema || "scrap-kraft", retroYear: ano, retroNameA: "Julia", retroNameB: "João", retroCover: "/exemplo/foto-1.jpg", startDate: "2024-03-10" }}
     />

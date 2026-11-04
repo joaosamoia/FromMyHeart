@@ -15,9 +15,9 @@ import CardView from "./CardView";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Cartão com QR Code", robots: { index: false } };
 
-export default async function Cartao({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ modelo?: string }> }) {
+export default async function Cartao({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ modelo?: string; frase?: string }> }) {
   const { slug } = await params;
-  const { modelo } = await searchParams;
+  const { modelo, frase } = await searchParams;
   const snap = await getAdminDb().collection("pages").doc(slug).get();
   if (!snap.exists) notFound();
   const page = snap.data() as CouplePageDoc;
@@ -36,5 +36,5 @@ export default async function Cartao({ params, searchParams }: { params: Promise
     );
   }
 
-  return <CardView page={page} slug={slug} modelo={modelo} baseHref={`/${slug}/cartao`} />;
+  return <CardView page={page} slug={slug} modelo={modelo} frase={frase} baseHref={`/${slug}/cartao`} />;
 }

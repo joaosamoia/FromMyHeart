@@ -1808,7 +1808,7 @@ function RetroCheckout({ d, saving, error, finish, onBack, bigBtn, qrOn, setQrOn
         onClick={() => setQrOn((q: boolean) => !q)}
         icon="💌"
         title={`QR Code personalizado (+${fmtBRL(PRICES.qr)})`}
-        desc="Um cartão pra imprimir com o QR Code que abre a retrospectiva, em 7 modelos: ingresso de cinema, carta com selo, vale-presente, disco, etiqueta de presente, polaroid e minimal. Perfeito pra entregar em mãos."
+        desc="O QR Code que abre a retrospectiva, pronto pra imprimir e colar no presente: polaroid, vale-presente, etiqueta, adesivo redondo e mais, com a frase que você escolher."
         mb={10}
       />
       <div style={{ padding: "13px 16px", borderRadius: 12, background: P.pinkSoft, border: `1px solid ${P.cardBorder}`, fontSize: 15, marginBottom: 6 }}>
