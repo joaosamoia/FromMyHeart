@@ -23,7 +23,7 @@ import Link from "next/link";
 import { Heart, Share2, Music2, Camera, Calendar, ChevronDown } from "lucide-react";
 import type { CouplePageDoc, RetroSong, RetroStat } from "@/types/page";
 import RetroScrapbook from "@/components/RetroScrapbook";
-import MusicDock, { type MusicApi } from "@/components/MusicDock";
+import MusicDock, { parseMusic, type MusicApi } from "@/components/MusicDock";
 import RetroStarMap, { STARMAP_COLORS } from "@/components/RetroStarMap";
 
 type Doc = Partial<CouplePageDoc> & { slug?: string };
@@ -213,6 +213,8 @@ function RetroColorido({ page, compact = false }: { page: Doc; compact?: boolean
     [page.retroMonths]
   );
   const songs = (page.retroSongs ?? []).filter((s) => s.title?.trim()).slice(0, 5);
+  // o player usa a 1ª música que tiver link que dá pra tocar (senão, a nº 1 com busca no Spotify)
+  const tocavel = songs.find((s) => parseMusic(s.url)) ?? songs[0];
   const stats = (page.retroStats ?? []).filter((s) => s.value?.trim() && s.label?.trim()).slice(0, 4);
   const message = page.message?.trim() ?? "";
   const promises = (page.retroPromises ?? []).map((p) => p.trim()).filter(Boolean).slice(0, 5);
@@ -346,7 +348,7 @@ function RetroColorido({ page, compact = false }: { page: Doc; compact?: boolean
 
         {!compact && songs[0] && <div style={{ height: 140, background: S[2].bg }} />}
       </div>
-      {!compact && <MusicDock url={songs[0]?.url} title={songs[0]?.title ?? ""} apiRef={music} capa={coverPhoto} />}
+      {!compact && <MusicDock url={tocavel?.url} title={tocavel?.title ?? ""} apiRef={music} capa={coverPhoto} />}
       {/* ───── capa "toque para abrir" (fora do preview do quiz) ───── */}
       {!compact && (
         <button

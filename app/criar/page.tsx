@@ -28,7 +28,7 @@ import {
   OPCIONAIS, AjudaEtapa, BarraEtapas, TempoRestante, Pendencias, SalvarDepois, BotaoSalvar, BarraEnvio,
   minutosRestantes, etapaVazia, salvarRascunhoNuvem, carregarRascunhoNuvem, uploadTo, enviarVarias,
 } from "./fluxo";
-import { musicLinkStatus, embedSrc } from "@/components/MusicDock";
+import { musicLinkStatus, embedSrc, parseMusic } from "@/components/MusicDock";
 import RetroStories, { RETRO_THEMES, SCRAP_THEMES, DEFAULT_RETRO_THEME, MESES, RETRO_STAT_IDEAS } from "@/components/RetroStories";
 
 // ⚠️ Troque pelos links reais dos seus produtos na Kiwify.
@@ -1652,6 +1652,11 @@ function RetroMusicasStep({ d, setD }: any) {
           </button>
         </div>
       ))}
+      {songs.some((s) => s.title.trim()) && !songs.some((s) => parseMusic(s.url)) && (
+        <div style={{ padding: "11px 13px", borderRadius: 12, background: "#FFF9E6", border: "1px solid #F5E1A4", fontSize: 13, color: P.ink, lineHeight: 1.45, marginBottom: 12 }}>
+          ⚠️ <b>Nenhuma música tem link ainda.</b> Sem o link, o player da página não toca: o botão só abre a busca no Spotify. Cole o link da música nº 1 (Spotify ou YouTube) pra ela tocar direto na retrospectiva.
+        </div>
+      )}
       {songs.length < 5 && (
         <button onClick={() => add()} style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 13, borderRadius: 12, border: `1.5px dashed ${P.pinkBorder}`, background: "transparent", cursor: "pointer", fontSize: 14, fontWeight: 500, color: P.ink }}>
           <Plus size={16} color={P.pink} /> Adicionar música ({songs.length}/5)

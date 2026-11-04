@@ -23,7 +23,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { CouplePageDoc, RetroSong, RetroStat } from "@/types/page";
-import MusicDock, { type MusicApi } from "@/components/MusicDock";
+import MusicDock, { parseMusic, type MusicApi } from "@/components/MusicDock";
 import RetroStarMap, { STARMAP_COLORS } from "@/components/RetroStarMap";
 
 type Doc = Partial<CouplePageDoc> & { slug?: string };
@@ -178,6 +178,8 @@ export default function RetroScrapbook({ page, variant, compact = false }: { pag
     [page.retroCover, months, page.photos]
   );
   const songs = (page.retroSongs ?? []).filter((s) => s.title?.trim()).slice(0, 5);
+  // o player usa a 1ª música que tiver link que dá pra tocar (senão, a nº 1 com busca no Spotify)
+  const tocavel = songs.find((s) => parseMusic(s.url)) ?? songs[0];
   const stats = (page.retroStats ?? []).filter((s) => s.value?.trim() && s.label?.trim()).slice(0, 5);
   const promises = (page.retroPromises ?? []).map((p) => p.trim()).filter(Boolean).slice(0, 5);
   const message = page.message?.trim() ?? "";
@@ -247,8 +249,8 @@ export default function RetroScrapbook({ page, variant, compact = false }: { pag
 
       {!compact && (
         <MusicDock
-          url={songs[0]?.url}
-          title={songs[0]?.title ?? ""}
+          url={tocavel?.url}
+          title={tocavel?.title ?? ""}
           apiRef={music}
           capa={page.retroCover || page.retroMonths?.find((m) => m.photo)?.photo}
         />
