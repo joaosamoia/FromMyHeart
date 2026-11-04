@@ -250,7 +250,7 @@ export default function RetroScrapbook({ page, variant, compact = false }: { pag
           url={songs[0]?.url}
           title={songs[0]?.title ?? ""}
           apiRef={music}
-          look={{ bg: "#FFFDF7", fg: L.ink, ac: L.accent, font: HAND, radius: 6 }}
+          capa={page.retroCover || page.retroMonths?.find((m) => m.photo)?.photo}
         />
       )}
 

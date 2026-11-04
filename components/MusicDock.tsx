@@ -1,30 +1,26 @@
 "use client";
 
 // components/MusicDock.tsx
-// Player fixo no rodapé da Retrospectiva, com a música nº 1 do casal.
+// Mini-player fixo no rodapé da Retrospectiva, no estilo do Spotify: capa,
+// nome da música, botão verde redondo de play/pause e barra de progresso.
+// A música NÃO toca sozinha: a pessoa decide se quer dar play.
 //
-// A ideia é ela começar a tocar no instante em que a pessoa toca em
-// "toque para abrir". Navegadores só deixam tocar som depois de um toque do
-// usuário — e o toque na capa É esse toque. Por isso a capa chama
-// `apiRef.current.play()` direto no onClick (não dentro de um efeito).
-//
-// Funciona com link do Spotify (via Spotify iFrame API) e do YouTube (via
-// YouTube IFrame API). O player fica visível (nada de áudio "escondido") e dá
-// pra pausar/minimizar.
+// Por baixo, quem toca é o player oficial (Spotify iFrame API ou YouTube
+// IFrame API), escondido. O nosso botão comanda ele. Se o navegador não deixar
+// tocar pelo nosso botão (acontece em alguns iPhones com iframe), em 2,5 s o
+// player oficial aparece e a pessoa toca no ▶ dele — nunca fica sem música.
 //
 // Limitações que não dependem da gente:
 //   • Spotify: quem não está logado no Spotify naquele navegador ouve só a
 //     prévia de 30s da música. Com YouTube toca a música inteira.
-//   • Alguns iPhones bloqueiam o play automático dentro de iframe mesmo após o
-//     toque — nesse caso a pessoa só precisa tocar no play do player.
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Music2 } from "lucide-react";
 
 export type MusicApi = { play: () => void };
 
-type SpotifyController = { play: () => void; togglePlay: () => void; addListener: (ev: string, cb: (e: { data: { isPaused: boolean } }) => void) => void };
-type YTPlayer = { playVideo: () => void; pauseVideo: () => void };
+type SpotifyController = { play: () => void; togglePlay: () => void; pause?: () => void; resume?: () => void; addListener: (ev: string, cb: (e: { data: { isPaused: boolean; position?: number; duration?: number } }) => void) => void };
+type YTPlayer = { playVideo: () => void; pauseVideo: () => void; getCurrentTime?: () => number; getDuration?: () => number };
 type YTStateEvent = { data: number };
 
 declare global {
@@ -104,27 +100,37 @@ function onYouTubeApi(cb: () => void) {
   loadScript("https://www.youtube.com/iframe_api");
 }
 
+const VERDE = "#1ED760";
+
+function separar(title: string): [string, string] {
+  const [m, ...rest] = title.split(/\s[-–—]\s/);
+  return [m?.trim() || "a nossa música", rest.join(" - ").trim()];
+}
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
 export default function MusicDock({
   url,
   title,
   apiRef,
-  look,
+  capa,
 }: {
   url?: string;
   title: string;
   apiRef: React.MutableRefObject<MusicApi | null>;
-  look: { bg: string; fg: string; ac: string; font: string; radius?: number };
+  capa?: string;
+  look?: unknown; // mantido por compatibilidade com quem já passa o tema
 }) {
   const music = parseMusic(url);
   const host = useRef<HTMLDivElement>(null);
   const spotify = useRef<SpotifyController | null>(null);
   const yt = useRef<YTPlayer | null>(null);
-  const wantPlay = useRef(false);
-  const [min, setMin] = useState(false);
+  const [pronto, setPronto] = useState(false);
   const [playing, setPlaying] = useState(false);
-  // a música não toca sozinha: até a pessoa dar o primeiro play, um aviso
-  // gentil mostra onde tocar
   const [jaTocou, setJaTocou] = useState(false);
+  const [mostrarOficial, setMostrarOficial] = useState(false);
+  const [min, setMin] = useState(false);
+  const [pos, setPos] = useState({ t: 0, d: 0 });
+  const timer = useRef<number | undefined>(undefined);
   const kind = music?.kind;
   const id = music?.id;
 
@@ -134,18 +140,26 @@ export default function MusicDock({
     host.current.innerHTML = "";
     host.current.appendChild(el);
     let alive = true;
+    let poll: number | undefined;
+
+    const marcar = (tocando: boolean) => {
+      setPlaying(tocando);
+      if (tocando) {
+        setJaTocou(true);
+        window.clearTimeout(timer.current);
+      }
+    };
 
     if (kind === "spotify") {
       onSpotifyApi((IFrameAPI) => {
         if (!alive) return;
         IFrameAPI.createController(el, { uri: `spotify:track:${id}`, width: "100%", height: 80 }, (c) => {
           spotify.current = c;
+          setPronto(true);
           c.addListener("playback_update", (e) => {
-            const tocando = !e.data.isPaused;
-            setPlaying(tocando);
-            if (tocando) setJaTocou(true);
+            marcar(!e.data.isPaused);
+            if (e.data.duration) setPos({ t: (e.data.position ?? 0) / 1000, d: e.data.duration / 1000 });
           });
-          if (wantPlay.current) c.play();
         });
       });
     } else {
@@ -153,39 +167,29 @@ export default function MusicDock({
         if (!alive || !window.YT) return;
         new window.YT.Player(el, {
           videoId: id,
-          width: 128,
-          height: 72,
+          width: 200,
+          height: 112,
           playerVars: { playsinline: 1, rel: 0, modestbranding: 1 },
           events: {
             onReady: (e: { target: YTPlayer }) => {
               yt.current = e.target;
-              if (wantPlay.current) e.target.playVideo();
+              setPronto(true);
             },
-            onStateChange: (e: YTStateEvent) => {
-              const tocando = e.data === 1; // 1 = tocando
-              setPlaying(tocando);
-              if (tocando) setJaTocou(true);
-            },
+            onStateChange: (e: YTStateEvent) => marcar(e.data === 1),
           },
         });
       });
+      poll = window.setInterval(() => {
+        const p = yt.current;
+        if (p?.getDuration) setPos({ t: p.getCurrentTime?.() ?? 0, d: p.getDuration() || 0 });
+      }, 1000);
     }
 
-    let checkTimer: number | undefined;
-    apiRef.current = {
-      play: () => {
-        wantPlay.current = true;
-        spotify.current?.play();
-        yt.current?.playVideo();
-        // 3,5s depois, se ainda não começou, pede um toque no ▶ (iPhone e alguns
-        // navegadores não deixam o iframe tocar sozinho)
-        window.clearTimeout(checkTimer);
-        checkTimer = window.setTimeout(() => setMin(false), 3500);
-      },
-    };
+    apiRef.current = { play: () => spotify.current?.play() ?? yt.current?.playVideo() };
     return () => {
-      window.clearTimeout(checkTimer);
       alive = false;
+      window.clearInterval(poll);
+      window.clearTimeout(timer.current);
       apiRef.current = null;
       spotify.current = null;
       yt.current = null;
@@ -193,6 +197,22 @@ export default function MusicDock({
   }, [kind, id, apiRef]);
 
   if (!music) return null;
+  const [nome, artista] = separar(title);
+
+  const alternar = () => {
+    if (playing) {
+      if (spotify.current) spotify.current.togglePlay();
+      else yt.current?.pauseVideo();
+      return;
+    }
+    if (spotify.current) spotify.current.togglePlay();
+    else yt.current?.playVideo();
+    // se em 2,5 s não começou, mostra o player oficial pra pessoa tocar nele
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setMostrarOficial(true), 2500);
+  };
+
+  const pct = pos.d ? Math.min(100, (pos.t / pos.d) * 100) : 0;
 
   return (
     <div
@@ -200,36 +220,93 @@ export default function MusicDock({
         position: "fixed",
         left: "50%",
         bottom: 12,
-        transform: `translateX(-50%) translateY(${min ? "calc(100% - 40px)" : "0"})`,
+        transform: `translateX(-50%) translateY(${min ? "calc(100% - 22px)" : "0"})`,
         transition: "transform .4s ease",
-        width: "calc(100% - 24px)",
-        maxWidth: 456,
+        width: "calc(100% - 20px)",
+        maxWidth: 460,
         zIndex: 30,
-        background: look.bg,
-        color: look.fg,
-        borderRadius: look.radius ?? 16,
-        boxShadow: "0 10px 30px rgba(0,0,0,.28)",
+        background: "#181818",
+        color: "#fff",
+        borderRadius: 12,
+        boxShadow: "0 12px 32px rgba(0,0,0,.45)",
         overflow: "hidden",
+        fontFamily: "Inter, system-ui, sans-serif",
       }}
     >
-      <button
-        onClick={() => setMin((m) => !m)}
-        aria-label={min ? "Mostrar player" : "Minimizar player"}
-        style={{ width: "100%", height: 40, display: "flex", alignItems: "center", gap: 8, padding: "0 14px", border: "none", background: "transparent", color: look.fg, cursor: "pointer", fontFamily: look.font, fontSize: 15, textAlign: "left" }}
-      >
-        <Music2 size={15} color={look.ac} className={playing ? "md-spin" : undefined} />
-        <span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {playing ? "tocando agora" : "nossa música"}: <b>{title}</b>
-        </span>
-        {min ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+      <style>{`@keyframes mdSpin{to{transform:rotate(360deg)}} @keyframes mdBar{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}} .md-eq span{display:inline-block;width:3px;height:12px;margin-right:2px;background:${VERDE};border-radius:1px;transform-origin:bottom;animation:mdBar .9s ease-in-out infinite} .md-eq span:nth-child(2){animation-delay:.2s} .md-eq span:nth-child(3){animation-delay:.4s} .md-play:active{transform:scale(.94)}`}</style>
+
+      <button onClick={() => setMin((m) => !m)} aria-label={min ? "Mostrar player" : "Esconder player"} style={{ position: "absolute", top: 4, left: "50%", transform: "translateX(-50%)", width: 44, height: 14, border: "none", background: "transparent", cursor: "pointer", padding: 0, display: "grid", placeItems: "center", color: "#8a8a8a", zIndex: 2 }}>
+        {min ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </button>
-      {!jaTocou && !playing && (
-        <div style={{ margin: "0 10px 8px", padding: "7px 12px", borderRadius: 8, background: look.ac, color: "#fff", fontFamily: look.font, fontSize: 14.5, textAlign: "center" }}>
-          dá o play ▶ aqui embaixo pra ouvir a nossa música ♥
+
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 12px 12px" }}>
+        <div style={{ width: 48, height: 48, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: "#282828", display: "grid", placeItems: "center" }}>
+          {capa ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={capa} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", animation: playing ? "mdSpin 9s linear infinite" : undefined, borderRadius: playing ? "50%" : 0, transition: "border-radius .4s" }} />
+          ) : (
+            <Music2 size={20} color={VERDE} />
+          )}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {playing && (
+              <span className="md-eq" aria-hidden>
+                <span />
+                <span />
+                <span />
+              </span>
+            )}
+            <div style={{ fontSize: 14.5, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: playing ? VERDE : "#fff" }}>{nome}</div>
+          </div>
+          <div style={{ fontSize: 12.5, color: "#b3b3b3", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>
+            {artista || (jaTocou ? "a nossa música ♥" : "toque no play pra ouvir a nossa música ♥")}
+          </div>
+        </div>
+        <button
+          className="md-play"
+          onClick={alternar}
+          disabled={!pronto}
+          aria-label={playing ? "Pausar" : "Tocar a nossa música"}
+          style={{ width: 46, height: 46, borderRadius: "50%", border: "none", background: VERDE, display: "grid", placeItems: "center", cursor: pronto ? "pointer" : "default", opacity: pronto ? 1 : 0.6, flexShrink: 0, transition: "transform .1s", boxShadow: "0 6px 16px rgba(30,215,96,.25)" }}
+        >
+          {playing ? (
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+              <rect x="5" y="4" width="4.5" height="16" rx="1.2" fill="#000" />
+              <rect x="14.5" y="4" width="4.5" height="16" rx="1.2" fill="#000" />
+            </svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden style={{ marginLeft: 3 }}>
+              <path d="M6 4.2v15.6a1 1 0 0 0 1.5.86l13-7.8a1 1 0 0 0 0-1.72l-13-7.8A1 1 0 0 0 6 4.2Z" fill="#000" />
+            </svg>
+          )}
+        </button>
+      </div>
+
+      {/* barra de progresso */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 12px 10px", fontSize: 10.5, color: "#a7a7a7", fontVariantNumeric: "tabular-nums" }}>
+        <span style={{ width: 34, textAlign: "right", whiteSpace: "nowrap" }}>{mmss(pos.t)}</span>
+        <div style={{ flex: 1, height: 4, borderRadius: 99, background: "#4d4d4d", overflow: "hidden" }}>
+          <div style={{ height: "100%", width: `${pct}%`, background: playing ? VERDE : "#fff", borderRadius: 99, transition: "width .9s linear" }} />
+        </div>
+        <span style={{ width: 34, whiteSpace: "nowrap" }}>{pos.d ? mmss(pos.d) : "0:30"}</span>
+      </div>
+
+      {mostrarOficial && !playing && (
+        <div style={{ margin: "0 12px 8px", fontSize: 12.5, color: "#fff", textAlign: "center" }}>
+          seu celular pediu um toque a mais: dá o play ▶ no player aqui embaixo ♥
         </div>
       )}
-      <style>{`@keyframes mdPulse{0%,100%{opacity:1}50%{opacity:.75}} @keyframes mdSpin{to{transform:rotate(360deg)}} .md-spin{animation:mdSpin 2.4s linear infinite}`}</style>
-      <div ref={host} style={{ padding: music.kind === "spotify" ? "0 8px 8px" : "0 10px 10px", minHeight: music.kind === "spotify" ? 80 : 72 }} />
+      {/* player oficial: escondido; aparece só se o nosso botão não conseguir tocar */}
+      <div
+        ref={host}
+        aria-hidden={!mostrarOficial}
+        style={
+          mostrarOficial && !jaTocou
+            ? { padding: "0 10px 10px", minHeight: music.kind === "spotify" ? 80 : 112 }
+            : { position: "absolute", width: 300, height: 120, left: -9999, top: 0, opacity: 0, pointerEvents: "none" }
+        }
+      />
     </div>
   );
 }

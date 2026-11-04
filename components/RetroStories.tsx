@@ -346,7 +346,7 @@ function RetroColorido({ page, compact = false }: { page: Doc; compact?: boolean
 
         {!compact && songs[0] && <div style={{ height: 140, background: S[2].bg }} />}
       </div>
-      {!compact && <MusicDock url={songs[0]?.url} title={songs[0]?.title ?? ""} apiRef={music} look={{ bg: "#fff", fg: "#1b1b1f", ac: S[0].bg, font: B_FONT, radius: 16 }} />}
+      {!compact && <MusicDock url={songs[0]?.url} title={songs[0]?.title ?? ""} apiRef={music} capa={coverPhoto} />}
       {/* ───── capa "toque para abrir" (fora do preview do quiz) ───── */}
       {!compact && (
         <button

@@ -38,7 +38,7 @@ const DEMO: Partial<CouplePageDoc> = {
     { month: 11, title: "Montamos a árvore de Natal juntos", photo: "/exemplo/foto-5.jpg" },
   ],
   retroSongs: [
-    { title: "Perfect - Ed Sheeran" },
+    { title: "Perfect - Ed Sheeran", url: "https://open.spotify.com/track/0tgVpDi06FyKpA1z0VMD4v" },
     { title: "Meu Abrigo - Melim" },
     { title: "Trem-Bala - Ana Vilela" },
     { title: "All of Me - John Legend" },
