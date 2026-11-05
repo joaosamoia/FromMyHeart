@@ -162,7 +162,7 @@ function useCountUp(target: number, active: boolean, ms = 1600) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════
-export default function RetroScrapbook({ page, variant, compact = false }: { page: Doc; variant: ScrapVariant; compact?: boolean }) {
+export default function RetroScrapbook({ page, variant, compact = false, corte }: { page: Doc; variant: ScrapVariant; compact?: boolean; corte?: React.ReactNode }) {
   const L = LOOK[variant];
   const year = page.retroYear || new Date().getFullYear();
   const nameA = page.retroNameA?.trim() || "você";
@@ -222,6 +222,10 @@ export default function RetroScrapbook({ page, variant, compact = false }: { pag
           </Sheet>
         )}
 
+        {corte ? (
+          corte
+        ) : (
+          <>
         {songs.length > 0 && (
           <Sheet L={L} bg={variant === "sol" ? L.paper2 : L.paper} edge stickers={variant === "sol" ? "s3" : undefined}>
             <Mixtape L={L} songs={songs} year={year} nameA={nameA} nameB={nameB} />
@@ -249,6 +253,8 @@ export default function RetroScrapbook({ page, variant, compact = false }: { pag
         <Sheet L={L} bg={variant === "sol" ? L.paper2 : L.paper} edge stickers={variant === "sol" ? "s7" : undefined}>
           <Final L={L} year={year} nameA={nameA} nameB={nameB} voucher={page.retroVoucher} />
         </Sheet>
+          </>
+        )}
         {!compact && songs[0] && <div style={{ height: 140 }} />}
       </div>
 

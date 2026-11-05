@@ -193,15 +193,17 @@ function useCountUp(target: number, active: boolean, ms = 1600) {
   return n;
 }
 
-export default function RetroStories({ page, compact = false }: { page: Doc; compact?: boolean }) {
+// `corte`: usado na prévia (/previa). Quando vem preenchido, a página para
+// depois da linha do tempo e mostra esse bloco (o "cadeado") no lugar do resto.
+export default function RetroStories({ page, compact = false, corte }: { page: Doc; compact?: boolean; corte?: React.ReactNode }) {
   // "scrap-rosa" e "scrap-creme" (versões antigas) caem na Colagem Sol
-  if (page.theme === "scrap-sol" || page.theme === "scrap-creme" || page.theme === "scrap-rosa") return <RetroScrapbook page={page} variant="sol" compact={compact} />;
-  if (!page.theme || !RETRO_THEMES[page.theme]) return <RetroScrapbook page={page} variant="kraft" compact={compact} />;
-  return <RetroColorido page={page} compact={compact} />;
+  if (page.theme === "scrap-sol" || page.theme === "scrap-creme" || page.theme === "scrap-rosa") return <RetroScrapbook page={page} variant="sol" compact={compact} corte={corte} />;
+  if (!page.theme || !RETRO_THEMES[page.theme]) return <RetroScrapbook page={page} variant="kraft" compact={compact} corte={corte} />;
+  return <RetroColorido page={page} compact={compact} corte={corte} />;
 }
 
 // Versão "colorida" (cartelas de cor chapada) — temas retro-paixao/neon/por-do-sol.
-function RetroColorido({ page, compact = false }: { page: Doc; compact?: boolean }) {
+function RetroColorido({ page, compact = false, corte }: { page: Doc; compact?: boolean; corte?: React.ReactNode }) {
   const theme = getRetroTheme(page.theme);
   const S = theme.swatches;
   const year = page.retroYear || new Date().getFullYear();
@@ -289,6 +291,10 @@ function RetroColorido({ page, compact = false }: { page: Doc; compact?: boolean
         {/* ───── linha do tempo ───── */}
         {months.length > 0 && <TimelineSection sw={S[2]} months={months} year={year} />}
 
+        {corte ? (
+          corte
+        ) : (
+          <>
         {/* ───── músicas ───── */}
         {songs.length > 0 && <SongsSection sw={S[3]} songs={songs} />}
 
@@ -350,6 +356,8 @@ function RetroColorido({ page, compact = false }: { page: Doc; compact?: boolean
             feito com ♥ no FromMyHeart
           </Link>
         </Section>
+          </>
+        )}
 
         {!compact && songs[0] && <div style={{ height: 140, background: S[2].bg }} />}
       </div>
