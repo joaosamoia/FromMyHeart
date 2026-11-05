@@ -22,6 +22,8 @@ const NOMES: Record<string, string> = {
   retomou: "Voltou por um rascunho",
   upload_ok: "Fotos enviadas",
   upload_erro: "Fotos com erro",
+  previa_vista: "Abriu a prévia (remarketing)",
+  previa_cta: "Clicou em liberar na prévia",
 };
 
 const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : "—");

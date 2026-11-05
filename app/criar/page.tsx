@@ -22,6 +22,7 @@ import CouplePageContent, { THEMES, getTheme, MOMENT_ICONS } from "@/components/
 import DatePage, { DATE_TEMPLATES, type DateTemplateId } from "@/components/DatePage";
 import { BR, D_FONT, BRAND_CSS, Blobs, Logo } from "@/components/brand";
 import { track, eventoEtapa, slugEtapa, type Produto } from "@/lib/funil";
+import { KIWIFY_CHECKOUT, montarCheckout } from "@/lib/checkout";
 import { OfertaBanner } from "@/components/Oferta";
 import ProvaSocial from "@/components/ProvaSocial";
 import {
@@ -31,41 +32,14 @@ import {
 import { musicLinkStatus, embedSrc, parseMusic } from "@/components/MusicDock";
 import RetroStories, { RETRO_THEMES, SCRAP_THEMES, DEFAULT_RETRO_THEME, MESES, RETRO_STAT_IDEAS } from "@/components/RetroStories";
 
-// ⚠️ Troque pelos links reais dos seus produtos na Kiwify.
-const KIWIFY_CHECKOUT: Record<string, string> = {
-  "1dia": "https://pay.kiwify.com.br/CY7GbkU",
-  "1dia-astral": "https://pay.kiwify.com.br/a9ZQfh5",
-  "1dia-qr": "https://pay.kiwify.com.br/zzKOQJ2",
-  "1dia-astral-qr": "https://pay.kiwify.com.br/nnHxMtk",
-  eterno: "https://pay.kiwify.com.br/b0clBFL",
-  "eterno-astral": "https://pay.kiwify.com.br/K9ItEIY",
-  "eterno-qr": "https://pay.kiwify.com.br/ooq0qgi",
-  "eterno-astral-qr": "https://pay.kiwify.com.br/Fv11z3Z",
-  date: "https://pay.kiwify.com.br/1tedzUy",
-  // ⚠️ Crie o produto "Retrospectiva do Casal" na Kiwify e cole o link aqui.
-  // O webhook já funciona igual (libera pelo slug que vai no ?s=).
-  retro: "https://pay.kiwify.com.br/S0E3Ee8",
-  // Retrospectiva + QR Code personalizado (cartão pra imprimir e entregar em mãos).
-  // Produto à parte na Kiwify (R$ 34,80). O webhook reconhece pelo nome do
-  // produto ("… QR Code …"), sem precisar mexer em KIWIFY_PRODUCT_IDS_QR.
-  "retro-qr": "https://pay.kiwify.com.br/pds9P8g",
-};
-
-// Monta o link do checkout da Kiwify.
-// ⚠️ A Kiwify só repassa ao webhook estes parâmetros: src, sck, utm_*, s1, s2, s3.
-// Por isso o slug da página vai em `s1` (antes ia em `s`, que a Kiwify descartava
-// e a página nunca era liberada). Nome, e-mail e telefone pré-preenchem o checkout.
+// Links da Kiwify e montagem do checkout ficam em lib/checkout.ts
+// (a prévia /previa também usa).
 function checkoutUrl(base: string, d: { slug: string; buyerName?: string; buyerEmail?: string; buyerPhone?: string }) {
-  const q = new URLSearchParams({ s1: d.slug });
-  if (d.buyerName?.trim()) q.set("name", d.buyerName.trim());
-  if (d.buyerEmail?.trim()) q.set("email", d.buyerEmail.trim());
-  const phone = (d.buyerPhone ?? "").replace(/\D/g, "");
-  if (phone) q.set("phone", phone);
   // guarda o slug no aparelho: a página /obrigado usa isso se a Kiwify não devolver o parâmetro
   try {
     localStorage.setItem("fmh_last_slug", d.slug);
   } catch {}
-  return `${base}?${q.toString()}`;
+  return montarCheckout(base, d);
 }
 
 const PRICES = { "1dia": 24.9, eterno: 39.9, astral: 10, qr: 4.9, date: 19.9, retro: 29.9 };
@@ -116,7 +90,7 @@ const DOMINIO = (() => {
   }
 })();
 
-const SLUGS_RESERVADOS = ["criar", "date", "obrigado", "retrospectiva", "api", "admin", "exemplo"];
+const SLUGS_RESERVADOS = ["criar", "date", "obrigado", "retrospectiva", "api", "admin", "exemplo", "previa"];
 const limparSlug = (v: string) => v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9-]/g, "-").replace(/-{2,}/g, "-").replace(/^-/, "").slice(0, 40);
 function meusSlugs(): string[] {
   try {
