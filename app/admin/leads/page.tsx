@@ -46,9 +46,7 @@ function waLink(fone: string, texto: string) {
 }
 
 function mensagem(l: Lead) {
-  const oi = l.nome ? `Oi, ${l.nome.split(" ")[0]}!` : "Oi!";
-  const para = l.para ? ` pra ${l.para}` : "";
-  return `${oi} Aqui é do FromMyHeart 💛 A retrospectiva que você montou${para} ficou salva, olha como ela ficou: ${l.previa}\n\nFalta só liberar pra mandar o link. Se ficou alguma dúvida, me chama aqui!`;
+  return `Oi! Vi que você começou a retrospectiva de vocês e ela ficou salva aqui 💛 ${l.previa}\n\nAconteceu alguma coisa na hora de finalizar? Se quiser terminar, separei 10% de desconto pra você com o cupom AMOR10 😊`;
 }
 
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ chave?: string; dias?: string }> }) {
