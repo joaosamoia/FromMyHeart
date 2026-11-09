@@ -31,17 +31,17 @@ export const KIWIFY_CHECKOUT: Record<string, string> = {
 // O webhook (/api/webhooks/cakto) reconhece os adicionais pelo NOME da oferta:
 // "QR" libera o cartão com QR Code e "Mapa Estelar" libera o mapa.
 export const CAKTO_CHECKOUT: Record<string, string> = {
-  "1dia": "",
-  "1dia-astral": "",
-  "1dia-qr": "",
-  "1dia-astral-qr": "",
-  eterno: "",
-  "eterno-astral": "",
-  "eterno-qr": "",
-  "eterno-astral-qr": "",
-  date: "",
-  retro: "",
-  "retro-qr": "",
+  "1dia": "https://pay.cakto.com.br/vjxhrt8",
+  "1dia-astral": "https://pay.cakto.com.br/o3i4nnd",
+  "1dia-qr": "https://pay.cakto.com.br/v7p74k2",
+  "1dia-astral-qr": "https://pay.cakto.com.br/62xecsj",
+  eterno: "https://pay.cakto.com.br/364sika",
+  "eterno-astral": "https://pay.cakto.com.br/ebsiqx6",
+  "eterno-qr": "https://pay.cakto.com.br/gtzaf4o",
+  "eterno-astral-qr": "https://pay.cakto.com.br/36z8xop",
+  date: "https://pay.cakto.com.br/8tc8c6k",
+  retro: "https://pay.cakto.com.br/bmgwo7u",
+  "retro-qr": "https://pay.cakto.com.br/3i78bbn",
 };
 
 // Link de checkout de cada combinação: Cakto quando houver, Kiwify como reserva.
