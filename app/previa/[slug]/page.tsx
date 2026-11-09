@@ -7,7 +7,7 @@ import type { Metadata } from "next";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { contarEvento } from "@/lib/funil-server";
 import { cortarParaPrevia, tokenValido, siteUrl } from "@/lib/previa";
-import { KIWIFY_CHECKOUT, chaveCheckout, montarCheckout } from "@/lib/checkout";
+import { CHECKOUT, chaveCheckout, montarCheckout } from "@/lib/checkout";
 import type { CouplePageDoc } from "@/types/page";
 import Previa from "@/components/Previa";
 
@@ -42,8 +42,8 @@ export default async function PreviaPagina({
 
   const { publico, trancado } = cortarParaPrevia(page);
   const chave = chaveCheckout(page);
-  const href = montarCheckout(KIWIFY_CHECKOUT[chave], page, { utm_source: "previa" });
-  const preco = chave === "retro-qr" ? "R$ 34,80" : "R$ 29,90";
+  const href = montarCheckout(CHECKOUT[chave], page, { utm_source: "previa" });
+  const preco = chave === "retro-qr" ? "R$ 34,98" : "R$ 29,99";
 
   return (
     <Previa
