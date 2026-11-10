@@ -23,6 +23,7 @@ import DatePage, { DATE_TEMPLATES, type DateTemplateId } from "@/components/Date
 import { BR, D_FONT, BRAND_CSS, Blobs, Logo } from "@/components/brand";
 import { track, eventoEtapa, slugEtapa, type Produto } from "@/lib/funil";
 import { CHECKOUT, montarCheckout } from "@/lib/checkout";
+import { LIMITES_RETRO, PRECO_RETRO, type PlanoRetro } from "@/lib/plano";
 import { OfertaBanner } from "@/components/Oferta";
 import ProvaSocial from "@/components/ProvaSocial";
 import {
@@ -42,7 +43,7 @@ function checkoutUrl(base: string, d: { slug: string; buyerName?: string; buyerE
   return montarCheckout(base, d);
 }
 
-const PRICES = { "1dia": 24.9, eterno: 39.9, astral: 10, qr: 4.9, date: 19.9, retro: 29.99, retroQr: 4.99 };
+const PRICES = { "1dia": 24.9, eterno: 39.9, astral: 10, qr: 4.9, date: 19.9 };
 // Mesma regra do Date: cadastre R$59,90 como preço cheio na Kiwify pra âncora ser real.
 const PRECO_CHEIO_RETRO = 59.9;
 // Preço "de" do Date. Pra isso não ser propaganda enganosa, cadastre R$39,90
@@ -402,7 +403,6 @@ function CriarInner() {
                 </button>
               </div>
             )}
-            {d.style === "retro" && name === "Meses" && <WhatsLembrete d={d} setD={setD} produto={produto} />}
             <AjudaEtapa key={name} name={name} />
             <StepBody
               irPara={irPara}
@@ -420,6 +420,7 @@ function CriarInner() {
               onBack={() => setStep((s) => Math.max(0, s - 1))}
               onPular={pular}
             />
+            {d.style === "retro" && name === "Meses" && <WhatsLembrete d={d} setD={setD} produto={produto} />}
           </div>
         </div>
 
@@ -534,7 +535,7 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
         <div style={{ display: "grid", gap: 12 }}>
           {[
             { id: "classica", Icon: Heart, name: "Clássica", desc: "Contador, fotos, timeline e mensagem", price: "a partir de R$ 24,90" },
-            { id: "retro", Icon: Sparkles, name: "Retrospectiva do Casal", desc: "O ano de vocês com linha do tempo mês a mês 🎞️", price: "R$ 29,99", novo: true },
+            { id: "retro", Icon: Sparkles, name: "Retrospectiva do Casal", desc: "O ano de vocês com linha do tempo mês a mês 🎞️", price: "a partir de R$ 19,99", novo: true },
             { id: "date", Icon: LayoutTemplate, name: "Date", desc: "Convite interativo: \"Aceita um date?\" 🐧💙", price: "R$ 19,90" },
           ].map((s: any) => {
             const active = d.style === s.id;
@@ -967,6 +968,7 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack, irPara
   const [astral, setAstral] = useState(false);
   const [qrOn, setQrOn] = useState(false);
   const [qrStyle, setQrStyle] = useState<"romantico" | "juntos">("romantico");
+  const [planoRetro, setPlanoRetro] = useState<PlanoRetro>("completa");
 
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.buyerEmail);
   const phoneOk = d.buyerPhone.replace(/\D/g, "").length >= 10;
@@ -1005,14 +1007,18 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack, irPara
           title: `${(dd.retroNameA ?? "").trim()} & ${(dd.retroNameB ?? "").trim()} · ${dd.retroYear}`,
           plan: "retro",
           astral: false,
-          qrStyle: qrOn ? "juntos" : "simples",
+          retroPlano: planoRetro,
+          // a Completa já vem com QR; no Essencial é adicional
+          qrStyle: planoRetro === "completa" || qrOn ? "juntos" : "simples",
           qrPhoto: dd.retroCover || dd.qrPhoto || "",
           qrPaid: false, // só o webhook confirma
           status: "pendente",
           createdAt: Date.now(),
           paidAt: null,
         });
-        window.location.href = checkoutUrl(CHECKOUT[qrOn ? "retro-qr" : "retro"], dd);
+        const chave = planoRetro === "completa" ? "retro" : qrOn ? "retro-essencial-qr" : "retro-essencial";
+        track(produto, `plano_${planoRetro}${planoRetro === "essencial" && qrOn ? "_qr" : ""}`, { unico: true });
+        window.location.href = checkoutUrl(CHECKOUT[chave], dd);
         return;
       }
       if (dd.style === "date") {
@@ -1079,7 +1085,7 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack, irPara
     );
 
   // FASE 1 — retrospectiva: produto único
-  if (d.style === "retro") return <RetroCheckout d={d} saving={saving} error={error} finish={finish} onBack={() => setPhase(0)} bigBtn={bigBtn} qrOn={qrOn} setQrOn={setQrOn} />;
+  if (d.style === "retro") return <RetroCheckout d={d} saving={saving} error={error} finish={finish} onBack={() => setPhase(0)} bigBtn={bigBtn} qrOn={qrOn} setQrOn={setQrOn} plano={planoRetro} setPlano={setPlanoRetro} />;
 
   // FASE 1 — planos + addons (ou confirmação simples, se for o estilo Date)
   if (d.style === "date") {
@@ -1843,58 +1849,117 @@ const VALES_SUGESTOES = [
   "um fim de semana viajando",
 ];
 
-function RetroCheckout({ d, saving, error, finish, onBack, bigBtn, qrOn, setQrOn }: any) {
+function RetroCheckout({ d, saving, error, finish, onBack, bigBtn, qrOn, setQrOn, plano, setPlano }: any) {
   const nMeses = (d.retroMonths ?? []).filter((m: RetroMonth) => m.title.trim() || m.photo).length;
-  const inclui = [
-    "Visual de colagem ou colorido, você escolhe",
-    `Contador de dias juntos em ${d.retroYear}, ao vivo`,
+  const nMusicas = (d.retroSongs ?? []).filter((s: any) => s.title?.trim() || s.url?.trim()).length;
+  const lim = LIMITES_RETRO.essencial;
+  const completa = plano === "completa";
+  const total = completa ? PRECO_RETRO.completa : PRECO_RETRO.essencial + (qrOn ? PRECO_RETRO.essencialQr : 0);
+
+  const itensCompleta = [
     nMeses ? `Linha do tempo com ${nMeses} momento(s) do ano` : "Linha do tempo com um momento por mês",
-    "Um player com a música de vocês, pronto pra dar play",
-    "Mapa das estrelas do dia em que tudo começou",
-    "Card final pra postar no story",
+    "Top 5 músicas, com player pra dar play",
     "Vale-date surpresa no final",
+    "QR Code pra imprimir e entregar junto do presente",
+    `Contador de dias juntos em ${d.retroYear}, mapa das estrelas e card pro story`,
   ];
-  const total = PRICES.retro + (qrOn ? PRICES.retroQr : 0);
+  const itensEssencial = [`Linha do tempo com até ${lim.meses} meses`, `${lim.musicas} música, com player`, "Contador de dias juntos e card pro story"];
+  // o que a pessoa já preencheu e ficaria de fora no Essencial
+  const perde = [
+    nMeses > lim.meses && `${nMeses - lim.meses} dos ${nMeses} meses que você preencheu`,
+    nMusicas > lim.musicas && `${nMusicas - lim.musicas} das ${nMusicas} músicas`,
+    "o vale-date do final",
+  ].filter(Boolean) as string[];
+
+  const cartao = (ativo: boolean): React.CSSProperties => ({
+    position: "relative",
+    width: "100%",
+    textAlign: "left",
+    cursor: "pointer",
+    borderRadius: 18,
+    padding: "16px 16px 14px",
+    marginBottom: 12,
+    background: ativo ? "#fff" : "rgba(255,255,255,.6)",
+    border: `2px solid ${ativo ? P.pink : P.cardBorder}`,
+    boxShadow: ativo ? STICKER : "none",
+  });
+  const bolinha = (ativo: boolean) => (
+    <span style={{ width: 20, height: 20, borderRadius: 99, flexShrink: 0, border: `2px solid ${ativo ? P.pink : P.pinkBorder}`, display: "grid", placeItems: "center" }}>
+      {ativo && <span style={{ width: 10, height: 10, borderRadius: 99, background: P.pink }} />}
+    </span>
+  );
+
   return (
     <>
       <h2 style={{ ...h2, textAlign: "center" }}>
         O ano de <span style={{ color: P.pink }}>{d.retroNameA || "vocês"}</span> e {d.retroNameB || "você"} tá pronto pra ser revivido
       </h2>
-      <div style={{ marginTop: 22, padding: "22px 20px 20px", borderRadius: 20, textAlign: "center", background: "linear-gradient(160deg,#2B0B3F,#6A1B4D 60%,#E8336D)", color: "#FFF4F7", boxShadow: STICKER }}>
-        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.6, opacity: 0.8 }}>RETROSPECTIVA DO CASAL · PAGAMENTO ÚNICO</div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, marginTop: 8 }}>
-          <span style={{ fontSize: 15, opacity: 0.7, textDecoration: "line-through" }}>{fmtBRL(PRECO_CHEIO_RETRO)}</span>
-          <span style={{ fontSize: 11, fontWeight: 800, background: "rgba(0,0,0,.3)", padding: "3px 9px", borderRadius: 99 }}>-50%</span>
+      <p style={{ textAlign: "center", color: P.sub, fontSize: 14, margin: "6px 0 18px" }}>Escolha como a pessoa vai receber. Pagamento único, o link fica no ar pra sempre.</p>
+
+      {/* Completa: a mais escolhida */}
+      <button onClick={() => setPlano("completa")} style={cartao(completa)}>
+        <span style={{ position: "absolute", top: -11, right: 14, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.8, color: "#fff", background: "linear-gradient(90deg,#E8336D,#FF7A59)", padding: "4px 10px", borderRadius: 99 }}>
+          ★ MAIS ESCOLHIDA
+        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {bolinha(completa)}
+          <span style={{ flex: 1, fontWeight: 800, fontSize: 16, color: P.ink }}>Completa</span>
+          <span style={{ textAlign: "right" }}>
+            <span style={{ display: "block", fontSize: 12, color: P.sub, textDecoration: "line-through" }}>{fmtBRL(PRECO_CHEIO_RETRO)}</span>
+            <span style={{ fontFamily: "'Bricolage Grotesque', Inter, sans-serif", fontSize: 24, fontWeight: 700, color: P.pink }}>{fmtBRL(PRECO_RETRO.completa)}</span>
+          </span>
         </div>
-        <div style={{ fontFamily: "'Bricolage Grotesque', Inter, sans-serif", fontSize: 46, fontWeight: 700, lineHeight: 1.05, margin: "2px 0 4px" }}>{fmtBRL(PRICES.retro)}</div>
-        <div style={{ fontSize: 12.5, opacity: 0.8 }}>o link fica no ar pra sempre</div>
-        <div style={{ height: 1, background: "rgba(255,255,255,.2)", margin: "16px 0 14px" }} />
-        <div style={{ display: "grid", gap: 8, textAlign: "left" }}>
-          {inclui.map((f) => (
-            <div key={f} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13 }}>
-              <Check size={14} color="#FFD23F" strokeWidth={3} /> {f}
+        <div style={{ display: "grid", gap: 6, marginTop: 10, paddingLeft: 30 }}>
+          {itensCompleta.map((f) => (
+            <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: P.ink, lineHeight: 1.35 }}>
+              <Check size={14} color="#1F9D72" strokeWidth={3} style={{ flexShrink: 0, marginTop: 2 }} /> {f}
             </div>
           ))}
         </div>
-      </div>
-      {/* order bump: QR Code personalizado pra entregar em mãos */}
-      <ToggleCard
-        active={qrOn}
-        onClick={() => setQrOn((q: boolean) => !q)}
-        icon="💌"
-        title={`QR Code personalizado (+${fmtBRL(PRICES.retroQr)})`}
-        desc="O QR Code que abre a retrospectiva, pronto pra imprimir e colar no presente: polaroid, vale-presente, etiqueta, adesivo redondo e mais, com a frase que você escolher."
-        mb={10}
-      />
+      </button>
+
+      {/* Essencial */}
+      <button onClick={() => setPlano("essencial")} style={cartao(!completa)}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {bolinha(!completa)}
+          <span style={{ flex: 1, fontWeight: 800, fontSize: 16, color: P.ink }}>Essencial</span>
+          <span style={{ fontFamily: "'Bricolage Grotesque', Inter, sans-serif", fontSize: 22, fontWeight: 700, color: P.ink }}>{fmtBRL(PRECO_RETRO.essencial)}</span>
+        </div>
+        <div style={{ display: "grid", gap: 6, marginTop: 10, paddingLeft: 30 }}>
+          {itensEssencial.map((f) => (
+            <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: P.ink, lineHeight: 1.35 }}>
+              <Check size={14} color="#1F9D72" strokeWidth={3} style={{ flexShrink: 0, marginTop: 2 }} /> {f}
+            </div>
+          ))}
+        </div>
+        {!completa && (
+          <div style={{ marginTop: 10, marginLeft: 30, padding: "9px 11px", borderRadius: 10, background: "#FFF6E5", border: "1px solid #F5D9A0", fontSize: 12.5, color: "#7A5300", lineHeight: 1.4 }}>
+            No Essencial fica de fora: {perde.join(", ")}.
+          </div>
+        )}
+      </button>
+
+      {!completa && (
+        <ToggleCard
+          active={qrOn}
+          onClick={() => setQrOn((q: boolean) => !q)}
+          icon="💌"
+          title={`QR Code personalizado (+${fmtBRL(PRECO_RETRO.essencialQr)})`}
+          desc="O QR Code que abre a retrospectiva, pronto pra imprimir e colar no presente: polaroid, vale-presente, etiqueta, adesivo e mais."
+          mb={10}
+        />
+      )}
+
       <div style={{ padding: "13px 16px", borderRadius: 12, background: P.pinkSoft, border: `1px solid ${P.cardBorder}`, fontSize: 15, marginBottom: 6 }}>
         Total: <b style={{ color: P.pink }}>{fmtBRL(total)}</b>
+        {completa && <span style={{ color: P.sub, fontSize: 13 }}> · QR Code incluso</span>}
       </div>
       <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 14, fontSize: 11.5, color: P.sub }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><ShieldCheck size={14} color="#1F9D72" /> Pagamento seguro</span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Zap size={14} color="#e0a53a" /> Liberação instantânea</span>
       </div>
       {error && <p style={{ color: "#c0392b", fontSize: 13, textAlign: "center", marginTop: 10 }}>{error}</p>}
-      {bigBtn(saving ? "Salvando..." : "Liberar nossa retrospectiva", finish, saving)}
+      {bigBtn(saving ? "Salvando..." : completa ? "Liberar a retrospectiva completa" : "Liberar nossa retrospectiva", finish, saving)}
       <ProvaSocial variante="clara" max={2} />
       <div style={{ textAlign: "center" }}>
         <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", color: P.sub, fontSize: 14, cursor: "pointer", marginTop: 14 }}>
@@ -1996,24 +2061,16 @@ const mascaraFone = (v: string) => {
   return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`;
 };
 function WhatsLembrete({ d, setD, produto }: any) {
-  const [fechado, setFechado] = useState(() => {
-    try {
-      return localStorage.getItem("fmh_whats_nao") === "1";
-    } catch {
-      return false;
-    }
-  });
   const fone = String(d.buyerPhone ?? "");
   const ok = fone.replace(/\D/g, "").length >= 10;
   useEffect(() => {
     if (ok) track(produto, "whats_deixou", { unico: true });
   }, [ok, produto]);
-  if (fechado && !ok) return null;
+  // fica embaixo da linha do tempo: um texto e o campo, sem cara de cadastro
   return (
-    <div style={{ padding: "14px 16px", borderRadius: 16, background: "#fff", border: `1.5px solid ${ok ? "#BFE6D6" : P.pinkBorder}`, marginBottom: 16 }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: P.ink, marginBottom: 4 }}>💬 Quer garantir que não vai perder nada?</div>
-      <div style={{ fontSize: 13, color: P.sub, lineHeight: 1.45, marginBottom: 10 }}>
-        Deixe seu WhatsApp e, se precisar sair no meio, a gente te manda o link pra terminar de onde parou.
+    <div style={{ marginTop: 26, paddingTop: 18, borderTop: `1px dashed ${P.pinkBorder}` }}>
+      <div style={{ fontSize: 13.5, color: P.sub, lineHeight: 1.5, marginBottom: 8 }}>
+        Se quiser, deixe seu WhatsApp: se precisar sair no meio, a gente te manda o link pra terminar de onde parou. <span style={{ opacity: 0.8 }}>(opcional)</span>
       </div>
       <input
         className="qinput"
@@ -2024,29 +2081,11 @@ function WhatsLembrete({ d, setD, produto }: any) {
         autoComplete="tel"
         style={inp}
       />
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8 }}>
-        {ok ? (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "#1F9D72", fontWeight: 600 }}>
-            <Check size={15} /> Salvo. Pode continuar tranquilo(a).
-          </span>
-        ) : (
-          <>
-            <span style={{ fontSize: 11.5, color: P.sub, lineHeight: 1.35 }}>Opcional. Só usamos pra falar sobre o seu presente.</span>
-            <button
-              onClick={() => {
-                setFechado(true);
-                track(produto, "whats_agora_nao", { unico: true });
-                try {
-                  localStorage.setItem("fmh_whats_nao", "1");
-                } catch {}
-              }}
-              style={{ flexShrink: 0, background: "none", border: "none", color: P.sub, fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}
-            >
-              Agora não
-            </button>
-          </>
-        )}
-      </div>
+      {ok && (
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 7, fontSize: 12.5, color: "#1F9D72", fontWeight: 600 }}>
+          <Check size={15} /> Salvo.
+        </div>
+      )}
     </div>
   );
 }

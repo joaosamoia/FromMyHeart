@@ -43,7 +43,7 @@ export default async function PreviaPagina({
   const { publico, trancado } = cortarParaPrevia(page);
   const chave = chaveCheckout(page);
   const href = montarCheckout(CHECKOUT[chave], page, { utm_source: "previa" });
-  const preco = chave === "retro-qr" ? "R$ 34,98" : "R$ 29,99";
+  const preco = chave === "retro-essencial-qr" ? "R$ 24,98" : chave === "retro-essencial" ? "R$ 19,99" : "R$ 29,99";
 
   return (
     <Previa

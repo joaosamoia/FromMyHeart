@@ -18,6 +18,7 @@
 // nenhuma plataforma de música. Os tamanhos usam unidades de container (cqw),
 // então o mesmo layout escala do mini preview até a tela cheia do celular.
 
+import { limitesRetro } from "@/lib/plano";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Heart, Share2, Music2, Camera, Calendar, ChevronDown } from "lucide-react";
@@ -211,14 +212,18 @@ function RetroColorido({ page, compact = false, corte }: { page: Doc; compact?: 
   const nameB = page.retroNameB?.trim() || "Eu";
   const days = computeDays(page.startDate, year);
   const months = useMemo(
-    () => [...(page.retroMonths ?? [])].filter((m) => m.title?.trim() || m.photo).sort((a, b) => a.month - b.month),
-    [page.retroMonths]
+    () =>
+      [...(page.retroMonths ?? [])]
+        .filter((m) => m.title?.trim() || m.photo)
+        .sort((a, b) => a.month - b.month)
+        .slice(0, limitesRetro(page).meses),
+    [page.retroMonths, page.retroPlano]
   );
   // Música vale se tiver nome OU link (antes, quem só colava o link perdia a
   // música). Sem nome, aparece como "Nossa música nº N".
   const songs = (page.retroSongs ?? [])
     .filter((s) => s.title?.trim() || s.url?.trim())
-    .slice(0, 5)
+    .slice(0, limitesRetro(page).musicas)
     .map((s, i) => ({ ...s, title: s.title?.trim() || `Nossa música nº ${i + 1}` }));
   // o player usa a 1ª música que tiver link que dá pra tocar (senão, a nº 1 com busca no Spotify)
   const tocavel = songs.find((s) => parseMusic(s.url)) ?? songs[0];
@@ -348,7 +353,7 @@ function RetroColorido({ page, compact = false, corte }: { page: Doc; compact?: 
           <div className="rs-in" style={{ ["--d" as string]: "400ms", fontSize: "4.4cqw", opacity: 0.85, marginTop: "5cqw" }}>
             com você, de novo. ♥
           </div>
-          <ValeDate sw={S[2]} year={year} nameA={nameA} nameB={nameB} voucher={page.retroVoucher} />
+          {limitesRetro(page).vale && <ValeDate sw={S[2]} year={year} nameA={nameA} nameB={nameB} voucher={page.retroVoucher} />}
           <div style={{ marginTop: "10cqw", display: "inline-flex", alignItems: "center", gap: "1.5cqw", fontFamily: D_FONT, fontWeight: 800, fontSize: "4cqw" }}>
             <Heart size={13} color={S[2].ac} fill={S[2].ac} /> Nosso {year}
           </div>

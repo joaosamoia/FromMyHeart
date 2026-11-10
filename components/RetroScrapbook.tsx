@@ -20,6 +20,7 @@
 // Tamanhos em cqw (unidade do container) pra escalar do preview do quiz até a
 // tela cheia do celular.
 
+import { limitesRetro } from "@/lib/plano";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { CouplePageDoc, RetroSong, RetroStat } from "@/types/page";
@@ -169,8 +170,12 @@ export default function RetroScrapbook({ page, variant, compact = false, corte }
   const nameB = page.retroNameB?.trim() || "eu";
   const days = computeDays(page.startDate, year);
   const months = useMemo(
-    () => [...(page.retroMonths ?? [])].filter((m) => m.title?.trim() || m.photo).sort((a, b) => a.month - b.month),
-    [page.retroMonths]
+    () =>
+      [...(page.retroMonths ?? [])]
+        .filter((m) => m.title?.trim() || m.photo)
+        .sort((a, b) => a.month - b.month)
+        .slice(0, limitesRetro(page).meses),
+    [page.retroMonths, page.retroPlano]
   );
   // a foto de capa (1ª etapa do quiz) vem primeiro: é ela que aparece na abertura
   const photos = useMemo(
@@ -181,7 +186,7 @@ export default function RetroScrapbook({ page, variant, compact = false, corte }
   // música). Sem nome, aparece como "Nossa música nº N".
   const songs = (page.retroSongs ?? [])
     .filter((s) => s.title?.trim() || s.url?.trim())
-    .slice(0, 5)
+    .slice(0, limitesRetro(page).musicas)
     .map((s, i) => ({ ...s, title: s.title?.trim() || `Nossa música nº ${i + 1}` }));
   // o player usa a 1ª música que tiver link que dá pra tocar (senão, a nº 1 com busca no Spotify)
   const tocavel = songs.find((s) => parseMusic(s.url)) ?? songs[0];
@@ -251,7 +256,7 @@ export default function RetroScrapbook({ page, variant, compact = false, corte }
         )}
 
         <Sheet L={L} bg={variant === "sol" ? L.paper2 : L.paper} edge stickers={variant === "sol" ? "s7" : undefined}>
-          <Final L={L} year={year} nameA={nameA} nameB={nameB} voucher={page.retroVoucher} />
+          <Final L={L} year={year} nameA={nameA} nameB={nameB} voucher={page.retroVoucher} comVale={limitesRetro(page).vale} />
         </Sheet>
           </>
         )}
@@ -666,7 +671,7 @@ function Letter({ L, message, nameA, nameB }: { L: Look; message: string; nameA:
 // pessoalmente), um VALE-DATE — um ingresso que a pessoa "resgata" tocando.
 export const VALE_PADRAO = "um date surpresa planejado por mim";
 
-function Final({ L, year, nameA, nameB, voucher }: { L: Look; year: number; nameA: string; nameB: string; voucher?: string }) {
+function Final({ L, year, nameA, nameB, voucher, comVale = true }: { L: Look; year: number; nameA: string; nameB: string; voucher?: string; comVale?: boolean }) {
   const [ref, on] = useInView<HTMLDivElement>();
   const [resgatado, setResgatado] = useState(false);
   const oQue = voucher?.trim() || VALE_PADRAO;
@@ -677,9 +682,11 @@ function Final({ L, year, nameA, nameB, voucher }: { L: Look; year: number; name
         que venha <span style={{ color: L.accent }}>{year + 1}</span>
       </div>
 
-      <div className="sc-in" style={{ ["--d" as string]: "450ms", fontFamily: HAND, fontSize: "6cqw", marginTop: "8cqw" }}>
-        e pra começar, um presentinho:
-      </div>
+      {comVale && (
+        <>
+          <div className="sc-in" style={{ ["--d" as string]: "450ms", fontFamily: HAND, fontSize: "6cqw", marginTop: "8cqw" }}>
+            e pra começar, um presentinho:
+          </div>
 
       {/* ingresso */}
       <div className="sc-pop" style={{ ["--d" as string]: "600ms", position: "relative", marginTop: "5cqw", width: "86cqw", transform: "rotate(-2deg)" }}>
@@ -734,6 +741,8 @@ function Final({ L, year, nameA, nameB, voucher }: { L: Look; year: number; name
       >
         {resgatado ? `tira um print e me manda, ${nameA.toLowerCase()} ♥` : "resgatar meu vale ♥"}
       </button>
+        </>
+      )}
 
       <Link href="/criar?estilo=retro" style={{ marginTop: "12cqw", fontFamily: HAND, fontSize: "4.6cqw", color: L.soft, textDecoration: "underline", textUnderlineOffset: "1cqw" }}>
         feito com ♥ no FromMyHeart
