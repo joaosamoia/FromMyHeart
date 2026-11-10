@@ -20,7 +20,7 @@
 // Tamanhos em cqw (unidade do container) pra escalar do preview do quiz até a
 // tela cheia do celular.
 
-import { limitesRetro } from "@/lib/plano";
+import { limitesRetro, mesesDoPlano } from "@/lib/plano";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { CouplePageDoc, RetroSong, RetroStat } from "@/types/page";
@@ -174,8 +174,8 @@ export default function RetroScrapbook({ page, variant, compact = false, corte }
       [...(page.retroMonths ?? [])]
         .filter((m) => m.title?.trim() || m.photo)
         .sort((a, b) => a.month - b.month)
-        .slice(0, limitesRetro(page).meses),
-    [page.retroMonths, page.retroPlano]
+        .filter((m, _i, todos) => mesesDoPlano(page, todos).includes(m)),
+    [page.retroMonths, page.retroPlano, page.retroMesesEssencial]
   );
   // a foto de capa (1ª etapa do quiz) vem primeiro: é ela que aparece na abertura
   const photos = useMemo(
