@@ -19,7 +19,7 @@ const PRODUTOS = [
     n: "01",
     nome: "Retrospectiva do Casal",
     desc: "O ano de vocês numa página com linha do tempo: contador de dias juntos, um momento por mês, o top 5 de músicas e um card pra postar.",
-    preco: "R$ 29,99",
+    preco: "a partir de R$ 19,99",
     tag: "NOVO",
     bg: BR.pink,
     fg: BR.cream,

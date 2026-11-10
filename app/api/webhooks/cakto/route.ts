@@ -60,11 +60,14 @@ function slugDoPedido(d: any): string | null {
   return null;
 }
 
+// Retrospectiva: "Essencial" ou "Completa" no nome. A Completa já vem com QR.
 function adicionais(d: any) {
   const nomes = `${d?.offer?.name ?? ""} | ${d?.product?.name ?? ""}`;
+  const plano = /essencial/i.test(nomes) ? "essencial" : /completa/i.test(nomes) ? "completa" : null;
   return {
-    qr: /\bqr\b|qr\s*code|qrcode/i.test(nomes),
+    qr: /\bqr\b|qr\s*code|qrcode/i.test(nomes) || plano === "completa",
     astral: /mapa\s*estelar|astral/i.test(nomes),
+    plano,
   };
 }
 
@@ -86,7 +89,7 @@ async function processarPedido(d: any, siteUrl: string): Promise<Resultado> {
     return { slug, acao: "página inexistente" };
   }
   const atual = snap.data() ?? {};
-  const { qr, astral } = adicionais(d);
+  const { qr, astral, plano } = adicionais(d);
   const tipo: string = d?.offer_type ?? "main";
 
   // Order bump/upsell pago à parte: só soma o adicional, sem mexer no resto.
@@ -110,6 +113,8 @@ async function processarPedido(d: any, siteUrl: string): Promise<Resultado> {
       // um bump que chegou antes do pedido principal não é desfeito aqui
       astral: astral || atual.astral === true,
       qrPaid: qr || atual.qrPaid === true,
+      // o plano vem do que foi pago, não do que o formulário salvou
+      ...(atual.style === "retro" ? { retroPlano: plano ?? "completa" } : {}),
       ...(email ? { buyerEmail: email } : {}),
     },
     { merge: true }
@@ -134,7 +139,7 @@ async function processarPedido(d: any, siteUrl: string): Promise<Resultado> {
   } else {
     console.warn(`Cakto webhook: sem e-mail pra "${slug}", confirmação não enviada.`);
   }
-  console.log(`Cakto webhook: "${slug}" liberada${qr ? " (+ QR)" : ""}${astral ? " (+ Mapa Estelar)" : ""}.`);
+  console.log(`Cakto webhook: "${slug}" liberada${plano ? ` (${plano})` : ""}${qr ? " (+ QR)" : ""}${astral ? " (+ Mapa Estelar)" : ""}.`);
   return { slug, acao: "liberado" };
 }
 

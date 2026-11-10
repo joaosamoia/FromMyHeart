@@ -26,7 +26,8 @@ type Lead = {
   previa: string;
 };
 
-const ETAPAS_RETRO = ["Estilo", "Visual", "Casal", "Meses", "Músicas", "Números", "Promessas", "Mensagem", "Finalizar"];
+// Ordem antiga, só pra rascunhos salvos antes de o nome da etapa ir junto (_etapa).
+const ETAPAS_RETRO_ANTIGA = ["Estilo", "Visual", "Casal", "Meses", "Músicas", "Números", "Promessas", "Mensagem", "Finalizar"];
 
 // fora do componente: o lint do React não deixa chamar Date.now() direto no render
 const inicioDaJanela = (dias: number) => Date.now() - dias * 86400_000;
@@ -116,7 +117,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       para: String(d.retroNameB ?? "").trim(),
       email,
       fone,
-      etapa: `Parou em: ${ETAPAS_RETRO[Number(r.step) || 0] ?? "?"}`,
+      etapa: `Parou em: ${(typeof d._etapa === "string" && d._etapa) || ETAPAS_RETRO_ANTIGA[Number(r.step) || 0] || "?"}`,
       previa: linkPreviaRascunho(doc.id),
     });
   }

@@ -26,6 +26,9 @@ export const KIWIFY_CHECKOUT: Record<string, string> = {
   "retro-qr": "https://pay.kiwify.com.br/pds9P8g",
 };
 
+// Retrospectiva: "retro" = Completa (já com QR); Essencial com ou sem QR.
+
+
 // Links da Cakto: https://pay.cakto.com.br/{id da oferta}. Uma oferta por
 // combinação, igual era na Kiwify. Deixe "" pra continuar usando a Kiwify.
 // O webhook (/api/webhooks/cakto) reconhece os adicionais pelo NOME da oferta:
@@ -40,13 +43,18 @@ export const CAKTO_CHECKOUT: Record<string, string> = {
   "eterno-qr": "https://pay.cakto.com.br/gtzaf4o",
   "eterno-astral-qr": "https://pay.cakto.com.br/36z8xop",
   date: "https://pay.cakto.com.br/8tc8c6k",
+  // Retrospectiva Completa (R$ 29,99, já com QR Code)
   retro: "https://pay.cakto.com.br/bmgwo7u",
-  "retro-qr": "https://pay.cakto.com.br/3i78bbn",
+  // links antigos de "Retrospectiva + QR" caem na Completa, que já tem QR
+  "retro-qr": "https://pay.cakto.com.br/bmgwo7u",
+  // Retrospectiva Essencial (R$ 19,99) e Essencial + QR Code (R$ 24,98)
+  "retro-essencial": "https://pay.cakto.com.br/ciyyqj8",
+  "retro-essencial-qr": "https://pay.cakto.com.br/uk7juim",
 };
 
 // Link de checkout de cada combinação: Cakto quando houver, Kiwify como reserva.
 export const CHECKOUT: Record<string, string> = Object.fromEntries(
-  Object.entries(KIWIFY_CHECKOUT).map(([k, v]) => [k, CAKTO_CHECKOUT[k] || v])
+  [...new Set([...Object.keys(KIWIFY_CHECKOUT), ...Object.keys(CAKTO_CHECKOUT)])].map((k) => [k, CAKTO_CHECKOUT[k] || KIWIFY_CHECKOUT[k] || ""])
 );
 
 export const ehCakto = (url: string) => /(^|\/\/)pay\.cakto\.com\.br\//.test(url);
@@ -70,9 +78,9 @@ export function montarCheckout(
 }
 
 // Qual checkout uma página "pendente" já salva deve usar (mesma regra do quiz).
-export function chaveCheckout(p: { style?: string; plan?: string | null; astral?: boolean; qrStyle?: string }) {
+export function chaveCheckout(p: { style?: string; plan?: string | null; astral?: boolean; qrStyle?: string; retroPlano?: string | null }) {
   const qr = !!p.qrStyle && p.qrStyle !== "simples";
-  if (p.style === "retro") return qr ? "retro-qr" : "retro";
+  if (p.style === "retro") return p.retroPlano === "essencial" ? (qr ? "retro-essencial-qr" : "retro-essencial") : "retro";
   if (p.style === "date") return "date";
   const plan = p.plan === "1dia" ? "1dia" : "eterno";
   return [plan, p.astral && "astral", qr && "qr"].filter(Boolean).join("-");
