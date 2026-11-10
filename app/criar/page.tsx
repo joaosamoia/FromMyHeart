@@ -60,7 +60,8 @@ const STICKER = `0 5px 0 ${BR.wine}`; // sombra "chapada" dos botões principais
 
 const STEPS_FULL = ["Estilo", "Tema", "Nome", "Mensagem", "Fotos", "Música", "Timeline", "Finalizar"] as const;
 const STEPS_DATE = ["Estilo", "Date", "Finalizar"] as const;
-const STEPS_RETRO = ["Estilo", "Visual", "Casal", "Meses", "Músicas", "Números", "Promessas", "Mensagem", "Finalizar"] as const;
+// Kraft Polaroid já vem escolhido: a pessoa entra direto preenchendo e troca o visual (e põe a capa) no fim.
+const STEPS_RETRO = ["Estilo", "Casal", "Meses", "Músicas", "Números", "Promessas", "Mensagem", "Visual", "Finalizar"] as const;
 const getSteps = (style: string): readonly string[] => (style === "date" ? STEPS_DATE : style === "retro" ? STEPS_RETRO : STEPS_FULL);
 const EMOJI: Record<string, string> = { Estilo: "✦", Tema: "🎨", Nome: "📝", Mensagem: "💌", Fotos: "📷", Música: "🎵", Timeline: "🕰️", Date: "🐧", Finalizar: "✨", Casal: "💞", Meses: "🗓️", Músicas: "🎧", Números: "🔢", Promessas: "🤞", Visual: "🎨" };
 const CHEER = (p: number) =>
@@ -197,8 +198,9 @@ function CriarInner() {
   useEffect(() => {
     let cancelado = false;
     const aplicar = (saved: any, origem: "nuvem" | "local") => {
-      const { _vistos, ...dSalvo } = saved.d ?? {};
+      const { _vistos, _etapa, ...dSalvo } = saved.d ?? {};
       void _vistos;
+      void _etapa;
       setD((x) => ({ ...x, ...dSalvo }));
       setStep(Number(saved.step) || 0);
       const v = saved.vistos ?? saved.d?._vistos;
@@ -251,7 +253,7 @@ function CriarInner() {
   useEffect(() => {
     if (!restored.current || !temConteudo) return;
     const t = window.setTimeout(() => {
-      salvarRascunhoNuvem({ ...d, _vistos: vistos }, step).then((r) => {
+      salvarRascunhoNuvem({ ...d, _vistos: vistos, _etapa: getSteps(d.style)[Math.min(step, getSteps(d.style).length - 1)] }, step).then((r) => {
         if (r?.ok) {
           setSalvoNuvemEm(Date.now());
           track(produto, "rascunho", { unico: true });
@@ -268,7 +270,10 @@ function CriarInner() {
   });
   useEffect(() => {
     const onHide = () => {
-      if (document.visibilityState === "hidden" && ultimo.current.temConteudo) salvarRascunhoNuvem(ultimo.current.d, ultimo.current.step);
+      if (document.visibilityState === "hidden" && ultimo.current.temConteudo) {
+        const st = getSteps(ultimo.current.d.style);
+        salvarRascunhoNuvem({ ...ultimo.current.d, _etapa: st[Math.min(ultimo.current.step, st.length - 1)] }, ultimo.current.step);
+      }
     };
     document.addEventListener("visibilitychange", onHide);
     return () => document.removeEventListener("visibilitychange", onHide);
@@ -397,6 +402,7 @@ function CriarInner() {
                 </button>
               </div>
             )}
+            {d.style === "retro" && name === "Meses" && <WhatsLembrete d={d} setD={setD} produto={produto} />}
             <AjudaEtapa key={name} name={name} />
             <StepBody
               irPara={irPara}
@@ -412,6 +418,7 @@ function CriarInner() {
               error={error}
               setError={setError}
               onBack={() => setStep((s) => Math.max(0, s - 1))}
+              onPular={pular}
             />
           </div>
         </div>
@@ -431,8 +438,8 @@ function CriarInner() {
                 {stepC === 0 ? <X size={16} /> : <ArrowLeft size={16} />} {stepC === 0 ? "Cancelar" : "Voltar"}
               </button>
               {opcional && vazia && (
-                <button onClick={pular} style={{ marginLeft: "auto", marginRight: 12, background: "none", border: "none", color: P.sub, fontSize: 14, fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}>
-                  Pular
+                <button onClick={pular} style={{ marginLeft: "auto", marginRight: 10, display: "inline-flex", alignItems: "center", gap: 6, padding: "11px 18px", borderRadius: 99, border: `1.5px solid ${P.pinkBorder}`, background: "#fff", color: P.pink, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                  Pular <ArrowRight size={15} />
                 </button>
               )}
               <button
@@ -519,7 +526,7 @@ function CriarInner() {
 }
 
 // ───────────────── etapas ─────────────────
-function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBack, slugStatus, irPara, steps, produto }: any) {
+function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBack, slugStatus, irPara, steps, produto, onPular }: any) {
   if (name === "Estilo")
     return (
       <>
@@ -653,9 +660,9 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
 
   // ───── Retrospectiva ─────
   if (name === "Casal") return <RetroCasalStep d={d} setD={setD} set={set} slugStatus={slugStatus} />;
-  if (name === "Visual") return <RetroCoresStep d={d} setD={setD} />;
+  if (name === "Visual") return <RetroCoresStep d={d} setD={setD} slugStatus={slugStatus} />;
   if (name === "Meses") return <RetroMesesStep d={d} setD={setD} />;
-  if (name === "Músicas") return <RetroMusicasStep d={d} setD={setD} />;
+  if (name === "Músicas") return <RetroMusicasStep d={d} setD={setD} onPular={onPular} />;
   if (name === "Números") return <RetroNumerosStep d={d} setD={setD} />;
   if (name === "Promessas") return <RetroPromessasStep d={d} setD={setD} />;
 
@@ -1322,11 +1329,101 @@ function mensagemErroUpload(e: unknown) {
   return `Não deu pra enviar essa foto. Tente de novo. (código: ${err?.code ?? "desconhecido"})`;
 }
 
+// Link gerado pelos nomes ("maria-e-joao"). Se já for de alguém, tenta com o
+// ano e depois com um número, sem a pessoa precisar pensar nisso.
+function candidatosSlug(a: string, b: string, ano: number) {
+  const base = limparSlug(`${a.trim()}-e-${b.trim()}`).replace(/-+$/, "").slice(0, 30);
+  if (!a.trim() || !b.trim() || base.length < 3) return [];
+  return [base, `${base}-${ano}`, ...Array.from({ length: 8 }, (_, i) => `${base}-${ano}-${i + 2}`)];
+}
+
 function RetroCasalStep({ d, setD, set, slugStatus }: any) {
+  const [editando, setEditando] = useState(false);
+  const cands = candidatosSlug(d.retroNameA ?? "", d.retroNameB ?? "", Number(d.retroYear) || new Date().getFullYear());
+  const chave = cands.join("|");
+  const primeira = useRef(true);
+  // nomes mudaram → link novo (a não ser que a pessoa tenha escolhido o dela)
+  useEffect(() => {
+    if (primeira.current) {
+      primeira.current = false;
+      // rascunho antigo com link escolhido à mão: respeita
+      if (d.slug && !d.slugManual && !cands.includes(d.slug)) {
+        setD((s: any) => ({ ...s, slugManual: true }));
+        return;
+      }
+    }
+    if (d.slugManual || !cands.length || cands.includes(d.slug)) return;
+    setD((s: any) => ({ ...s, slug: cands[0] }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chave]);
+  // link já é de outra pessoa → próxima opção
+  useEffect(() => {
+    if (d.slugManual || slugStatus !== "taken") return;
+    const i = cands.indexOf(d.slug);
+    if (i >= 0 && i < cands.length - 1) setD((s: any) => ({ ...s, slug: cands[i + 1] }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slugStatus, d.slug, d.slugManual]);
+
+  const procurando = !d.slugManual && (slugStatus === "checking" || slugStatus === "taken");
+  return (
+    <>
+      <Head title="A retrospectiva de vocês" sub="Só os dois nomes e desde quando essa história existe." />
+      <div style={{ display: "flex", gap: 10 }}>
+        <label style={{ ...lbl, flex: 1, minWidth: 0 }}>
+          <span style={lblTxt}>Nome de quem vai receber</span>
+          <input className="qinput" value={d.retroNameA ?? ""} onChange={set("retroNameA")} placeholder="Maria" maxLength={20} autoFocus style={inp} />
+        </label>
+        <label style={{ ...lbl, flex: 1, minWidth: 0 }}>
+          <span style={lblTxt}>Seu nome</span>
+          <input className="qinput" value={d.retroNameB ?? ""} onChange={set("retroNameB")} placeholder="João" maxLength={20} style={inp} />
+        </label>
+      </div>
+
+      <label style={lbl}>
+        <span style={lblTxt}>Quando vocês começaram?</span>
+        <input className="qinput" type="date" value={d.startDate} max={new Date().toISOString().slice(0, 10)} onChange={set("startDate")} style={{ ...inp, textAlign: "center", colorScheme: "light", cursor: "pointer" }} />
+      </label>
+      <Hint>A data vira o contador de “dias juntos” do ano, a parte que mais emociona.</Hint>
+
+      {d.slug && !editando && (
+        <div style={{ marginTop: 18, padding: "10px 14px", borderRadius: 12, background: "rgba(255,255,255,.7)", border: `1px solid ${P.cardBorder}`, fontSize: 13, color: P.sub, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>
+            Link: <b style={{ color: P.ink }}>{DOMINIO}/{d.slug}</b>
+            {procurando ? " · conferindo…" : slugStatus === "ok" ? " ✓" : ""}
+          </span>
+          <button onClick={() => setEditando(true)} style={{ background: "none", border: "none", color: P.pink, fontWeight: 600, fontSize: 13, cursor: "pointer", padding: 0 }}>
+            trocar
+          </button>
+        </div>
+      )}
+      {editando && (
+        <div style={{ marginTop: 18 }}>
+          <label style={lbl}>
+            <span style={lblTxt}>Link da retrospectiva</span>
+            <div style={{ display: "flex", alignItems: "center", border: `1.5px solid ${slugStatus === "taken" ? "#C0392B" : P.cardBorder}`, borderRadius: 12, background: P.card }}>
+              <span style={{ padding: "12px 2px 12px 14px", color: P.sub, fontSize: 14, flexShrink: 0, whiteSpace: "nowrap" }}>{DOMINIO}/</span>
+              <input
+                className="qinput"
+                value={d.slug}
+                onChange={(e) => setD((s: any) => ({ ...s, slug: limparSlug(e.target.value), slugManual: true }))}
+                autoCapitalize="none"
+                autoCorrect="off"
+                autoFocus
+                style={{ flex: 1, minWidth: 0, border: "none", outline: "none", padding: "12px 14px 12px 0", fontSize: 14, background: "transparent", color: P.ink, WebkitTextFillColor: P.ink, fontWeight: 600 }}
+              />
+            </div>
+          </label>
+          <SlugHint status={slugStatus} />
+        </div>
+      )}
+    </>
+  );
+}
+function RetroCoresStep({ d, setD, slugStatus }: any) {
   const anoAtual = new Date().getFullYear();
   const [enviando, setEnviando] = useState(false);
   const [erroFoto, setErroFoto] = useState("");
-  const podeFoto = slugLivre(slugStatus);
+  const podeFoto = slugLivre(slugStatus) && !!d.slug;
   const onCover = async (file?: File) => {
     if (!file || !podeFoto) return;
     setErroFoto("");
@@ -1342,79 +1439,6 @@ function RetroCasalStep({ d, setD, set, slugStatus }: any) {
       setEnviando(false);
     }
   };
-  return (
-    <>
-      <Head title="A retrospectiva de vocês" sub="O link, quem são os dois, uma foto de capa e desde quando essa história existe." />
-      <label style={lbl}>
-        <span style={lblTxt}>Link da retrospectiva</span>
-        <div style={{ display: "flex", alignItems: "center", border: `1.5px solid ${slugStatus === "taken" ? "#C0392B" : P.cardBorder}`, borderRadius: 12, background: P.card }}>
-          <span style={{ padding: "12px 2px 12px 14px", color: P.sub, fontSize: 14, flexShrink: 0, whiteSpace: "nowrap" }}>{DOMINIO}/</span>
-          <input
-            className="qinput"
-            value={d.slug}
-            onChange={(e) => setD((s: any) => ({ ...s, slug: limparSlug(e.target.value) }))}
-            placeholder={`nosso-${anoAtual}`}
-            autoCapitalize="none"
-            autoCorrect="off"
-            style={{ flex: 1, minWidth: 0, border: "none", outline: "none", padding: "12px 14px 12px 0", fontSize: 14, background: "transparent", color: P.ink, WebkitTextFillColor: P.ink, fontWeight: 600 }}
-          />
-        </div>
-      </label>
-      <SlugHint status={slugStatus} />
-
-      <div style={{ display: "flex", gap: 10 }}>
-        <label style={{ ...lbl, flex: 1, minWidth: 0 }}>
-          <span style={lblTxt}>Seu nome</span>
-          <input className="qinput" value={d.retroNameB ?? ""} onChange={set("retroNameB")} placeholder="João" maxLength={20} style={inp} />
-        </label>
-        <label style={{ ...lbl, flex: 1, minWidth: 0 }}>
-          <span style={lblTxt}>Nome de quem vai receber</span>
-          <input className="qinput" value={d.retroNameA ?? ""} onChange={set("retroNameA")} placeholder="Maria" maxLength={20} style={inp} />
-        </label>
-      </div>
-
-      <span style={lblTxt}>Foto de capa (aparece logo na abertura)</span>
-      <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 16 }}>
-        {d.retroCover ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={d.retroCover} alt="" style={{ width: 88, height: 110, objectFit: "cover", borderRadius: 10, border: "4px solid #fff", boxShadow: "0 4px 12px rgba(0,0,0,.15)", transform: "rotate(-3deg)" }} />
-        ) : (
-          <div style={{ width: 88, height: 110, borderRadius: 10, border: `2px dashed ${P.pinkBorder}`, display: "grid", placeItems: "center", background: "rgba(255,255,255,.5)", flexShrink: 0 }}>
-            <ImageIcon size={22} color={P.pink} />
-          </div>
-        )}
-        <div style={{ flex: 1 }}>
-          <label className="drop" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, border: `1.5px dashed ${P.pinkBorder}`, cursor: podeFoto ? "pointer" : "not-allowed", fontSize: 13.5, color: P.pink, opacity: podeFoto ? 1 : 0.5, background: "#fff" }}>
-            <input type="file" accept="image/*" disabled={!podeFoto || enviando} onChange={(e) => { onCover(e.target.files?.[0]); e.target.value = ""; }} style={{ display: "none" }} />
-            <Upload size={15} /> {enviando ? "Enviando…" : d.retroCover ? "Trocar foto" : "Escolher foto"}
-          </label>
-          <div style={{ fontSize: 12, color: P.sub, marginTop: 6, lineHeight: 1.4 }}>
-            {podeFoto ? "Uma foto de vocês dois, de preferência em pé (vertical)." : "Defina o link acima pra liberar o envio da foto."}
-          </div>
-          {erroFoto && <div style={{ fontSize: 12.5, color: "#C0392B", marginTop: 6 }}>{erroFoto}</div>}
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.35fr) minmax(0,1fr)", gap: 10, alignItems: "end" }}>
-        <label style={{ ...lbl, minWidth: 0 }}>
-          <span style={lblTxt}>Quando vocês começaram?</span>
-          <input className="qinput" type="date" value={d.startDate} max={new Date().toISOString().slice(0, 10)} onChange={set("startDate")} style={{ ...inp, textAlign: "center", colorScheme: "light", cursor: "pointer" }} />
-        </label>
-        <label style={{ ...lbl, minWidth: 0 }}>
-          <span style={lblTxt}>Ano da retrospectiva</span>
-          <select className="qinput" value={d.retroYear} onChange={(e) => setD((s: any) => ({ ...s, retroYear: Number(e.target.value) }))} style={{ ...inp, cursor: "pointer" }}>
-            {[anoAtual, anoAtual - 1].map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <Hint>A data vira o contador de “dias juntos” do ano — a parte que mais emociona.</Hint>
-    </>
-  );
-}
-
-function RetroCoresStep({ d, setD }: any) {
   const card = (id: string, active: boolean, swatch: React.ReactNode, nome: string, desc?: string) => (
     <button
       key={id}
@@ -1431,7 +1455,36 @@ function RetroCoresStep({ d, setD }: any) {
   );
   return (
     <>
-      <Head title="Escolha o visual" sub="O jeito que a retrospectiva vai aparecer pra pessoa." />
+      <Head title="Último toque: capa e visual" sub="A foto que abre a retrospectiva e o jeito que ela aparece pra pessoa." />
+      <span style={lblTxt}>Foto de capa (opcional, aparece logo na abertura)</span>
+      <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 16 }}>
+        {d.retroCover ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={d.retroCover} alt="" style={{ width: 88, height: 110, objectFit: "cover", borderRadius: 10, border: "4px solid #fff", boxShadow: "0 4px 12px rgba(0,0,0,.15)", transform: "rotate(-3deg)" }} />
+        ) : (
+          <div style={{ width: 88, height: 110, borderRadius: 10, border: `2px dashed ${P.pinkBorder}`, display: "grid", placeItems: "center", background: "rgba(255,255,255,.5)", flexShrink: 0 }}>
+            <ImageIcon size={22} color={P.pink} />
+          </div>
+        )}
+        <div style={{ flex: 1 }}>
+          <label className="drop" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, border: `1.5px dashed ${P.pinkBorder}`, cursor: podeFoto ? "pointer" : "not-allowed", fontSize: 13.5, color: P.pink, opacity: podeFoto ? 1 : 0.5, background: "#fff" }}>
+            <input type="file" accept="image/*" disabled={!podeFoto || enviando} onChange={(e) => { onCover(e.target.files?.[0]); e.target.value = ""; }} style={{ display: "none" }} />
+            <Upload size={15} /> {enviando ? "Enviando…" : d.retroCover ? "Trocar foto" : "Escolher foto"}
+          </label>
+          <div style={{ fontSize: 12, color: P.sub, marginTop: 6, lineHeight: 1.4 }}>
+            {podeFoto ? "Uma foto de vocês dois, de preferência em pé (vertical). Sem capa, a primeira foto dos meses entra no lugar." : "Preencha os nomes na etapa do casal pra liberar o envio."}
+          </div>
+          {erroFoto && <div style={{ fontSize: 12.5, color: "#C0392B", marginTop: 6 }}>{erroFoto}</div>}
+        </div>
+      </div>
+      <label style={{ ...lbl, marginBottom: 18 }}>
+        <span style={lblTxt}>Ano da retrospectiva</span>
+        <select className="qinput" value={d.retroYear} onChange={(e) => setD((s: any) => ({ ...s, retroYear: Number(e.target.value) }))} style={{ ...inp, cursor: "pointer" }}>
+          {[anoAtual, anoAtual - 1].map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+      </label>
       <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", color: P.sub, margin: "0 0 8px" }}>COLAGEM</div>
       <div style={{ display: "grid", gap: 10 }}>
         {Object.entries(SCRAP_THEMES).map(([id, t]) =>
@@ -1586,7 +1639,7 @@ function RetroMesesStep({ d, setD }: any) {
   );
 }
 
-function RetroMusicasStep({ d, setD }: any) {
+function RetroMusicasStep({ d, setD, onPular }: any) {
   const songs: RetroSong[] = d.retroSongs ?? [];
   const update = (i: number, patch: Partial<RetroSong>) => setD((s: any) => ({ ...s, retroSongs: (s.retroSongs ?? []).map((x: RetroSong, j: number) => (j === i ? { ...x, ...patch } : x)) }));
   const add = (title = "") => setD((s: any) => ({ ...s, retroSongs: [...(s.retroSongs ?? []), { title, url: "" }].slice(0, 5) }));
@@ -1608,6 +1661,19 @@ function RetroMusicasStep({ d, setD }: any) {
   return (
     <>
       <Head title="O top 5 do casal" sub="As músicas que foram a trilha sonora do ano de vocês." />
+      {etapaVazia("Músicas", d) && onPular && (
+        <button
+          onClick={onPular}
+          style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", marginBottom: 14, borderRadius: 14, cursor: "pointer", textAlign: "left", background: "#fff", border: `1.5px dashed ${P.pinkBorder}` }}
+        >
+          <span style={{ flex: 1, fontSize: 13.5, color: P.ink, lineHeight: 1.4 }}>
+            <b>Não lembra agora?</b> Pula essa etapa e continua. Dá pra voltar e colocar as músicas antes de pagar.
+          </span>
+          <span style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 99, background: P.pink, color: "#fff", fontSize: 13.5, fontWeight: 700, boxShadow: STICKER }}>
+            Pular <ArrowRight size={14} />
+          </span>
+        </button>
+      )}
       <div style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 14px", borderRadius: 12, background: P.pinkSoft, border: `1px solid ${P.cardBorder}`, marginBottom: 14, fontSize: 13, color: P.ink, lineHeight: 1.45 }}>
         <Music size={18} color={P.pink} style={{ flexShrink: 0, marginTop: 1 }} />
         <span>
@@ -1915,6 +1981,71 @@ function ImmersivePreview({ d, onClose }: any) {
         <div style={{ marginTop: 40, position: "relative" }}>
           <SlideToOpen th={th} onOpen={() => setOpened(true)} />
         </div>
+      </div>
+    </div>
+  );
+}
+
+// WhatsApp opcional depois da 1ª etapa: quem sai no meio (ex.: nas músicas)
+// passa a ter contato no /admin/leads. Nunca trava o fluxo.
+const mascaraFone = (v: string) => {
+  const n = v.replace(/\D/g, "").slice(0, 11);
+  if (n.length <= 2) return n.length ? `(${n}` : "";
+  if (n.length <= 6) return `(${n.slice(0, 2)}) ${n.slice(2)}`;
+  if (n.length <= 10) return `(${n.slice(0, 2)}) ${n.slice(2, 6)}-${n.slice(6)}`;
+  return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`;
+};
+function WhatsLembrete({ d, setD, produto }: any) {
+  const [fechado, setFechado] = useState(() => {
+    try {
+      return localStorage.getItem("fmh_whats_nao") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const fone = String(d.buyerPhone ?? "");
+  const ok = fone.replace(/\D/g, "").length >= 10;
+  useEffect(() => {
+    if (ok) track(produto, "whats_deixou", { unico: true });
+  }, [ok, produto]);
+  if (fechado && !ok) return null;
+  return (
+    <div style={{ padding: "14px 16px", borderRadius: 16, background: "#fff", border: `1.5px solid ${ok ? "#BFE6D6" : P.pinkBorder}`, marginBottom: 16 }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: P.ink, marginBottom: 4 }}>💬 Quer garantir que não vai perder nada?</div>
+      <div style={{ fontSize: 13, color: P.sub, lineHeight: 1.45, marginBottom: 10 }}>
+        Deixe seu WhatsApp e, se precisar sair no meio, a gente te manda o link pra terminar de onde parou.
+      </div>
+      <input
+        className="qinput"
+        value={fone}
+        onChange={(e) => setD((s: any) => ({ ...s, buyerPhone: mascaraFone(e.target.value) }))}
+        placeholder="(41) 99999-9999"
+        inputMode="tel"
+        autoComplete="tel"
+        style={inp}
+      />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8 }}>
+        {ok ? (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "#1F9D72", fontWeight: 600 }}>
+            <Check size={15} /> Salvo. Pode continuar tranquilo(a).
+          </span>
+        ) : (
+          <>
+            <span style={{ fontSize: 11.5, color: P.sub, lineHeight: 1.35 }}>Opcional. Só usamos pra falar sobre o seu presente.</span>
+            <button
+              onClick={() => {
+                setFechado(true);
+                track(produto, "whats_agora_nao", { unico: true });
+                try {
+                  localStorage.setItem("fmh_whats_nao", "1");
+                } catch {}
+              }}
+              style={{ flexShrink: 0, background: "none", border: "none", color: P.sub, fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}
+            >
+              Agora não
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
