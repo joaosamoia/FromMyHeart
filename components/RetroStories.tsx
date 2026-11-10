@@ -18,7 +18,7 @@
 // nenhuma plataforma de música. Os tamanhos usam unidades de container (cqw),
 // então o mesmo layout escala do mini preview até a tela cheia do celular.
 
-import { limitesRetro } from "@/lib/plano";
+import { limitesRetro, mesesDoPlano } from "@/lib/plano";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Heart, Share2, Music2, Camera, Calendar, ChevronDown } from "lucide-react";
@@ -216,8 +216,8 @@ function RetroColorido({ page, compact = false, corte }: { page: Doc; compact?: 
       [...(page.retroMonths ?? [])]
         .filter((m) => m.title?.trim() || m.photo)
         .sort((a, b) => a.month - b.month)
-        .slice(0, limitesRetro(page).meses),
-    [page.retroMonths, page.retroPlano]
+        .filter((m, _i, todos) => mesesDoPlano(page, todos).includes(m)),
+    [page.retroMonths, page.retroPlano, page.retroMesesEssencial]
   );
   // Música vale se tiver nome OU link (antes, quem só colava o link perdia a
   // música). Sem nome, aparece como "Nossa música nº N".

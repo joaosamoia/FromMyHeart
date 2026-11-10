@@ -22,3 +22,17 @@ export function planoRetro(p: { retroPlano?: string | null }): PlanoRetro {
 export function limitesRetro(p: { retroPlano?: string | null }) {
   return LIMITES_RETRO[planoRetro(p)];
 }
+
+type Mes = { month: number; title?: string; photo?: string };
+
+// Meses que aparecem na página: no Essencial, os que a pessoa escolheu
+// (até 6); se ela não escolheu, os 6 primeiros do ano.
+export function mesesDoPlano<T extends Mes>(p: { retroPlano?: string | null; retroMesesEssencial?: number[] }, meses: T[]): T[] {
+  const lim = limitesRetro(p).meses;
+  const escolhidos = p.retroMesesEssencial;
+  if (planoRetro(p) === "essencial" && escolhidos?.length) {
+    const sel = meses.filter((m) => escolhidos.includes(m.month));
+    if (sel.length) return sel.slice(0, lim);
+  }
+  return meses.slice(0, lim);
+}
