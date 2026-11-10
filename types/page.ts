@@ -54,7 +54,8 @@ export interface CouplePageDoc {
   retroSongs?: RetroSong[]; // top 5 do casal
   retroStats?: RetroStat[]; // "números do casal" (até 4)
   retroPromises?: string[]; // "promessas pro próximo ano" (até 5)
-  retroPlano?: "essencial" | "completa"; // Retrospectiva: Essencial (mais curta) ou Completa (com QR). Sem valor = Completa.
+  retroPlano?: "essencial" | "completa";
+  retroMesesEssencial?: number[]; // no Essencial: quais meses (0–11) a pessoa escolheu mostrar // Retrospectiva: Essencial (mais curta) ou Completa (com QR). Sem valor = Completa.
   retroVoucher?: string; // o que vale o "vale-date" do final (ex: "um jantar no nosso restaurante")
 
   // dados de contato do comprador (não exibidos na página pública)

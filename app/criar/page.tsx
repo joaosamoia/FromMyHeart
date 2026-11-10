@@ -24,6 +24,8 @@ import { BR, D_FONT, BRAND_CSS, Blobs, Logo } from "@/components/brand";
 import { track, eventoEtapa, slugEtapa, type Produto } from "@/lib/funil";
 import { CHECKOUT, montarCheckout } from "@/lib/checkout";
 import { LIMITES_RETRO, PRECO_RETRO, type PlanoRetro } from "@/lib/plano";
+
+const MESES_CURTO = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 import { OfertaBanner } from "@/components/Oferta";
 import ProvaSocial from "@/components/ProvaSocial";
 import {
@@ -1085,7 +1087,7 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack, irPara
     );
 
   // FASE 1 — retrospectiva: produto único
-  if (d.style === "retro") return <RetroCheckout d={d} saving={saving} error={error} finish={finish} onBack={() => setPhase(0)} bigBtn={bigBtn} qrOn={qrOn} setQrOn={setQrOn} plano={planoRetro} setPlano={setPlanoRetro} />;
+  if (d.style === "retro") return <RetroCheckout d={d} saving={saving} error={error} finish={finish} onBack={() => setPhase(0)} bigBtn={bigBtn} qrOn={qrOn} setQrOn={setQrOn} plano={planoRetro} setPlano={setPlanoRetro} setD={setD} />;
 
   // FASE 1 — planos + addons (ou confirmação simples, se for o estilo Date)
   if (d.style === "date") {
@@ -1849,11 +1851,20 @@ const VALES_SUGESTOES = [
   "um fim de semana viajando",
 ];
 
-function RetroCheckout({ d, saving, error, finish, onBack, bigBtn, qrOn, setQrOn, plano, setPlano }: any) {
-  const nMeses = (d.retroMonths ?? []).filter((m: RetroMonth) => m.title.trim() || m.photo).length;
+function RetroCheckout({ d, saving, error, finish, onBack, bigBtn, qrOn, setQrOn, plano, setPlano, setD }: any) {
+  const preenchidos: RetroMonth[] = [...(d.retroMonths ?? [])].filter((m: RetroMonth) => m.title.trim() || m.photo).sort((a: RetroMonth, b: RetroMonth) => a.month - b.month);
+  const nMeses = preenchidos.length;
   const nMusicas = (d.retroSongs ?? []).filter((s: any) => s.title?.trim() || s.url?.trim()).length;
   const lim = LIMITES_RETRO.essencial;
   const completa = plano === "completa";
+  // no Essencial a pessoa escolhe quais meses entram (padrão: os primeiros)
+  const salvos: number[] = (d.retroMesesEssencial ?? []).filter((n: number) => preenchidos.some((m) => m.month === n));
+  const escolhidos: number[] = salvos.length ? salvos : preenchidos.slice(0, lim.meses).map((m) => m.month);
+  const alternarMes = (n: number) =>
+    setD((s: any) => {
+      const atual = escolhidos.includes(n) ? escolhidos.filter((x) => x !== n) : escolhidos.length < lim.meses ? [...escolhidos, n] : escolhidos;
+      return { ...s, retroMesesEssencial: atual.length ? atual : escolhidos };
+    });
   const total = completa ? PRECO_RETRO.completa : PRECO_RETRO.essencial + (qrOn ? PRECO_RETRO.essencialQr : 0);
 
   const itensCompleta = [
@@ -1863,7 +1874,7 @@ function RetroCheckout({ d, saving, error, finish, onBack, bigBtn, qrOn, setQrOn
     "QR Code pra imprimir e entregar junto do presente",
     `Contador de dias juntos em ${d.retroYear}, mapa das estrelas e card pro story`,
   ];
-  const itensEssencial = [`Linha do tempo com até ${lim.meses} meses`, `${lim.musicas} música, com player`, "Contador de dias juntos e card pro story"];
+  const itensEssencial = [`Linha do tempo com até ${lim.meses} meses, você escolhe quais`, `${lim.musicas} música, com player`, "Contador de dias juntos e card pro story"];
   // o que a pessoa já preencheu e ficaria de fora no Essencial
   const perde = [
     nMeses > lim.meses && `${nMeses - lim.meses} dos ${nMeses} meses que você preencheu`,
@@ -1938,6 +1949,32 @@ function RetroCheckout({ d, saving, error, finish, onBack, bigBtn, qrOn, setQrOn
           </div>
         )}
       </button>
+
+      {!completa && nMeses > lim.meses && (
+        <div style={{ padding: "14px 16px", borderRadius: 16, background: "#fff", border: `1.5px solid ${P.cardBorder}`, marginBottom: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: P.ink }}>Quais {lim.meses} meses entram na linha do tempo?</div>
+          <div style={{ fontSize: 12.5, color: P.sub, margin: "3px 0 10px" }}>
+            Toque pra escolher · {escolhidos.length} de {lim.meses}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {preenchidos.map((m) => {
+              const on = escolhidos.includes(m.month);
+              const cheio = !on && escolhidos.length >= lim.meses;
+              return (
+                <button
+                  key={m.month}
+                  onClick={() => alternarMes(m.month)}
+                  disabled={cheio}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 99, fontSize: 13.5, fontWeight: 700, cursor: cheio ? "not-allowed" : "pointer", border: `1.5px solid ${on ? P.pink : P.cardBorder}`, background: on ? P.pink : "#fff", color: on ? "#fff" : cheio ? P.sub : P.ink, opacity: cheio ? 0.5 : 1 }}
+                >
+                  {on && <Check size={13} strokeWidth={3} />}
+                  {MESES_CURTO[m.month]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {!completa && (
         <ToggleCard
@@ -2070,7 +2107,7 @@ function WhatsLembrete({ d, setD, produto }: any) {
   return (
     <div style={{ marginTop: 26, paddingTop: 18, borderTop: `1px dashed ${P.pinkBorder}` }}>
       <div style={{ fontSize: 13.5, color: P.sub, lineHeight: 1.5, marginBottom: 8 }}>
-        Se quiser, deixe seu WhatsApp: se precisar sair no meio, a gente te manda o link pra terminar de onde parou. <span style={{ opacity: 0.8 }}>(opcional)</span>
+        Deixe seu WhatsApp e, se sair no meio, sua retrospectiva fica salva pra você continuar de onde parou. <span style={{ opacity: 0.8 }}>(opcional)</span>
       </div>
       <input
         className="qinput"
