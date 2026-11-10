@@ -40,10 +40,10 @@ export default function ObrigadoPage() {
 
 function ObrigadoInner() {
   const params = useSearchParams();
-  // o slug pode vir pela URL (?s= ou ?s1=) ou, se a Kiwify não repassar nada,
+  // o slug pode vir pela URL (?s=, ?s1= ou ?sck=) ou, se a Kiwify não repassar nada,
   // do próprio aparelho (gravado pelo quiz antes de ir pro checkout)
   const [slug] = useState(() => {
-    const fromUrl = params.get("s") || params.get("s1");
+    const fromUrl = params.get("s") || params.get("s1") || params.get("sck");
     if (fromUrl) return fromUrl;
     try {
       return typeof window !== "undefined" ? localStorage.getItem("fmh_last_slug") ?? "" : "";

@@ -1,6 +1,11 @@
 // lib/checkout.ts
-// Links de checkout da Kiwify, compartilhados entre o quiz (/criar) e a
-// prévia (/previa), que precisa mandar a pessoa direto pro pagamento certo.
+// Links de checkout, compartilhados entre o quiz (/criar) e a prévia (/previa),
+// que precisa mandar a pessoa direto pro pagamento certo.
+//
+// A operação está migrando da Kiwify pra Cakto. Cada chave usa o link da Cakto
+// quando ele estiver preenchido em CAKTO_CHECKOUT; enquanto estiver vazio,
+// continua indo pra Kiwify. Assim dá pra trocar produto por produto, sem
+// derrubar nenhuma venda no meio da migração.
 
 // ⚠️ Troque pelos links reais dos seus produtos na Kiwify.
 export const KIWIFY_CHECKOUT: Record<string, string> = {
@@ -16,20 +21,47 @@ export const KIWIFY_CHECKOUT: Record<string, string> = {
   // O webhook libera pelo slug que vai no ?s1=.
   retro: "https://pay.kiwify.com.br/S0E3Ee8",
   // Retrospectiva + QR Code personalizado (cartão pra imprimir e entregar em mãos).
-  // Produto à parte na Kiwify (R$ 34,80). O webhook reconhece pelo nome do
+  // Produto à parte na Kiwify. O webhook reconhece pelo nome do
   // produto ("… QR Code …"), sem precisar mexer em KIWIFY_PRODUCT_IDS_QR.
   "retro-qr": "https://pay.kiwify.com.br/pds9P8g",
 };
 
-// Monta o link do checkout da Kiwify (função pura: roda no servidor e no navegador).
-// ⚠️ A Kiwify só repassa ao webhook estes parâmetros: src, sck, utm_*, s1, s2, s3.
-// Por isso o slug da página vai em `s1`. Nome, e-mail e telefone pré-preenchem o checkout.
+// Links da Cakto: https://pay.cakto.com.br/{id da oferta}. Uma oferta por
+// combinação, igual era na Kiwify. Deixe "" pra continuar usando a Kiwify.
+// O webhook (/api/webhooks/cakto) reconhece os adicionais pelo NOME da oferta:
+// "QR" libera o cartão com QR Code e "Mapa Estelar" libera o mapa.
+export const CAKTO_CHECKOUT: Record<string, string> = {
+  "1dia": "https://pay.cakto.com.br/vjxhrt8",
+  "1dia-astral": "https://pay.cakto.com.br/o3i4nnd",
+  "1dia-qr": "https://pay.cakto.com.br/v7p74k2",
+  "1dia-astral-qr": "https://pay.cakto.com.br/62xecsj",
+  eterno: "https://pay.cakto.com.br/364sika",
+  "eterno-astral": "https://pay.cakto.com.br/ebsiqx6",
+  "eterno-qr": "https://pay.cakto.com.br/gtzaf4o",
+  "eterno-astral-qr": "https://pay.cakto.com.br/36z8xop",
+  date: "https://pay.cakto.com.br/8tc8c6k",
+  retro: "https://pay.cakto.com.br/bmgwo7u",
+  "retro-qr": "https://pay.cakto.com.br/3i78bbn",
+};
+
+// Link de checkout de cada combinação: Cakto quando houver, Kiwify como reserva.
+export const CHECKOUT: Record<string, string> = Object.fromEntries(
+  Object.entries(KIWIFY_CHECKOUT).map(([k, v]) => [k, CAKTO_CHECKOUT[k] || v])
+);
+
+export const ehCakto = (url: string) => /(^|\/\/)pay\.cakto\.com\.br\//.test(url);
+
+// Monta o link do checkout (função pura: roda no servidor e no navegador).
+// O slug da página vai no parâmetro que cada plataforma repassa ao webhook:
+//   • Kiwify: só repassa src, sck, utm_*, s1, s2, s3 → slug em `s1`.
+//   • Cakto: repassa src, sck e utm_* → slug em `sck`.
+// Nome, e-mail e telefone pré-preenchem o checkout (mesmos nomes nas duas).
 export function montarCheckout(
   base: string,
   d: { slug: string; buyerName?: string; buyerEmail?: string; buyerPhone?: string },
   extra: Record<string, string> = {}
 ) {
-  const q = new URLSearchParams({ s1: d.slug, ...extra });
+  const q = new URLSearchParams({ [ehCakto(base) ? "sck" : "s1"]: d.slug, ...extra });
   if (d.buyerName?.trim()) q.set("name", d.buyerName.trim());
   if (d.buyerEmail?.trim()) q.set("email", d.buyerEmail.trim());
   const phone = (d.buyerPhone ?? "").replace(/\D/g, "");

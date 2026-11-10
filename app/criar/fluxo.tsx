@@ -105,7 +105,7 @@ export const AJUDA: Record<string, Ajuda> = {
   Música: { dica: "Cole o link do Spotify ou do YouTube da música de vocês." },
   Timeline: { dica: "Os marcos da história: onde se conheceram, o primeiro beijo, o pedido de namoro…" },
   Date: { dica: "A resposta chega direto no seu WhatsApp, então confira o número." },
-  Finalizar: { dica: "Seus dados servem só pra te mandar o link. O pagamento é feito na Kiwify, com Pix ou cartão." },
+  Finalizar: { dica: "Seus dados servem só pra te mandar o link. O pagamento é feito num checkout seguro, com Pix ou cartão." },
 };
 
 export function AjudaEtapa({ name }: { name: string }) {

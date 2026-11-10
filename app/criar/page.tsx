@@ -22,7 +22,7 @@ import CouplePageContent, { THEMES, getTheme, MOMENT_ICONS } from "@/components/
 import DatePage, { DATE_TEMPLATES, type DateTemplateId } from "@/components/DatePage";
 import { BR, D_FONT, BRAND_CSS, Blobs, Logo } from "@/components/brand";
 import { track, eventoEtapa, slugEtapa, type Produto } from "@/lib/funil";
-import { KIWIFY_CHECKOUT, montarCheckout } from "@/lib/checkout";
+import { CHECKOUT, montarCheckout } from "@/lib/checkout";
 import { OfertaBanner } from "@/components/Oferta";
 import ProvaSocial from "@/components/ProvaSocial";
 import {
@@ -35,14 +35,14 @@ import RetroStories, { RETRO_THEMES, SCRAP_THEMES, DEFAULT_RETRO_THEME, MESES, R
 // Links da Kiwify e montagem do checkout ficam em lib/checkout.ts
 // (a prévia /previa também usa).
 function checkoutUrl(base: string, d: { slug: string; buyerName?: string; buyerEmail?: string; buyerPhone?: string }) {
-  // guarda o slug no aparelho: a página /obrigado usa isso se a Kiwify não devolver o parâmetro
+  // guarda o slug no aparelho: a página /obrigado usa isso se o checkout não devolver o parâmetro
   try {
     localStorage.setItem("fmh_last_slug", d.slug);
   } catch {}
   return montarCheckout(base, d);
 }
 
-const PRICES = { "1dia": 24.9, eterno: 39.9, astral: 10, qr: 4.9, date: 19.9, retro: 29.9 };
+const PRICES = { "1dia": 24.9, eterno: 39.9, astral: 10, qr: 4.9, date: 19.9, retro: 29.99, retroQr: 4.99 };
 // Mesma regra do Date: cadastre R$59,90 como preço cheio na Kiwify pra âncora ser real.
 const PRECO_CHEIO_RETRO = 59.9;
 // Preço "de" do Date. Pra isso não ser propaganda enganosa, cadastre R$39,90
@@ -527,7 +527,7 @@ function StepBody({ name, d, set, setD, saving, setSaving, error, setError, onBa
         <div style={{ display: "grid", gap: 12 }}>
           {[
             { id: "classica", Icon: Heart, name: "Clássica", desc: "Contador, fotos, timeline e mensagem", price: "a partir de R$ 24,90" },
-            { id: "retro", Icon: Sparkles, name: "Retrospectiva do Casal", desc: "O ano de vocês com linha do tempo mês a mês 🎞️", price: "R$ 29,90", novo: true },
+            { id: "retro", Icon: Sparkles, name: "Retrospectiva do Casal", desc: "O ano de vocês com linha do tempo mês a mês 🎞️", price: "R$ 29,99", novo: true },
             { id: "date", Icon: LayoutTemplate, name: "Date", desc: "Convite interativo: \"Aceita um date?\" 🐧💙", price: "R$ 19,90" },
           ].map((s: any) => {
             const active = d.style === s.id;
@@ -1005,7 +1005,7 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack, irPara
           createdAt: Date.now(),
           paidAt: null,
         });
-        window.location.href = checkoutUrl(KIWIFY_CHECKOUT[qrOn ? "retro-qr" : "retro"], dd);
+        window.location.href = checkoutUrl(CHECKOUT[qrOn ? "retro-qr" : "retro"], dd);
         return;
       }
       if (dd.style === "date") {
@@ -1019,7 +1019,7 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack, irPara
           createdAt: Date.now(),
           paidAt: null,
         });
-        window.location.href = checkoutUrl(KIWIFY_CHECKOUT["date"], dd);
+        window.location.href = checkoutUrl(CHECKOUT["date"], dd);
         return;
       }
       await setDoc(doc(db, "pages", dd.slug), {
@@ -1033,7 +1033,7 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack, irPara
         paidAt: null,
       });
       const key = [plan, astral && "astral", qrOn && "qr"].filter(Boolean).join("-");
-      window.location.href = checkoutUrl(KIWIFY_CHECKOUT[key], dd);
+      window.location.href = checkoutUrl(CHECKOUT[key], dd);
     } catch (err) {
       console.error(err);
       setError("Não foi possível salvar. Tente novamente.");
@@ -1788,7 +1788,7 @@ function RetroCheckout({ d, saving, error, finish, onBack, bigBtn, qrOn, setQrOn
     "Card final pra postar no story",
     "Vale-date surpresa no final",
   ];
-  const total = PRICES.retro + (qrOn ? PRICES.qr : 0);
+  const total = PRICES.retro + (qrOn ? PRICES.retroQr : 0);
   return (
     <>
       <h2 style={{ ...h2, textAlign: "center" }}>
@@ -1816,7 +1816,7 @@ function RetroCheckout({ d, saving, error, finish, onBack, bigBtn, qrOn, setQrOn
         active={qrOn}
         onClick={() => setQrOn((q: boolean) => !q)}
         icon="💌"
-        title={`QR Code personalizado (+${fmtBRL(PRICES.qr)})`}
+        title={`QR Code personalizado (+${fmtBRL(PRICES.retroQr)})`}
         desc="O QR Code que abre a retrospectiva, pronto pra imprimir e colar no presente: polaroid, vale-presente, etiqueta, adesivo redondo e mais, com a frase que você escolher."
         mb={10}
       />
