@@ -24,7 +24,7 @@ export const OPCIONAIS = new Set(["Visual", "Tema", "Meses", "Músicas", "Númer
 
 // Minutos que cada etapa costuma levar — usado no "≈ X min pra terminar".
 const MINUTOS: Record<string, number> = {
-  Estilo: 0.3, Visual: 0.5, Tema: 0.5, Casal: 1.5, Nome: 1, Meses: 3, Fotos: 2, Músicas: 1.5, Música: 1,
+  Estilo: 0.3, Visual: 1, Tema: 0.5, Casal: 0.5, Nome: 1, Meses: 3, Fotos: 2, Músicas: 1.5, Música: 1,
   Números: 1, Promessas: 1, Mensagem: 1.5, Timeline: 2, Date: 1.5, Finalizar: 1,
 };
 
@@ -73,12 +73,12 @@ type Ajuda = { dica: string; exemplos?: string[] };
 export const AJUDA: Record<string, Ajuda> = {
   Estilo: { dica: "Na dúvida, a Retrospectiva é a que mais emociona no fim de ano: ela conta o ano de vocês mês a mês." },
   Visual: {
-    dica: "Dá pra trocar depois, a qualquer momento. Veja o preview pra decidir.",
+    dica: "A capa é opcional. O visual já vem no Polaroid Kraft, o favorito; veja o preview se quiser trocar.",
     exemplos: ["Polaroid Kraft: fotos reveladas num caderno, mais romântico", "Colagem Sol: colorido e divertido, combina com qualquer casal", "Coloridos: estilo retrospectiva de app de música, números gigantes"],
   },
   Casal: {
-    dica: "O link é o endereço da página (ex.: joao-e-maria). Use letras minúsculas e hífen, sem espaço.",
-    exemplos: ["Link: ana-e-pedro-2026 · nosso-ano · meu-amor-luiza", "Foto de capa: uma foto vertical dos dois, bem iluminada", "Data: o dia em que começaram a namorar (ou se conheceram)"],
+    dica: "O link da página sai sozinho dos nomes (ex.: maria-e-joao). Se quiser outro, toque em “trocar”.",
+    exemplos: ["Data: o dia em que começaram a namorar (ou se conheceram)", "A foto de capa fica pro final, junto com o visual"],
   },
   Meses: {
     dica: "Não precisa preencher os 12 meses. 4 a 6 momentos já ficam lindos. Dá pra subir várias fotos de uma vez e só escrever as legendas depois.",
