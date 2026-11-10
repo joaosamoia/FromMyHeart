@@ -94,7 +94,7 @@ const DOMINIO = (() => {
   }
 })();
 
-const SLUGS_RESERVADOS = ["criar", "date", "obrigado", "retrospectiva", "api", "admin", "exemplo", "previa"];
+const SLUGS_RESERVADOS = ["criar", "date", "obrigado", "retrospectiva", "api", "admin", "exemplo", "previa", "presente"];
 const limparSlug = (v: string) => v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9-]/g, "-").replace(/-{2,}/g, "-").replace(/^-/, "").slice(0, 40);
 function meusSlugs(): string[] {
   try {

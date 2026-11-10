@@ -202,7 +202,7 @@ export default function MusicDock({
   if (!music) {
     if (!title.trim()) return null;
     return (
-      <div style={{ position: "fixed", left: "50%", bottom: 12, transform: "translateX(-50%)", width: "calc(100% - 20px)", maxWidth: 460, zIndex: 30, background: "#181818", color: "#fff", borderRadius: 12, boxShadow: "0 12px 32px rgba(0,0,0,.45)", fontFamily: "Inter, system-ui, sans-serif", display: "flex", alignItems: "center", gap: 12, padding: 12 }}>
+      <div style={{ position: "fixed", left: "50%", bottom: "calc(12px + var(--fmh-dock-lift, 0px))", transition: "bottom .45s ease", transform: "translateX(-50%)", width: "calc(100% - 20px)", maxWidth: 460, zIndex: 30, background: "#181818", color: "#fff", borderRadius: 12, boxShadow: "0 12px 32px rgba(0,0,0,.45)", fontFamily: "Inter, system-ui, sans-serif", display: "flex", alignItems: "center", gap: 12, padding: 12 }}>
         <div style={{ width: 48, height: 48, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: "#282828", display: "grid", placeItems: "center" }}>
           {capa ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -250,9 +250,10 @@ export default function MusicDock({
       style={{
         position: "fixed",
         left: "50%",
-        bottom: 12,
+        // páginas com barra fixa embaixo (ex.: /presente) sobem o player com --fmh-dock-lift
+        bottom: "calc(12px + var(--fmh-dock-lift, 0px))",
         transform: `translateX(-50%) translateY(${min ? "calc(100% - 22px)" : "0"})`,
-        transition: "transform .4s ease",
+        transition: "transform .4s ease, bottom .45s ease",
         width: "calc(100% - 20px)",
         maxWidth: 460,
         zIndex: 30,
