@@ -26,6 +26,25 @@ const NOMES: Record<string, string> = {
   previa_cta: "Clicou em liberar na prévia",
 };
 
+// nomes dos visuais (os da Retrospectiva + os mais comuns dos outros produtos)
+const VISUAIS: Record<string, string> = {
+  "scrap-kraft": "Kraft Polaroid",
+  "scrap-sol": "Colagem Sol",
+  "scrap-rosa": "Colagem Sol (antiga)",
+  "scrap-creme": "Colagem Sol (antiga)",
+  "premium-violeta": "Clássico Violeta",
+  "premium-teamo": "Colagem Te Amo",
+  "premium-aquarela": "Aquarela Azul",
+  "retro-paixao": "Colorido Paixão",
+  "retro-neon": "Colorido Neon",
+  "retro-por-do-sol": "Colorido Pôr do Sol",
+  sunset: "Pôr do sol",
+  ultravioleta: "Ultravioleta",
+};
+const nomeVisual = (id: string) => VISUAIS[id] ?? (id ? id.charAt(0).toUpperCase() + id.slice(1).replace(/-/g, " ") : "(sem visual)");
+// fora do componente: o lint do React não deixa chamar Date.now() direto no render
+const inicioDaJanela = (dias: number) => Date.now() - dias * 86400_000;
+
 const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : "—");
 
 export default async function FunilPage({ searchParams }: { searchParams: Promise<{ chave?: string; dias?: string; produto?: string }> }) {
@@ -51,6 +70,36 @@ export default async function FunilPage({ searchParams }: { searchParams: Promis
   const base = total.inicio || total[etapas[0]] || 0;
   const outros = Object.keys(total).filter((k) => !funil.includes(k)).sort();
   const nome = (k: string) => NOMES[k] ?? (k.startsWith("etapa:") ? `Etapa ${k.slice(6).replace("-", " · ").replace(/_/g, " ")}` : k.startsWith("pulou:") ? `Pulou: ${k.slice(6)}` : k);
+
+  // ── vendas por visual: páginas pagas no período (filtro de 1 campo, sem índice composto)
+  const desde = inicioDaJanela(dias);
+  const pagas = (await db.collection("pages").where("status", "==", "pago").limit(3000).get()).docs
+    .map((d) => d.data())
+    .filter((p) => (p.paidAt ?? p.createdAt ?? 0) >= desde && (p.style ?? "classica") === produto);
+  const contar = (f: (p: (typeof pagas)[number]) => string) => {
+    const m: Mapa = {};
+    for (const p of pagas) {
+      const k = f(p);
+      m[k] = (m[k] ?? 0) + 1;
+    }
+    return Object.entries(m).sort((a, b) => b[1] - a[1]);
+  };
+  const porVisual = contar((p) => nomeVisual(String(produto === "date" ? p.dateTemplate ?? "" : p.theme ?? "")));
+  const extras: [string, number][] =
+    produto === "retro"
+      ? [
+          ["Completa", pagas.filter((p) => p.retroPlano !== "essencial").length],
+          ["Essencial", pagas.filter((p) => p.retroPlano === "essencial").length],
+          ["Com QR Code", pagas.filter((p) => p.qrPaid === true).length],
+        ]
+      : produto === "classica"
+        ? [
+            ["Plano Eterno", pagas.filter((p) => p.plan !== "1dia").length],
+            ["Plano 1 Dia", pagas.filter((p) => p.plan === "1dia").length],
+            ["Com Mapa Estelar", pagas.filter((p) => p.astral === true).length],
+            ["Com QR Code", pagas.filter((p) => p.qrPaid === true).length],
+          ]
+        : [];
 
   const th: React.CSSProperties = { textAlign: "left", padding: "8px 10px", borderBottom: "2px solid #E8336D", fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase", color: "#7A4B6B" };
   const td: React.CSSProperties = { padding: "8px 10px", borderBottom: "1px solid #F3D3DF", fontSize: 14 };
@@ -125,6 +174,48 @@ export default async function FunilPage({ searchParams }: { searchParams: Promis
             </tbody>
           </table>
           <p style={{ fontSize: 12.5, color: "#7A4B6B", margin: "-18px 0 28px" }}>Em vermelho: etapas onde 25% ou mais das pessoas desistiram. É ali que vale mexer primeiro.</p>
+
+          <h2 style={{ fontSize: 17, margin: "0 0 8px" }}>Vendas por visual</h2>
+          {pagas.length === 0 ? (
+            <p style={{ fontSize: 14, color: "#7A4B6B", margin: "0 0 30px" }}>Nenhuma venda nesse período.</p>
+          ) : (
+            <>
+              {extras.length > 0 && (
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", margin: "0 0 12px" }}>
+                  {extras.map(([t, n]) => (
+                    <div key={t} style={{ flex: "1 1 120px", padding: "10px 12px", borderRadius: 12, background: "#FBE3EC" }}>
+                      <div style={{ fontSize: 22, fontWeight: 800 }}>{n}</div>
+                      <div style={{ fontSize: 12.5, color: "#7A4B6B" }}>{t} · {pct(n, pagas.length)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 30 }}>
+                <thead>
+                  <tr>
+                    <th style={th}>Visual</th>
+                    <th style={th}>Vendas</th>
+                    <th style={th}>Das vendas</th>
+                    <th style={th}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {porVisual.map(([v, n]) => (
+                    <tr key={v}>
+                      <td style={{ ...td, fontWeight: 600 }}>{v}</td>
+                      <td style={td}>{n}</td>
+                      <td style={td}>{pct(n, pagas.length)}</td>
+                      <td style={{ ...td, width: "35%" }}>
+                        <div style={{ height: 8, borderRadius: 99, background: "#F3E8EE" }}>
+                          <div style={{ width: `${Math.round((n / pagas.length) * 100)}%`, height: 8, borderRadius: 99, background: "#E8336D" }} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
 
           {outros.length > 0 && (
             <>
