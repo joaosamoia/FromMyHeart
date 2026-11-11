@@ -72,6 +72,7 @@ export const RETRO_THEMES: Record<string, { name: string; preview: string; swatc
 // Visuais de colagem (scrapbook) — renderizados por components/RetroScrapbook.
 export const SCRAP_THEMES: Record<string, { name: string; desc: string; preview: string }> = {
   "scrap-kraft": { name: "Kraft Polaroid", desc: "papel pardo, polaroids e fita adesiva", preview: "linear-gradient(135deg,#C9A378,#A97F55)" },
+  "scrap-sol": { name: "Colagem Sol", desc: "cores alegres, letras recortadas e o ano com as fotos de vocês", preview: "linear-gradient(90deg,#FBF4E6 55%,#F6C453 55%)" },
   "premium-violeta": { name: "Clássico Violeta", desc: "violeta e dourado, moldura, lacre de cera e polaroids", preview: "radial-gradient(circle at 70% 30%,#F3D58A 0 12%,transparent 13%),linear-gradient(135deg,#4A2270,#2E1046)" },
   "premium-teamo": { name: "Colagem Te Amo", desc: "fotos recortadas, letras TE AMO e aquarela de pôr do sol", preview: "radial-gradient(circle at 30% 35%,#F7A078,transparent 55%),radial-gradient(circle at 75% 70%,#E86E82,transparent 55%),#FBF1E8" },
   "premium-aquarela": { name: "Aquarela Azul", desc: "aquarela azul, bilhete rasgado, florzinhas e borboleta", preview: "radial-gradient(circle at 35% 40%,#6FA0DE,transparent 55%),radial-gradient(circle at 75% 70%,#A2C3EF,transparent 55%),#F8FAFD" },
