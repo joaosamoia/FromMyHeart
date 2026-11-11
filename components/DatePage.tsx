@@ -170,7 +170,7 @@ export default function DatePage({
   };
   const sendZap = () => {
     const msg = `Aceitei nosso date! ${T.coracao}\n\n📅 ${fmt(dateVal)}\n⏰ ${timeVal || "—"}\n🍽️ ${food || "—"}\n✨ ${vibe || "—"}`;
-    if (wa) window.open?.("https://wa.me/" + wa + "?text=" + encodeURIComponent(msg), "_blank");
+    if (wa) window.open?.("https://api.whatsapp.com/send?phone=" + wa + "&text=" + encodeURIComponent(msg), "_blank");
     else alert("O número de WhatsApp não foi configurado nesta página.");
   };
 

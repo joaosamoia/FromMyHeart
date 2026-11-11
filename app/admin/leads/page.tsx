@@ -43,7 +43,7 @@ function haQuanto(t: number) {
 function waLink(fone: string, texto: string) {
   let n = fone.replace(/\D/g, "");
   if (n.length === 10 || n.length === 11) n = "55" + n;
-  return `https://wa.me/${n}?text=${encodeURIComponent(texto)}`;
+  return `https://api.whatsapp.com/send?phone=${n}&text=${encodeURIComponent(texto)}`;
 }
 
 // Remarketing 1: prévia, oferece o cupom (a pessoa responde e vira conversa).

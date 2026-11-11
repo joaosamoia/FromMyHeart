@@ -176,7 +176,7 @@ function Pronto({ pageUrl, titulo, temCartao, ehRetro }: { pageUrl: string; titu
         /* usuário cancelou — segue pro fallback */
       }
     }
-    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, "_blank");
   };
 
   const qr = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(pageUrl)}`;
