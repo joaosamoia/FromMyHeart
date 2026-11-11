@@ -44,11 +44,11 @@ export const CAKTO_CHECKOUT: Record<string, string> = {
   "eterno-astral-qr": "https://pay.cakto.com.br/36z8xop",
   date: "https://pay.cakto.com.br/8tc8c6k",
   // Retrospectiva Completa (R$ 29,99, já com QR Code)
-  retro: "https://pay.cakto.com.br/bmgwo7u",
+  retro: "https://pay.cakto.com.br/asoi4o5",
   // links antigos de "Retrospectiva + QR" caem na Completa, que já tem QR
-  "retro-qr": "https://pay.cakto.com.br/bmgwo7u",
+  "retro-qr": "https://pay.cakto.com.br/asoi4o5",
   // Retrospectiva Essencial (R$ 19,99) e Essencial + QR Code (R$ 24,98)
-  "retro-essencial": "https://pay.cakto.com.br/ciyyqj8",
+  "retro-essencial": "https://pay.cakto.com.br/ciyyqj8_1306292",
   "retro-essencial-qr": "https://pay.cakto.com.br/uk7juim",
 };
 
