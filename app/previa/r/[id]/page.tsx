@@ -6,7 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { contarEvento } from "@/lib/funil-server";
-import { cortarParaPrevia } from "@/lib/previa";
+import { cortarParaPrevia, limparCupom } from "@/lib/previa";
 import type { CouplePageDoc } from "@/types/page";
 import Previa from "@/components/Previa";
 
@@ -19,8 +19,9 @@ export const metadata: Metadata = {
 
 const ID = /^[A-Za-z0-9]{24}$/;
 
-export default async function PreviaRascunho({ params }: { params: Promise<{ id: string }> }) {
+export default async function PreviaRascunho({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ cupom?: string }> }) {
   const { id } = await params;
+  const cupom = limparCupom((await searchParams).cupom);
   if (!ID.test(id)) notFound();
 
   const db = getAdminDb();
@@ -43,8 +44,9 @@ export default async function PreviaRascunho({ params }: { params: Promise<{ id:
     <Previa
       page={publico}
       trancado={trancado}
-      href={`/criar?rascunho=${id}`}
+      href={`/criar?rascunho=${id}${cupom ? `&cupom=${cupom}` : ""}`}
       rotulo="Terminar e liberar"
+      cupom={cupom}
     />
   );
 }

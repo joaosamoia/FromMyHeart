@@ -82,3 +82,6 @@ export function cortarParaPrevia(page: Doc): { publico: Doc; trancado: Trancado 
     },
   };
 }
+
+// Cupom que chega pelo link de remarketing (?cupom=AMOR10). Só letras e números.
+export const limparCupom = (c?: string) => (c && /^[A-Za-z0-9]{3,25}$/.test(c) ? c.toUpperCase() : undefined);

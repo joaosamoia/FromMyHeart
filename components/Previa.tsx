@@ -5,6 +5,7 @@
 // marca d'água "PRÉVIA" por cima, barra fixa no topo com o botão de liberar e,
 // no lugar do resto da página, o "cadeado" listando o que ficou trancado.
 
+import { useEffect } from "react";
 import { Lock, Heart, Music2, Hash, Sparkles, Mail, Ticket, ArrowRight, CalendarHeart } from "lucide-react";
 import RetroStories from "@/components/RetroStories";
 import { BR, D_FONT } from "@/components/brand";
@@ -19,6 +20,7 @@ type Props = {
   rotulo: string; // texto do botão
   preco?: string; // "R$ 29,90" (só quando o botão vai direto pro pagamento)
   linkFinal?: string; // "datecriativo.fun/joao-e-maria"
+  cupom?: string; // veio pelo link de remarketing: vai aplicado no checkout
 };
 
 // marca d'água em SVG repetido (leve, não atrapalha a leitura)
@@ -26,7 +28,14 @@ const MARCA = `url("data:image/svg+xml,${encodeURIComponent(
   `<svg xmlns='http://www.w3.org/2000/svg' width='260' height='200'><text x='130' y='110' text-anchor='middle' transform='rotate(-28 130 100)' font-family='Arial, sans-serif' font-size='30' font-weight='800' letter-spacing='6' fill='#000' fill-opacity='0.10'>PRÉVIA</text><text x='130' y='110' text-anchor='middle' transform='rotate(-28 130 100) translate(1.5 1.5)' font-family='Arial, sans-serif' font-size='30' font-weight='800' letter-spacing='6' fill='#fff' fill-opacity='0.10'>PRÉVIA</text></svg>`
 )}")`;
 
-export default function Previa({ page, trancado, href, rotulo, preco, linkFinal }: Props) {
+export default function Previa({ page, trancado, href, rotulo, preco, linkFinal, cupom }: Props) {
+  // guarda o cupom: o /criar aplica no checkout quando a pessoa terminar o rascunho
+  useEffect(() => {
+    if (!cupom) return;
+    try {
+      localStorage.setItem("fmh_cupom", cupom);
+    } catch {}
+  }, [cupom]);
   const clicou = () => track("retro", "previa_cta");
   const ano = (page.retroYear || new Date().getFullYear()) + 1;
 
@@ -98,6 +107,11 @@ export default function Previa({ page, trancado, href, rotulo, preco, linkFinal 
         </div>
 
         {botao(true)}
+        {cupom && (
+          <div style={{ display: "inline-block", marginBottom: 12, padding: "6px 12px", borderRadius: 99, background: BR.yellow, color: BR.wine, fontSize: 13, fontWeight: 800 }}>
+            🎁 Cupom {cupom} aplicado: 10% OFF no pagamento
+          </div>
+        )}
         {preco && (
           <div style={{ marginTop: 12, fontSize: 13, color: BR.blush }}>
             <b style={{ color: "#fff" }}>{preco}</b> · pagamento único · liberação na hora

@@ -42,7 +42,14 @@ function checkoutUrl(base: string, d: { slug: string; buyerName?: string; buyerE
   try {
     localStorage.setItem("fmh_last_slug", d.slug);
   } catch {}
-  return montarCheckout(base, d);
+  // cupom do remarketing: vem em ?cupom= (link da prévia) ou ficou guardado no aparelho
+  let cupom = "";
+  try {
+    const daUrl = new URLSearchParams(window.location.search).get("cupom") ?? "";
+    if (/^[A-Za-z0-9]{3,25}$/.test(daUrl)) localStorage.setItem("fmh_cupom", daUrl.toUpperCase());
+    cupom = localStorage.getItem("fmh_cupom") ?? "";
+  } catch {}
+  return montarCheckout(base, d, cupom ? { coupon: cupom } : {});
 }
 
 const PRICES = { "1dia": 24.9, eterno: 39.9, astral: 10, qr: 4.9, date: 19.9 };

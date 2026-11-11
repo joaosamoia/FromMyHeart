@@ -46,8 +46,17 @@ function waLink(fone: string, texto: string) {
   return `https://wa.me/${n}?text=${encodeURIComponent(texto)}`;
 }
 
+// Remarketing 1: prévia, oferece o cupom (a pessoa responde e vira conversa).
 function mensagem(l: Lead) {
-  return `Oi! Vi que você começou a retrospectiva de vocês e ela ficou salva aqui 💛 ${l.previa}\n\nAconteceu alguma coisa na hora de finalizar? Se quiser terminar, separei 10% de desconto pra você com o cupom AMOR10 😊`;
+  return `Oi! Vi que você começou a retrospectiva de vocês e ela ficou salva aqui 💛 ${l.previa}\nSe quiser terminar, me avisa que te mando um cupom de desconto 😊`;
+}
+
+// Remarketing 2 (dia seguinte, pra quem não respondeu): link da prévia com o
+// cupom. O botão da prévia leva o AMOR10 já aplicado até o checkout.
+const CUPOM = "AMOR10";
+const comCupom = (url: string) => `${url}${url.includes("?") ? "&" : "?"}cupom=${CUPOM}`;
+function mensagem2(l: Lead) {
+  return `Oi! Separei 10% de desconto pra você terminar a retrospectiva de vocês 💛 O cupom ${CUPOM} já vai aplicado aqui: ${comCupom(l.previa)}\nVale só até amanhã!`;
 }
 
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ chave?: string; dias?: string }> }) {
@@ -174,7 +183,10 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           <div>
             <a href={l.previa} target="_blank" rel="noreferrer" style={btn("#3A1430")}>Ver prévia</a>
             {l.fone.replace(/\D/g, "").length >= 10 && (
-              <a href={waLink(l.fone, mensagem(l))} target="_blank" rel="noreferrer" style={btn("#1F9D72")}>WhatsApp</a>
+              <a href={waLink(l.fone, mensagem(l))} target="_blank" rel="noreferrer" style={btn("#1F9D72")}>WhatsApp 1 · prévia</a>
+            )}
+            {l.fone.replace(/\D/g, "").length >= 10 && (
+              <a href={waLink(l.fone, mensagem2(l))} target="_blank" rel="noreferrer" style={btn("#0E6B4E")}>WhatsApp 2 · cupom</a>
             )}
             {l.email && (
               <a href={`mailto:${l.email}?subject=${encodeURIComponent("Sua retrospectiva ficou salva 💛")}&body=${encodeURIComponent(mensagem(l))}`} style={btn("#E8336D")}>E-mail</a>

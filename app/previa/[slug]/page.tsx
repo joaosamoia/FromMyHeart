@@ -6,7 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { contarEvento } from "@/lib/funil-server";
-import { cortarParaPrevia, tokenValido, siteUrl } from "@/lib/previa";
+import { cortarParaPrevia, tokenValido, siteUrl, limparCupom } from "@/lib/previa";
 import { CHECKOUT, chaveCheckout, montarCheckout } from "@/lib/checkout";
 import type { CouplePageDoc } from "@/types/page";
 import Previa from "@/components/Previa";
@@ -23,10 +23,11 @@ export default async function PreviaPagina({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ t?: string }>;
+  searchParams: Promise<{ t?: string; cupom?: string }>;
 }) {
   const { slug } = await params;
-  const { t } = await searchParams;
+  const { t, cupom: cupomBruto } = await searchParams;
+  const cupom = limparCupom(cupomBruto);
   if (!tokenValido(slug, t)) notFound();
 
   const snap = await getAdminDb().collection("pages").doc(slug).get();
@@ -42,7 +43,7 @@ export default async function PreviaPagina({
 
   const { publico, trancado } = cortarParaPrevia(page);
   const chave = chaveCheckout(page);
-  const href = montarCheckout(CHECKOUT[chave], page, { utm_source: "previa" });
+  const href = montarCheckout(CHECKOUT[chave], page, { utm_source: "previa", ...(cupom ? { coupon: cupom } : {}) });
   const preco = chave === "retro-essencial-qr" ? "R$ 24,98" : chave === "retro-essencial" ? "R$ 19,99" : "R$ 29,99";
 
   return (
@@ -52,6 +53,7 @@ export default async function PreviaPagina({
       href={href}
       rotulo="Liberar retrospectiva"
       preco={preco}
+      cupom={cupom}
       linkFinal={`${siteUrl().replace(/^https?:\/\//, "")}/${slug}`}
     />
   );
