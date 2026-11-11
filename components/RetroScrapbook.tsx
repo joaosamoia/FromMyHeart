@@ -28,7 +28,8 @@ import MusicDock, { parseMusic, type MusicApi } from "@/components/MusicDock";
 import RetroStarMap, { STARMAP_COLORS } from "@/components/RetroStarMap";
 
 type Doc = Partial<CouplePageDoc> & { slug?: string };
-export type ScrapVariant = "sol" | "kraft";
+export type ScrapVariant = "sol" | "kraft" | "violeta" | "teamo" | "aquarela";
+const PREMIUM: ScrapVariant[] = ["violeta", "teamo", "aquarela"];
 
 const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
@@ -41,7 +42,25 @@ const BODY = "Inter, system-ui, sans-serif";
 // granulado de papel (SVG inline, sem baixar imagem)
 const NOISE = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.25  0 0 0 0 0.18  0 0 0 0 0.1  0 0 0 .13 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")`;
 
-const LOOK = {
+// fontes dos temas premium (carregadas só quando o tema é usado)
+const CORMORANT = "'Cormorant Garamond', Georgia, serif";
+const PLAYFAIR = "'Playfair Display', Georgia, serif";
+const SCRIPT = "'Pinyon Script', cursive";
+const MAO = "'Homemade Apple', 'Caveat', cursive";
+const FONTES_PREMIUM = "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,600&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Pinyon+Script&family=Homemade+Apple&display=swap";
+
+type LookBase = {
+  paper: string; paper2: string; paper2Dark: string; ink: string; soft: string; accent: string;
+  tape: string; tape2: string; heart: string; heart2: string; heart3: string;
+  hand: string; type: string; serif: string;
+  onBg: string; softBg: string; // texto direto sobre o fundo da seção (≠ ink quando o fundo é escuro)
+  washes?: string[]; // manchas de aquarela atrás das seções
+  washBlend?: React.CSSProperties["mixBlendMode"];
+  gold?: boolean; // títulos com brilho dourado
+  stickers?: boolean;
+};
+
+const LOOK: Record<ScrapVariant, LookBase> = {
   sol: {
     paper: "#FBF4E6",
     paper2: "#F6C453",
@@ -54,6 +73,7 @@ const LOOK = {
     heart: "#E4572E",
     heart2: "#2A8C82",
     heart3: "#F6C453",
+    hand: HAND, type: TYPE, serif: SERIF, onBg: "#2B2420", softBg: "#6B5B4E", stickers: true,
   },
   kraft: {
     paper: "#C9A378",
@@ -67,9 +87,65 @@ const LOOK = {
     heart: "#C9504A",
     heart2: "#6F8F7A",
     heart3: "#E9C46A",
+    hand: HAND, type: TYPE, serif: SERIF, onBg: "#33241A", softBg: "#5E4634",
+  },
+  // Clássico Violeta: fundo violeta, dourado, serifa clássica
+  violeta: {
+    paper: "#3E1A5C",
+    paper2: "#4A2270",
+    paper2Dark: "#2E1046",
+    ink: "#2A1240",
+    soft: "#6A3A8A",
+    accent: "#D9AE55",
+    tape: "rgba(233, 200, 119, .78)",
+    tape2: "rgba(200, 170, 230, .8)",
+    heart: "#B07AD6",
+    heart2: "#E9C877",
+    heart3: "#F3D58A",
+    hand: CORMORANT, type: "Inter, system-ui, sans-serif", serif: PLAYFAIR,
+    onBg: "#F6EEF9", softBg: "#D9C4EA",
+    washes: ["rgba(150,100,200,.55)", "rgba(233,200,119,.28)", "rgba(190,150,225,.45)"],
+    washBlend: "screen",
+    gold: true,
+  },
+  // Colagem Te Amo: creme e pôr do sol em aquarela, recortes e corações
+  teamo: {
+    paper: "#FBF1E8",
+    paper2: "#F9E6DA",
+    paper2Dark: "#F3D3C2",
+    ink: "#5A1426",
+    soft: "#8A4A52",
+    accent: "#C4314B",
+    tape: "rgba(255, 186, 170, .85)",
+    tape2: "rgba(231, 166, 74, .8)",
+    heart: "#E8336D",
+    heart2: "#C4314B",
+    heart3: "#FF8FA3",
+    hand: HAND, type: TYPE, serif: SERIF, onBg: "#5A1426", softBg: "#8A4A52",
+    washes: ["rgba(247,160,120,.55)", "rgba(232,110,130,.45)", "rgba(250,200,120,.42)"],
+    washBlend: "multiply",
+    stickers: true,
+  },
+  // Aquarela Azul: manchas azuis, papel rasgado, florzinhas e borboleta
+  aquarela: {
+    paper: "#F8FAFD",
+    paper2: "#EEF4FB",
+    paper2Dark: "#E3ECF7",
+    ink: "#2C3E5C",
+    soft: "#4E6488",
+    accent: "#3E6DAE",
+    tape: "rgba(156, 193, 236, .78)",
+    tape2: "rgba(233, 205, 150, .7)",
+    heart: "#6FA0DE",
+    heart2: "#9CC1EC",
+    heart3: "#C9A24A",
+    hand: CORMORANT, type: "Inter, system-ui, sans-serif", serif: PLAYFAIR,
+    onBg: "#2C3E5C", softBg: "#4E6488",
+    washes: ["rgba(111,160,222,.5)", "rgba(160,195,240,.5)", "rgba(130,175,230,.42)"],
+    washBlend: "multiply",
   },
 };
-type Look = (typeof LOOK)["kraft"];
+type Look = LookBase;
 
 // números "aleatórios" mas sempre iguais pro mesmo casal (nada pula a cada render)
 function rng(seed: string) {
@@ -205,24 +281,42 @@ export default function RetroScrapbook({ page, variant, compact = false, corte }
   const paperBg = (color: string): React.CSSProperties => ({ backgroundColor: color, backgroundImage: NOISE });
 
   return (
-    <div style={{ minHeight: compact ? "100%" : "100vh", ...paperBg(L.paper2Dark), fontFamily: BODY, color: L.ink, overflowX: "hidden", ...(opened ? {} : { height: "100vh", overflow: "hidden" }) }}>
+    <div style={{ minHeight: compact ? "100%" : "100vh", ...paperBg(L.paper2Dark), fontFamily: BODY, color: L.onBg, ["--sc-ink" as string]: L.ink, overflowX: "hidden", ...(opened ? {} : { height: "100vh", overflow: "hidden" }) } as React.CSSProperties}>
       <style>{CSS}</style>
+      {PREMIUM.includes(variant) && (
+        <link rel="stylesheet" href={FONTES_PREMIUM} precedence="default" />
+      )}
+      {L.washes && (
+        <svg aria-hidden width="0" height="0" style={{ position: "absolute" }}>
+          <filter id="sc-aq" x="-30%" y="-30%" width="160%" height="160%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="4" seed="7" result="n" />
+            <feDisplacementMap in="SourceGraphic" in2="n" scale="55" />
+            <feGaussianBlur stdDeviation="1.4" />
+          </filter>
+        </svg>
+      )}
       <div style={{ maxWidth: compact ? "none" : 520, margin: "0 auto", containerType: "inline-size", position: "relative", boxShadow: compact ? "none" : "0 0 40px rgba(0,0,0,.25)" }}>
         {variant === "sol" ? (
           <HeroSol L={L} year={year} nameA={nameA} nameB={nameB} photos={photos} opened={opened} compact={compact} />
+        ) : variant === "violeta" ? (
+          <HeroVioleta L={L} year={year} nameA={nameA} nameB={nameB} photos={photos} opened={opened} compact={compact} />
+        ) : variant === "teamo" ? (
+          <HeroTeAmo L={L} year={year} nameA={nameA} nameB={nameB} photos={photos} opened={opened} compact={compact} />
+        ) : variant === "aquarela" ? (
+          <HeroAquarela L={L} year={year} nameA={nameA} nameB={nameB} photos={photos} opened={opened} compact={compact} />
         ) : (
           <HeroKraft L={L} year={year} nameA={nameA} nameB={nameB} photos={photos} opened={opened} compact={compact} />
         )}
 
         {days && (
-          <Sheet L={L} bg={variant === "sol" ? L.paper2 : L.paper} edge stickers={variant === "sol" ? "s1" : undefined}>
+          <Sheet L={L} bg={variant === "sol" ? L.paper2 : L.paper} edge seed="w1" stickers={L.stickers ? "s1" : undefined}>
             <Counter L={L} days={days} year={year} startDate={page.startDate!} variant={variant} />
             <StarMapCard L={L} startDate={page.startDate!} seed={`${page.startDate}${nameA}${nameB}`} />
           </Sheet>
         )}
 
         {months.length > 0 && (
-          <Sheet L={L} bg={variant === "sol" ? L.paper : L.paper2} edge stickers={variant === "sol" ? "s2" : undefined}>
+          <Sheet L={L} bg={variant === "sol" ? L.paper : L.paper2} edge seed="w2" stickers={L.stickers ? "s2" : undefined}>
             <Timeline L={L} months={months} year={year} variant={variant} />
           </Sheet>
         )}
@@ -232,30 +326,30 @@ export default function RetroScrapbook({ page, variant, compact = false, corte }
         ) : (
           <>
         {songs.length > 0 && (
-          <Sheet L={L} bg={variant === "sol" ? L.paper2 : L.paper} edge stickers={variant === "sol" ? "s3" : undefined}>
+          <Sheet L={L} bg={variant === "sol" ? L.paper2 : L.paper} edge seed="w3" stickers={L.stickers ? "s3" : undefined}>
             <Mixtape L={L} songs={songs} year={year} nameA={nameA} nameB={nameB} />
           </Sheet>
         )}
 
         {stats.length > 0 && (
-          <Sheet L={L} bg={variant === "sol" ? L.paper : L.paper2} edge stickers={variant === "sol" ? "s4" : undefined}>
+          <Sheet L={L} bg={variant === "sol" ? L.paper : L.paper2} edge seed="w4" stickers={L.stickers ? "s4" : undefined}>
             <Receipt L={L} stats={stats} year={year} nameA={nameA} nameB={nameB} />
           </Sheet>
         )}
 
         {promises.length > 0 && (
-          <Sheet L={L} bg={variant === "sol" ? L.paper2 : L.paper} edge stickers={variant === "sol" ? "s5" : undefined}>
+          <Sheet L={L} bg={variant === "sol" ? L.paper2 : L.paper} edge seed="w5" stickers={L.stickers ? "s5" : undefined}>
             <Promises L={L} promises={promises} year={year} />
           </Sheet>
         )}
 
         {message && (
-          <Sheet L={L} bg={variant === "sol" ? L.paper : L.paper2} edge stickers={variant === "sol" ? "s6" : undefined}>
+          <Sheet L={L} bg={variant === "sol" ? L.paper : L.paper2} edge seed="w6" stickers={L.stickers ? "s6" : undefined}>
             <Letter L={L} message={message} nameA={nameA} nameB={nameB} />
           </Sheet>
         )}
 
-        <Sheet L={L} bg={variant === "sol" ? L.paper2 : L.paper} edge stickers={variant === "sol" ? "s7" : undefined}>
+        <Sheet L={L} bg={variant === "sol" ? L.paper2 : L.paper} edge seed="w7" stickers={L.stickers ? "s7" : undefined}>
           <Final L={L} year={year} nameA={nameA} nameB={nameB} voucher={page.retroVoucher} comVale={limitesRetro(page).vale} />
         </Sheet>
           </>
@@ -292,7 +386,7 @@ function Cover({ L, variant, year, nameA, nameB, opened, onOpen, photo }: { L: L
         cursor: "pointer",
         backgroundColor: variant === "sol" ? L.paper2 : L.paper,
         backgroundImage: NOISE,
-        color: L.ink,
+        color: L.onBg,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -313,14 +407,14 @@ function Cover({ L, variant, year, nameA, nameB, opened, onOpen, photo }: { L: L
           // eslint-disable-next-line @next/next/no-img-element
           <img src={photo} alt="" style={{ position: "absolute", right: "8%", bottom: "12%", width: "26%", aspectRatio: "1", objectFit: "cover", border: "5px solid #fff", transform: "rotate(7deg)", boxShadow: "0 4px 10px rgba(0,0,0,.2)" }} />
         )}
-        <div style={{ position: "absolute", left: "8%", bottom: "14%", textAlign: "left", fontFamily: HAND, fontSize: 26, lineHeight: 1, color: L.ink }}>
+        <div style={{ position: "absolute", left: "8%", bottom: "14%", textAlign: "left", fontFamily: L.hand, fontSize: 26, lineHeight: 1, color: L.ink }}>
           pra {nameA}
           <div style={{ fontSize: 18, color: L.soft, marginTop: 4 }}>de {nameB} ♥</div>
         </div>
         <Heart color={L.heart} size={58} style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)" }} className="sc-beat" />
       </div>
-      <div style={{ marginTop: 40, fontFamily: HAND, fontSize: 30, lineHeight: 1.1 }}>a nossa retrospectiva de {year}</div>
-      <div style={{ marginTop: 22, display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 26px", background: L.ink, color: "#FFF8EE", fontFamily: TYPE, fontSize: 16, letterSpacing: 1, borderRadius: 3, boxShadow: "3px 4px 0 rgba(0,0,0,.2)", animation: "scPulse 1.8s ease-in-out infinite" }}>
+      <div style={{ marginTop: 40, fontFamily: L.hand, fontSize: 30, lineHeight: 1.1 }}>a nossa retrospectiva de {year}</div>
+      <div style={{ marginTop: 22, display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 26px", background: L.gold ? "linear-gradient(100deg,#B8893A,#F3D58A 45%,#C9973F)" : L.ink, color: L.gold ? "#2A1240" : "#FFF8EE", fontFamily: L.type, fontSize: 16, letterSpacing: 1, borderRadius: 3, boxShadow: "3px 4px 0 rgba(0,0,0,.2)", animation: "scPulse 1.8s ease-in-out infinite" }}>
         toque para abrir ♥
       </div>
     </button>
@@ -343,7 +437,7 @@ function HeroSol({ L, year, nameA, nameB, photos, opened, compact }: { L: Look; 
       </div>
 
       <div style={{ position: "relative", width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <div className="sc-in" style={{ ["--d" as string]: "0ms", position: "relative", padding: "2.6cqw 6cqw", background: "#FFFDF8", boxShadow: "0 1cqw 2.5cqw rgba(0,0,0,.12)", transform: "rotate(-1.5deg)", fontFamily: HAND, fontSize: "7cqw", lineHeight: 1 }}>
+        <div className="sc-in" style={{ ["--d" as string]: "0ms", position: "relative", padding: "2.6cqw 6cqw", background: "#FFFDF8", boxShadow: "0 1cqw 2.5cqw rgba(0,0,0,.12)", transform: "rotate(-1.5deg)", fontFamily: L.hand, fontSize: "7cqw", lineHeight: 1 }}>
           <Tape L={L} w="16cqw" rot={-8} style={{ left: "-5cqw", top: "-2cqw" }} />
           a nossa retrospectiva
         </div>
@@ -363,7 +457,7 @@ function HeroSol({ L, year, nameA, nameB, photos, opened, compact }: { L: Look; 
         <div className="sc-in" style={{ ["--d" as string]: "650ms", position: "relative", marginTop: "10cqw", width: "78cqw", transform: "rotate(-1deg)" }}>
           <Tape L={L} w="20cqw" rot={-30} style={{ left: "-6cqw", bottom: "-1cqw" }} color={L.tape2} />
           <Lined style={{ padding: "5cqw 5cqw 4cqw 9cqw", boxShadow: "0 1.5cqw 4cqw rgba(0,0,0,.12)" }}>
-            <div style={{ fontFamily: HAND, fontSize: "5.6cqw", lineHeight: "7cqw", color: L.ink }}>
+            <div style={{ fontFamily: L.hand, fontSize: "5.6cqw", lineHeight: "7cqw", color: L.ink }}>
               Tudo o que vivemos esse ano, numa página só. ♥
             </div>
           </Lined>
@@ -397,12 +491,12 @@ function HeroKraft({ L, year, nameA, nameB, photos, opened, compact }: { L: Look
       </div>
 
       <div style={{ position: "relative", width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <div className="sc-in" style={{ ["--d" as string]: "0ms", position: "relative", zIndex: 2, marginBottom: "-4cqw", padding: "1.6cqw 6cqw", background: L.tape, fontFamily: HAND, fontWeight: 700, fontSize: "8cqw", lineHeight: 1, transform: "rotate(-2deg)", clipPath: TAPE_CLIP }}>
+        <div className="sc-in" style={{ ["--d" as string]: "0ms", position: "relative", zIndex: 2, marginBottom: "-4cqw", padding: "1.6cqw 6cqw", background: L.tape, fontFamily: L.hand, fontWeight: 700, fontSize: "8cqw", lineHeight: 1, transform: "rotate(-2deg)", clipPath: TAPE_CLIP }}>
           {year}
         </div>
         <div className="sc-pop" style={{ ["--d" as string]: "150ms" }}>
           <Polaroid src={p(0)} w="70cqw" rot={-3} L={L} bigCaption>
-            <div style={{ fontFamily: HAND, fontSize: "7.6cqw", lineHeight: 1.05, color: L.ink }}>
+            <div style={{ fontFamily: L.hand, fontSize: "7.6cqw", lineHeight: 1.05, color: L.ink }}>
               A nossa retrospectiva...
               <br />
               <span style={{ marginLeft: "8cqw" }}>
@@ -415,11 +509,263 @@ function HeroKraft({ L, year, nameA, nameB, photos, opened, compact }: { L: Look
         <div className="sc-in" style={{ ["--d" as string]: "450ms", position: "relative", alignSelf: "flex-end", marginTop: "6cqw", marginRight: "2cqw", width: "58cqw", transform: "rotate(2deg)" }}>
           <Clip L={L} style={{ top: "-4cqw", left: "8cqw" }} />
           <Lined style={{ padding: "5cqw 4cqw 4cqw 8cqw", boxShadow: "0 1.5cqw 4cqw rgba(0,0,0,.2)" }}>
-            <div style={{ fontFamily: HAND, fontSize: "5.2cqw", lineHeight: "7cqw" }}>
+            <div style={{ fontFamily: L.hand, fontSize: "5.2cqw", lineHeight: "7cqw" }}>
               Tudo o que vivemos esse ano, numa página só.
               <span style={{ color: L.accent }}> ♥</span>
             </div>
           </Lined>
+        </div>
+        <ScrollHint L={L} />
+      </div>
+    </section>
+  );
+}
+
+// ───────── aberturas dos temas premium ─────────
+// foto solta (com fallback quando o casal mandou menos fotos)
+function Foto({ src, L, style, className }: { src?: string; L: Look; style?: React.CSSProperties; className?: string }) {
+  return src ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt="" className={className} style={{ display: "block", objectFit: "cover", ...style }} />
+  ) : (
+    <div className={className} style={{ display: "grid", placeItems: "center", background: `linear-gradient(160deg, ${L.paper2}, ${L.heart2})`, ...style }}>
+      <Heart color={L.heart} size="30%" />
+    </div>
+  );
+}
+
+function Sparkle({ color, size, style }: { color: string; size: string; style?: React.CSSProperties }) {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" className="sc-twinkle" style={{ position: "absolute", width: size, height: size, ...style }}>
+      <path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z" fill={color} />
+    </svg>
+  );
+}
+
+function HeroVioleta({ L, year, nameA, nameB, photos, opened, compact }: { L: Look; year: number; nameA: string; nameB: string; photos: string[]; opened: boolean; compact: boolean }) {
+  const [ref, inView] = useInView<HTMLElement>();
+  const on = opened && inView;
+  const p = (i: number) => (photos.length ? photos[i % photos.length] : undefined);
+  return (
+    <section ref={ref} className={on ? "sc-on" : undefined} style={{ position: "relative", minHeight: compact ? 560 : "100svh", overflow: "hidden", backgroundColor: L.paper, backgroundImage: NOISE, padding: "12cqw 6cqw 12cqw", display: "flex", flexDirection: "column", alignItems: "center", color: L.onBg }}>
+      <Washes L={L} seed="hero-violeta" />
+      <Sparkle color="#E9C877" size="4cqw" style={{ top: "8cqw", left: "8cqw", ["--d" as string]: "0s" } as React.CSSProperties} />
+      <Sparkle color="#E9C877" size="5cqw" style={{ top: "14cqw", right: "9cqw", ["--d" as string]: "-1s" } as React.CSSProperties} />
+      <Sparkle color="#E9C877" size="3.4cqw" style={{ top: "56%", left: "4cqw", ["--d" as string]: "-1.7s" } as React.CSSProperties} />
+
+      <div style={{ position: "relative", zIndex: 2, width: "100%", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+        <div className="sc-in" style={{ ["--d" as string]: "0ms", padding: "1.4cqw 5cqw", background: L.tape, color: "#2A1240", fontFamily: "Inter, system-ui, sans-serif", fontWeight: 700, fontSize: "3.2cqw", letterSpacing: "0.28em", textTransform: "uppercase", clipPath: TAPE_CLIP, transform: "rotate(-2deg)" }}>
+          a nossa retrospectiva {year}
+        </div>
+        <div className="sc-in" style={{ ["--d" as string]: "120ms", fontFamily: SCRIPT, fontSize: "8.4cqw", lineHeight: 1, marginTop: "5cqw", color: L.softBg }}>Um registro eterno de</div>
+        <div className="sc-pop sc-gold" style={{ ["--d" as string]: "220ms", fontFamily: PLAYFAIR, fontWeight: 900, fontSize: "15cqw", lineHeight: 0.95, letterSpacing: "0.03em" }}>NÓS DOIS</div>
+        <div className="sc-in" style={{ ["--d" as string]: "320ms", display: "flex", alignItems: "center", gap: "3cqw", marginTop: "2.4cqw" }}>
+          <span style={{ width: "10cqw", height: 1, background: "#D9AE55" }} />
+          <span style={{ fontFamily: CORMORANT, fontStyle: "italic", fontWeight: 600, fontSize: "6cqw" }}>{nameA} &amp; {nameB}</span>
+          <span style={{ width: "10cqw", height: 1, background: "#D9AE55" }} />
+        </div>
+
+        {/* moldura dourada + polaroids */}
+        <div style={{ position: "relative", width: "88cqw", height: "92cqw", marginTop: "8cqw" }}>
+          <div className="sc-pop" style={{ ["--d" as string]: "400ms", position: "absolute", left: 0, top: "4cqw", width: "50cqw", height: "74cqw", padding: "2.4cqw", boxSizing: "border-box", background: "linear-gradient(135deg,#B8893A,#F3D58A 40%,#B8893A 70%,#E9C877)", boxShadow: "0 4cqw 8cqw rgba(0,0,0,.4)" }}>
+            <div style={{ width: "100%", height: "100%", padding: "1.6cqw", boxSizing: "border-box", background: "#F6F0EA" }}>
+              <Foto src={p(0)} L={L} style={{ width: "100%", height: "100%" }} />
+            </div>
+          </div>
+          <div className="sc-in sc-float" style={{ ["--d" as string]: "600ms", ["--f" as string]: "0s", position: "absolute", right: 0, top: 0 } as React.CSSProperties}>
+            <Polaroid src={p(1)} w="36cqw" rot={6} L={L}>
+              <div style={{ fontFamily: SCRIPT, fontSize: "5.6cqw", lineHeight: 1, color: "#5B2A7A" }}>nosso começo</div>
+            </Polaroid>
+          </div>
+          <div className="sc-in sc-float" style={{ ["--d" as string]: "750ms", ["--f" as string]: "-2s", position: "absolute", right: "2cqw", top: "46cqw" } as React.CSSProperties}>
+            <Polaroid src={p(2)} w="34cqw" rot={-5} L={L} />
+          </div>
+          {/* lacre de cera */}
+          <div className="sc-pop" style={{ ["--d" as string]: "900ms", position: "absolute", left: "40cqw", top: "66cqw", width: "16cqw", height: "16cqw", borderRadius: "50%", background: "radial-gradient(circle at 35% 30%, #9A6BC0, #4E1F70 70%)", boxShadow: "0 1.6cqw 3cqw rgba(0,0,0,.45)", display: "grid", placeItems: "center" }}>
+            <div style={{ width: "11cqw", height: "11cqw", borderRadius: "50%", border: "0.4cqw solid rgba(243,213,138,.6)", display: "grid", placeItems: "center" }}>
+              <Heart color="#E9C877" size="6cqw" style={{ filter: "none" }} />
+            </div>
+          </div>
+          {/* raminho de lavanda */}
+          <svg aria-hidden viewBox="0 0 70 130" className="sc-in" style={{ ["--d" as string]: "1000ms", position: "absolute", left: "-4cqw", bottom: "-6cqw", width: "16cqw", transform: "rotate(-18deg)" } as React.CSSProperties}>
+            <path d="M35 128 C 34 90, 36 50, 35 10" stroke="#9FB07A" strokeWidth="1.8" fill="none" />
+            {Array.from({ length: 9 }).map((_, i) => {
+              const x = 35 + (i % 2 ? 6 : -6);
+              const y = 14 + i * 8;
+              return <ellipse key={i} cx={x} cy={y} rx="4" ry="6.5" fill={i % 3 ? "#C3A6E3" : "#A585C9"} transform={`rotate(${i % 2 ? 25 : -25} ${x} ${y})`} />;
+            })}
+          </svg>
+        </div>
+
+        <div className="sc-in" style={{ ["--d" as string]: "1100ms", position: "relative", marginTop: "10cqw", width: "78cqw", background: "#FBF7F2", color: "#3A1E52", padding: "6cqw 6cqw 5cqw", boxShadow: "0 2cqw 5cqw rgba(0,0,0,.3)", transform: "rotate(-1.2deg)" }}>
+          <Tape L={L} w="18cqw" rot={6} style={{ top: "-2.4cqw", right: "8cqw" }} color={L.tape2} />
+          <div style={{ fontFamily: SCRIPT, fontSize: "8cqw", lineHeight: 1, color: "#5B2A7A" }}>meu amor,</div>
+          <div style={{ fontFamily: CORMORANT, fontStyle: "italic", fontSize: "5.4cqw", lineHeight: 1.35, marginTop: "1.6cqw" }}>tudo o que vivemos esse ano, numa página só.</div>
+        </div>
+        <ScrollHint L={L} />
+      </div>
+    </section>
+  );
+}
+
+function HeroTeAmo({ L, year, nameA, nameB, photos, opened, compact }: { L: Look; year: number; nameA: string; nameB: string; photos: string[]; opened: boolean; compact: boolean }) {
+  const [ref, inView] = useInView<HTMLElement>();
+  const on = opened && inView;
+  const p = (i: number) => (photos.length ? photos[i % photos.length] : undefined);
+  const letras = ["T", "E", " ", "A", "M", "O"];
+  const recorte: React.CSSProperties = { border: "1.8cqw solid #FFFFFF", boxShadow: "0 3cqw 6cqw rgba(110,30,40,.35)", boxSizing: "border-box" };
+  return (
+    <section ref={ref} className={on ? "sc-on" : undefined} style={{ position: "relative", minHeight: compact ? 560 : "100svh", overflow: "hidden", backgroundColor: L.paper, backgroundImage: NOISE, padding: "10cqw 5cqw 12cqw", display: "flex", flexDirection: "column", alignItems: "center", color: L.onBg }}>
+      <Washes L={L} seed="hero-teamo" />
+      {[
+        { x: "8%", y: "62%", s: "6cqw", c: L.heart, d: "0s" },
+        { x: "86%", y: "58%", s: "5cqw", c: L.heart3, d: "-1.6s" },
+        { x: "20%", y: "92%", s: "5.4cqw", c: L.heart2, d: "-3s" },
+        { x: "74%", y: "88%", s: "6.4cqw", c: L.heart, d: "-2.2s" },
+      ].map((h, i) => (
+        <Heart key={i} color={h.c} size={h.s} className="sc-rise" style={{ position: "absolute", left: h.x, top: h.y, zIndex: 1, ["--d" as string]: h.d } as React.CSSProperties} />
+      ))}
+      <Sparkle color="#E7A64A" size="4cqw" style={{ top: "6cqw", left: "48%", zIndex: 3 }} />
+      <Sparkle color="#E7A64A" size="3.6cqw" style={{ top: "44%", right: "6cqw", zIndex: 3, ["--d" as string]: "-1s" } as React.CSSProperties} />
+
+      <div style={{ position: "relative", zIndex: 2, width: "100%", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+        {/* recortes */}
+        <div style={{ position: "relative", width: "90cqw", height: "64cqw" }}>
+          <div className="sc-pop sc-float" style={{ ["--d" as string]: "100ms", ["--f" as string]: "0s", position: "absolute", left: 0, top: "2cqw", rotate: "-6deg" } as React.CSSProperties}>
+            <Foto src={p(0)} L={L} style={{ ...recorte, width: "46cqw", height: "56cqw", borderRadius: "46% 54% 42% 58% / 52% 44% 56% 48%" }} />
+          </div>
+          <div className="sc-pop sc-float" style={{ ["--d" as string]: "250ms", ["--f" as string]: "-1.4s", position: "absolute", right: 0, top: "6cqw", rotate: "7deg" } as React.CSSProperties}>
+            <Foto src={p(1)} L={L} style={{ ...recorte, width: "42cqw", height: "58cqw", borderRadius: "50% 50% 44% 56% / 40% 46% 54% 60%" }} />
+          </div>
+          <Tape L={L} w="20cqw" rot={-12} style={{ top: 0, left: "34cqw" }} />
+        </div>
+
+        {/* TE AMO */}
+        <div style={{ display: "flex", gap: "1.6cqw", marginTop: "2cqw" }}>
+          {letras.map((t, i) =>
+            t === " " ? (
+              <span key={i} style={{ width: "3cqw" }} />
+            ) : (
+              <span key={i} className="sc-pop" style={{ ["--d" as string]: `${400 + i * 90}ms`, display: "inline-flex", alignItems: "center", justifyContent: "center", width: "12cqw", height: "15cqw", background: i % 2 ? "#FFFFFF" : L.accent, color: i % 2 ? L.accent : "#FFFFFF", fontFamily: SERIF, fontSize: "10cqw", lineHeight: 1, rotate: `${[-6, 4, 0, -3, 5, -4][i]}deg`, clipPath: "polygon(0 6%,10% 0,22% 5%,36% 1%,50% 6%,64% 0,78% 5%,92% 1%,100% 6%,98% 50%,100% 95%,86% 100%,70% 95%,54% 100%,38% 95%,22% 100%,6% 95%,0 100%,2% 50%)", filter: "drop-shadow(0 1cqw 1.4cqw rgba(110,30,40,.3))" } as React.CSSProperties}>
+                <span className="sc-float" style={{ ["--f" as string]: `${-i * 0.3}s` } as React.CSSProperties}>{t}</span>
+              </span>
+            )
+          )}
+        </div>
+
+        {/* foto em coração + rosas + rabisco */}
+        <div style={{ position: "relative", width: "90cqw", height: "46cqw", marginTop: "4cqw" }}>
+          <div className="sc-pop sc-float" style={{ ["--d" as string]: "900ms", ["--f" as string]: "-2s", position: "absolute", left: "27cqw", top: 0, width: "38cqw", height: "36cqw", filter: "drop-shadow(0 2.4cqw 3cqw rgba(110,30,40,.35))" } as React.CSSProperties}>
+            <svg aria-hidden viewBox="0 0 24 23" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+              <path d="M12 22.5s-11-6.4-11.8-13C-.4 4.6 3 1 7 1c2.3 0 3.9 1.3 5 3 1.1-1.7 2.7-3 5-3 4 0 7.4 3.6 6.8 8.5C23 16.1 12 22.5 12 22.5z" fill="#FFFFFF" />
+            </svg>
+            <div style={{ position: "absolute", inset: "7%", clipPath: "path('M50 94 C 20 74, 4 52, 6 30 C 8 12, 22 4, 34 4 C 42 4, 48 10, 50 16 C 52 10, 58 4, 66 4 C 78 4, 92 12, 94 30 C 96 52, 80 74, 50 94 Z')" }}>
+              <Foto src={p(2)} L={L} style={{ width: "100%", height: "100%" }} />
+            </div>
+          </div>
+          <svg aria-hidden viewBox="0 0 130 120" className="sc-in" style={{ ["--d" as string]: "1100ms", position: "absolute", right: 0, top: "6cqw", width: "26cqw" } as React.CSSProperties}>
+            {[[30, 70, 1.1], [66, 50, 1.3], [100, 76, 1]].map(([x, y, sc], i) => (
+              <g key={i} transform={`translate(${x} ${y}) scale(${sc})`}>
+                <circle r="18" fill={L.accent} />
+                <path d="M-10 -4 C -6 -14, 8 -14, 10 -2 C 6 -8, -4 -8, -6 2 C -2 -4, 4 -4, 4 2" stroke="#8E1A30" strokeWidth="2" fill="none" />
+                <path d="M-14 6 C -8 14, 8 14, 14 6" stroke="#8E1A30" strokeWidth="2" fill="none" />
+              </g>
+            ))}
+            <ellipse cx="22" cy="100" rx="16" ry="6" fill="#6F8C4E" transform="rotate(-30 22 100)" />
+            <ellipse cx="104" cy="104" rx="16" ry="6" fill="#6F8C4E" transform="rotate(25 104 104)" />
+          </svg>
+          <div className="sc-in" style={{ ["--d" as string]: "1200ms", position: "absolute", left: 0, top: "4cqw", fontFamily: HAND, fontSize: "6cqw", color: L.accent, rotate: "-8deg" } as React.CSSProperties}>a melhor foto</div>
+          <svg aria-hidden viewBox="0 0 120 70" className="sc-in" style={{ ["--d" as string]: "1200ms", position: "absolute", left: "2cqw", top: "12cqw", width: "26cqw" } as React.CSSProperties}>
+            <path d="M10 50 C 30 10, 70 10, 104 34" stroke={L.accent} strokeWidth="2.6" fill="none" strokeLinecap="round" strokeDasharray="5 6" />
+            <path d="M96 24 L 106 35 L 92 40" stroke={L.accent} strokeWidth="2.6" fill="none" strokeLinecap="round" />
+          </svg>
+        </div>
+
+        <div className="sc-in" style={{ ["--d" as string]: "1300ms", fontFamily: HAND, fontWeight: 700, fontSize: "11cqw", lineHeight: 1, marginTop: "4cqw" }}>
+          {nameA} + {nameB}
+        </div>
+        <div className="sc-pop" style={{ ["--d" as string]: "1450ms", marginTop: "3cqw", padding: "2cqw 5cqw", background: L.accent, color: "#FFFFFF", fontFamily: L.type, fontSize: "3.8cqw", letterSpacing: "0.12em", textTransform: "uppercase", clipPath: "polygon(0 8%,8% 0,20% 6%,34% 0,50% 6%,66% 0,80% 6%,92% 0,100% 8%,100% 92%,90% 100%,76% 94%,60% 100%,44% 94%,28% 100%,12% 94%,0 100%)", rotate: "-2deg" } as React.CSSProperties}>
+          a nossa retrospectiva {year}
+        </div>
+        <ScrollHint L={L} />
+      </div>
+    </section>
+  );
+}
+
+function HeroAquarela({ L, year, nameA, nameB, photos, opened, compact }: { L: Look; year: number; nameA: string; nameB: string; photos: string[]; opened: boolean; compact: boolean }) {
+  const [ref, inView] = useInView<HTMLElement>();
+  const on = opened && inView;
+  const p = (i: number) => (photos.length ? photos[i % photos.length] : undefined);
+  const foto: React.CSSProperties = { border: "2cqw solid #FFFFFF", boxShadow: "0 3cqw 6.4cqw rgba(40,70,110,.24)", boxSizing: "border-box" };
+  const pauta: React.CSSProperties = { background: "#FFFFFF", backgroundImage: "repeating-linear-gradient(180deg,transparent 0,transparent calc(6cqw - 1px),#DCE7F5 calc(6cqw - 1px),#DCE7F5 6cqw)", clipPath: "polygon(0 4%,6% 0,14% 3%,22% 0,31% 2%,40% 0,50% 3%,61% 0,70% 2%,80% 0,90% 3%,100% 1%,98% 30%,100% 60%,98% 100%,88% 97%,76% 100%,64% 97%,52% 100%,40% 97%,28% 100%,16% 97%,4% 100%,2% 60%,0 30%)", boxShadow: "0 2cqw 4cqw rgba(40,70,110,.12)" };
+  const flores = [
+    { x: "36%", y: "50%", s: "7cqw" }, { x: "42%", y: "53.5%", s: "4.6cqw" }, { x: "31%", y: "54%", s: "4cqw" },
+    { x: "84%", y: "64%", s: "6.4cqw" }, { x: "90%", y: "67.5%", s: "4cqw" }, { x: "6%", y: "70%", s: "4.6cqw" },
+  ];
+  return (
+    <section ref={ref} className={on ? "sc-on" : undefined} style={{ position: "relative", minHeight: compact ? 560 : "100svh", overflow: "hidden", backgroundColor: L.paper, backgroundImage: NOISE, padding: "8cqw 5cqw 12cqw", display: "flex", flexDirection: "column", alignItems: "center", color: L.onBg }}>
+      <Washes L={L} seed="hero-aquarela" />
+      <Washes L={L} seed="hero-aquarela-2" />
+      {[{ x: "24%", y: "62%", d: "0s" }, { x: "70%", y: "66%", d: "-2s" }, { x: "50%", y: "80%", d: "-4s" }].map((pt, i) => (
+        <span key={i} aria-hidden className="sc-fall" style={{ position: "absolute", left: pt.x, top: pt.y, width: "2.6cqw", height: "3.6cqw", borderRadius: "50% 50% 50% 0", background: "#A2C3EF", zIndex: 1, ["--d" as string]: pt.d } as React.CSSProperties} />
+      ))}
+      {[{ x: "18%", y: "12%" }, { x: "78%", y: "44%" }, { x: "12%", y: "86%" }, { x: "64%", y: "92%" }, { x: "90%", y: "20%" }].map((pt, i) => (
+        <span key={`o${i}`} aria-hidden className="sc-twinkle" style={{ position: "absolute", left: pt.x, top: pt.y, width: "1.4cqw", height: "1.4cqw", borderRadius: "40% 60% 50% 50%", background: "linear-gradient(135deg,#C9A24A,#F5DE9B)", zIndex: 1, ["--d" as string]: `${-i * 0.6}s` } as React.CSSProperties} />
+      ))}
+
+      <div style={{ position: "relative", zIndex: 2, width: "100%", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+        <div className="sc-in" style={{ ["--d" as string]: "0ms", fontFamily: "Inter, system-ui, sans-serif", fontWeight: 600, fontSize: "3cqw", letterSpacing: "0.3em", textTransform: "uppercase", color: L.accent }}>a nossa retrospectiva {year}</div>
+
+        <div style={{ position: "relative", width: "90cqw", height: "118cqw", marginTop: "5cqw" }}>
+          {/* bilhete rasgado */}
+          <div className="sc-in" style={{ ["--d" as string]: "150ms", position: "absolute", right: 0, top: 0, width: "56cqw", padding: "4.4cqw 4cqw", boxSizing: "border-box", textAlign: "left", fontFamily: MAO, fontSize: "3.3cqw", lineHeight: "6cqw", color: "#34466A", rotate: "3deg", ...pauta } as React.CSSProperties}>
+            meu amor, esse foi o nosso {year}. obrigada por cada café, cada risada, cada abraço...
+          </div>
+          {/* borboleta */}
+          <div className="sc-fly" style={{ position: "absolute", right: "-2cqw", top: "-4cqw", width: "12cqw", zIndex: 3 }}>
+            <svg aria-hidden viewBox="0 0 44 38" className="sc-wing" style={{ width: "100%", display: "block" }}>
+              <path d="M22 19 C 12 2, 0 4, 3 16 C 5 24, 14 24, 22 19z" fill="#6FA0DE" opacity=".92" />
+              <path d="M22 19 C 32 2, 44 4, 41 16 C 39 24, 30 24, 22 19z" fill="#6FA0DE" opacity=".92" />
+              <path d="M22 20 C 15 26, 9 36, 15 36 C 19 36, 21 30, 22 21z" fill="#9CC1EC" />
+              <path d="M22 20 C 29 26, 35 36, 29 36 C 25 36, 23 30, 22 21z" fill="#9CC1EC" />
+              <circle cx="11" cy="13" r="2" fill="#FFF" opacity=".8" />
+              <circle cx="33" cy="13" r="2" fill="#FFF" opacity=".8" />
+              <rect x="21" y="12" width="2" height="18" rx="1" fill="#2C3E5C" />
+            </svg>
+          </div>
+          <div className="sc-pop sc-float" style={{ ["--d" as string]: "300ms", ["--f" as string]: "0s", position: "absolute", left: 0, top: "20cqw", rotate: "-3deg" } as React.CSSProperties}>
+            <Foto src={p(0)} L={L} style={{ ...foto, width: "44cqw", height: "54cqw" }} />
+          </div>
+          <div className="sc-pop sc-float" style={{ ["--d" as string]: "450ms", ["--f" as string]: "-2s", position: "absolute", right: 0, top: "44cqw", rotate: "2deg", zIndex: 2 } as React.CSSProperties}>
+            <Foto src={p(1)} L={L} style={{ ...foto, width: "56cqw", height: "70cqw" }} />
+          </div>
+          <div className="sc-pop sc-float" style={{ ["--d" as string]: "600ms", ["--f" as string]: "-1s", position: "absolute", left: "3cqw", top: "80cqw", rotate: "-4deg", zIndex: 3 } as React.CSSProperties}>
+            <Tape L={L} w="16cqw" rot={-5} style={{ top: "-2cqw", left: "10cqw" }} />
+            <Foto src={p(2)} L={L} style={{ ...foto, width: "36cqw", height: "30cqw" }} />
+            <div style={{ fontFamily: MAO, fontSize: "3cqw", color: "#34466A", marginTop: "2cqw", textAlign: "left" }}>nós, {year}</div>
+          </div>
+          {/* laço */}
+          <svg aria-hidden viewBox="0 0 74 44" className="sc-in" style={{ ["--d" as string]: "800ms", position: "absolute", right: "4cqw", top: "34cqw", width: "16cqw", zIndex: 3 } as React.CSSProperties}>
+            <path d="M37 22 C 24 6, 6 6, 6 18 C 6 28, 24 28, 37 22z" fill="none" stroke="#6FA0DE" strokeWidth="3" />
+            <path d="M37 22 C 50 6, 68 6, 68 18 C 68 28, 50 28, 37 22z" fill="none" stroke="#6FA0DE" strokeWidth="3" />
+            <path d="M37 22 L 26 42 M 37 22 L 48 42" stroke="#6FA0DE" strokeWidth="3" strokeLinecap="round" />
+            <circle cx="37" cy="22" r="4" fill="#6FA0DE" />
+          </svg>
+          {flores.map((f, i) => (
+            <svg key={i} aria-hidden viewBox="0 0 24 24" className="sc-pop" style={{ ["--d" as string]: `${900 + i * 80}ms`, position: "absolute", left: f.x, top: f.y, width: f.s, zIndex: 4, rotate: `${i * 23}deg` } as React.CSSProperties}>
+              <circle cx="12" cy="6" r="4.6" fill="#7FA8E2" /><circle cx="6.3" cy="10.4" r="4.6" fill="#A2C3EF" /><circle cx="17.7" cy="10.4" r="4.6" fill="#A2C3EF" /><circle cx="8.4" cy="17.2" r="4.6" fill="#7FA8E2" /><circle cx="15.6" cy="17.2" r="4.6" fill="#8DB4E8" /><circle cx="12" cy="12" r="2.8" fill="#FFF" /><circle cx="12" cy="12" r="1.2" fill="#F4C860" />
+            </svg>
+          ))}
+        </div>
+
+        <div className="sc-in" style={{ ["--d" as string]: "1100ms", fontFamily: SCRIPT, fontSize: "12cqw", lineHeight: 1.1, marginTop: "8cqw" }}>
+          {nameA} &amp; {nameB}
+        </div>
+        <div className="sc-in" style={{ ["--d" as string]: "1200ms", display: "flex", alignItems: "center", gap: "2.6cqw", marginTop: "1cqw" }}>
+          <span style={{ width: "9cqw", height: 1, background: "#C9A24A" }} />
+          <span style={{ fontFamily: CORMORANT, fontStyle: "italic", fontSize: "5.4cqw", color: L.softBg }}>tudo o que vivemos esse ano</span>
+          <span style={{ width: "9cqw", height: 1, background: "#C9A24A" }} />
         </div>
         <ScrollHint L={L} />
       </div>
@@ -440,36 +786,36 @@ function Counter({ L, days, year, startDate, variant }: { L: Look; days: NonNull
 
       {/* folha de calendário */}
       <div className="sc-pop" style={{ ["--d" as string]: "150ms", position: "relative", marginTop: "7cqw", width: "64cqw", background: "#FFFDF8", boxShadow: "0 2cqw 5cqw rgba(0,0,0,.18)", transform: "rotate(-2deg)" }}>
-        <div style={{ background: L.accent, color: "#FFF8EE", fontFamily: TYPE, fontSize: "3.6cqw", letterSpacing: "0.12em", padding: "3cqw 0 2.4cqw" }}>DIAS JUNTOS EM {year}</div>
+        <div style={{ background: L.accent, color: "#FFF8EE", fontFamily: L.type, fontSize: "3.6cqw", letterSpacing: "0.12em", padding: "3cqw 0 2.4cqw" }}>DIAS JUNTOS EM {year}</div>
         <div style={{ position: "absolute", top: "-2.4cqw", left: 0, right: 0, display: "flex", justifyContent: "space-around", padding: "0 8cqw" }}>
           {[0, 1, 2, 3].map((i) => (
             <span key={i} style={{ width: "2.6cqw", height: "6cqw", borderRadius: 99, background: "linear-gradient(#999,#ddd 40%,#888)", boxShadow: "0 .5cqw 1cqw rgba(0,0,0,.3)" }} />
           ))}
         </div>
-        <div style={{ fontFamily: SERIF, fontSize: n > 999 ? "24cqw" : "30cqw", lineHeight: 1.05, padding: "3cqw 0 1cqw", color: L.ink }}>{n}</div>
-        <div style={{ fontFamily: HAND, fontSize: "6cqw", paddingBottom: "4cqw", color: L.soft }}>dias de nós dois ♥</div>
+        <div style={{ fontFamily: L.serif, fontSize: n > 999 ? "24cqw" : "30cqw", lineHeight: 1.05, padding: "3cqw 0 1cqw", color: L.ink }}>{n}</div>
+        <div style={{ fontFamily: L.hand, fontSize: "6cqw", paddingBottom: "4cqw", color: L.soft }}>dias de nós dois ♥</div>
       </div>
 
       {t && (
         <div className="sc-in" style={{ ["--d" as string]: "600ms", marginTop: "9cqw", display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <div style={{ fontFamily: HAND, fontSize: "6.4cqw", lineHeight: 1.1 }}>e estamos juntos desde {since}:</div>
+          <div style={{ fontFamily: L.hand, fontSize: "6.4cqw", lineHeight: 1.1 }}>e estamos juntos desde {since}:</div>
           <div style={{ display: "flex", gap: "3cqw", marginTop: "4cqw" }}>
             {[
               [t.y, t.y === 1 ? "ano" : "anos", -3],
               [t.mo, t.mo === 1 ? "mês" : "meses", 2],
               [t.da, t.da === 1 ? "dia" : "dias", -1.5],
             ].map(([v, l, r]) => (
-              <div key={l as string} style={{ position: "relative", width: "21cqw", padding: "3.5cqw 0 2.5cqw", background: variant === "sol" ? "#FFFDF8" : "#F6EEDC", boxShadow: "0 1cqw 2.5cqw rgba(0,0,0,.15)", transform: `rotate(${r}deg)` }}>
+              <div key={l as string} style={{ position: "relative", color: L.ink, width: "21cqw", padding: "3.5cqw 0 2.5cqw", background: variant === "sol" ? "#FFFDF8" : "#F6EEDC", boxShadow: "0 1cqw 2.5cqw rgba(0,0,0,.15)", transform: `rotate(${r}deg)` }}>
                 <Tape L={L} w="10cqw" rot={(r as number) * -2} style={{ top: "-2.2cqw", left: "5.5cqw" }} />
-                <div style={{ fontFamily: SERIF, fontSize: "10cqw", lineHeight: 1 }}>{v as number}</div>
-                <div style={{ fontFamily: HAND, fontSize: "5cqw", color: L.soft }}>{l as string}</div>
+                <div style={{ fontFamily: L.serif, fontSize: "10cqw", lineHeight: 1 }}>{v as number}</div>
+                <div style={{ fontFamily: L.hand, fontSize: "5cqw", color: L.soft }}>{l as string}</div>
               </div>
             ))}
           </div>
-          <div style={{ marginTop: "5cqw", fontFamily: TYPE, fontSize: "5cqw", letterSpacing: "0.08em", background: L.ink, color: "#FFF8EE", padding: "1.6cqw 4cqw", transform: "rotate(1deg)", fontVariantNumeric: "tabular-nums" }}>
+          <div style={{ marginTop: "5cqw", fontFamily: L.type, fontSize: "5cqw", letterSpacing: "0.08em", background: L.ink, color: "#FFF8EE", padding: "1.6cqw 4cqw", transform: "rotate(1deg)", fontVariantNumeric: "tabular-nums" }}>
             {pad(t.h)}:{pad(t.mi)}:{pad(t.se)}
           </div>
-          <div style={{ fontFamily: HAND, fontSize: "5.2cqw", marginTop: "3cqw", color: L.soft }}>…e contando ♥</div>
+          <div style={{ fontFamily: L.hand, fontSize: "5.2cqw", marginTop: "3cqw", color: L.softBg }}>…e contando ♥</div>
         </div>
       )}
     </div>
@@ -486,9 +832,9 @@ function StarMapCard({ L, startDate, seed }: { L: Look; startDate: string; seed:
       <div className="sc-pop" style={{ ["--d" as string]: "150ms", position: "relative", marginTop: "7cqw", width: "76cqw", background: "#FFFDF8", padding: "6cqw 5cqw 5cqw", boxShadow: "0 2cqw 5cqw rgba(0,0,0,.2)", transform: "rotate(1.5deg)" }}>
         <Tape L={L} w="18cqw" rot={-6} style={{ top: "-2.4cqw", left: "29cqw" }} />
         <RetroStarMap seed={seed} colors={STARMAP_COLORS.papel} id="colagem" />
-        <div style={{ fontFamily: TYPE, fontSize: "3.6cqw", letterSpacing: "0.14em", marginTop: "4.5cqw", color: L.ink }}>{quando.toUpperCase()}</div>
+        <div style={{ fontFamily: L.type, fontSize: "3.6cqw", letterSpacing: "0.14em", marginTop: "4.5cqw", color: L.ink }}>{quando.toUpperCase()}</div>
         <div style={{ width: "30cqw", height: "0.4cqw", background: L.accent, opacity: 0.5, margin: "2.5cqw auto" }} />
-        <div style={{ fontFamily: HAND, fontSize: "5.6cqw", lineHeight: 1.15, color: L.soft }}>as nossas estrelas do dia em que tudo começou ♥</div>
+        <div style={{ fontFamily: L.hand, fontSize: "5.6cqw", lineHeight: 1.15, color: L.soft }}>as nossas estrelas do dia em que tudo começou ♥</div>
       </div>
     </div>
   );
@@ -501,13 +847,13 @@ function Timeline({ L, months, year, variant }: { L: Look; months: { month: numb
     <div>
       <div ref={ref} className={on ? "sc-on" : undefined} style={{ textAlign: "center" }}>
         <Label L={L}>a nossa linha do tempo</Label>
-        <div className="sc-in" style={{ ["--d" as string]: "120ms", fontFamily: HAND, fontWeight: 700, fontSize: "13cqw", lineHeight: 0.95, marginTop: "3cqw" }}>
+        <div className="sc-in" style={{ ["--d" as string]: "120ms", fontFamily: L.hand, fontWeight: 700, fontSize: "13cqw", lineHeight: 0.95, marginTop: "3cqw" }}>
           {year}, mês a mês
         </div>
       </div>
       <div style={{ position: "relative", marginTop: "8cqw" }}>
         {/* barbante */}
-        <div style={{ position: "absolute", top: 0, bottom: 0, left: "50%", width: 0, borderLeft: `0.6cqw dashed ${variant === "sol" ? "rgba(58,38,38,.35)" : "rgba(51,36,26,.45)"}`, transform: "translateX(-50%)" }} />
+        <div style={{ position: "absolute", top: 0, bottom: 0, left: "50%", width: 0, borderLeft: `0.6cqw dashed ${variant === "sol" ? "rgba(58,38,38,.35)" : variant === "kraft" ? "rgba(51,36,26,.45)" : L.onBg + "5C"}`, transform: "translateX(-50%)" }} />
         {months.map((m, i) => (
           <TimelineItem key={`${m.month}-${i}`} L={L} m={m} i={i} />
         ))}
@@ -525,17 +871,17 @@ function TimelineItem({ L, m, i }: { L: Look; m: { month: number; title: string;
       {/* coração no barbante */}
       <Heart color={L.heart} size="7cqw" className="sc-pop" style={{ ["--d" as string]: "0ms", position: "absolute", left: "50%", top: "8cqw", transform: "translateX(-50%)" } as React.CSSProperties} />
       <div className="sc-in" style={{ ["--d" as string]: "100ms", width: "56cqw", position: "relative" }}>
-        <div style={{ position: "relative", zIndex: 2, display: "inline-block", marginBottom: "-3cqw", marginLeft: left ? "4cqw" : "14cqw", padding: "1cqw 4cqw", background: i % 2 ? L.tape2 : L.tape, clipPath: TAPE_CLIP, fontFamily: TYPE, fontSize: "4cqw", letterSpacing: "0.06em", transform: `rotate(${-rot}deg)` }}>
+        <div style={{ position: "relative", zIndex: 2, display: "inline-block", marginBottom: "-3cqw", marginLeft: left ? "4cqw" : "14cqw", padding: "1cqw 4cqw", background: i % 2 ? L.tape2 : L.tape, clipPath: TAPE_CLIP, fontFamily: L.type, fontSize: "4cqw", letterSpacing: "0.06em", transform: `rotate(${-rot}deg)` }}>
           {MESES[m.month]?.toUpperCase()}
         </div>
         {m.photo ? (
           <Polaroid src={m.photo} w="56cqw" rot={rot} L={L}>
-            {m.title && <div style={{ fontFamily: HAND, fontSize: "5.6cqw", lineHeight: 1.1, color: L.ink }}>{m.title}</div>}
+            {m.title && <div style={{ fontFamily: L.hand, fontSize: "5.6cqw", lineHeight: 1.1, color: L.ink }}>{m.title}</div>}
           </Polaroid>
         ) : (
           <div style={{ transform: `rotate(${rot}deg)` }}>
             <Lined style={{ padding: "5cqw 4cqw 4cqw 8cqw", boxShadow: "0 1.5cqw 4cqw rgba(0,0,0,.14)" }}>
-              <div style={{ fontFamily: HAND, fontSize: "6cqw", lineHeight: "7cqw" }}>{m.title}</div>
+              <div style={{ fontFamily: L.hand, fontSize: "6cqw", lineHeight: "7cqw" }}>{m.title}</div>
             </Lined>
           </div>
         )}
@@ -552,15 +898,15 @@ function Mixtape({ L, songs, year, nameA, nameB }: { L: Look; songs: RetroSong[]
       <Label L={L}>a nossa trilha sonora</Label>
       {/* fita cassete */}
       <div className="sc-pop" style={{ ["--d" as string]: "150ms", position: "relative", marginTop: "7cqw", width: "74cqw", aspectRatio: "1.6", background: "#2E2A2B", borderRadius: "3cqw", boxShadow: "0 2cqw 5cqw rgba(0,0,0,.3)", transform: "rotate(-2deg)", padding: "4cqw" }}>
-        <div style={{ position: "relative", height: "62%", background: "#FFFDF8", borderRadius: "1.5cqw", padding: "2cqw 3cqw", backgroundImage: `linear-gradient(${L.paper2} 0 22%, transparent 22%)` }}>
-          <div style={{ fontFamily: HAND, fontWeight: 700, fontSize: "6.2cqw", lineHeight: 1, textAlign: "left" }}>nossa mixtape {year}</div>
+        <div style={{ position: "relative", height: "62%", background: "#FFFDF8", color: L.ink, borderRadius: "1.5cqw", padding: "2cqw 3cqw", backgroundImage: `linear-gradient(${L.gold ? "#E9C877" : L.paper2} 0 22%, transparent 22%)` }}>
+          <div style={{ fontFamily: L.hand, fontWeight: 700, fontSize: "6.2cqw", lineHeight: 1, textAlign: "left" }}>nossa mixtape {year}</div>
           <div style={{ position: "absolute", left: "16%", right: "16%", top: "48%", height: "36%", background: "#3A3536", borderRadius: 99, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 3cqw" }}>
             {[0, 1].map((k) => (
               <span key={k} className="sc-spin" style={{ width: "9cqw", height: "9cqw", borderRadius: "50%", background: "#fff", border: "1.6cqw dashed #3A3536", boxSizing: "border-box" }} />
             ))}
           </div>
         </div>
-        <div style={{ fontFamily: TYPE, fontSize: "3cqw", color: "#cfc6c0", marginTop: "2.5cqw", textAlign: "left" }}>
+        <div style={{ fontFamily: L.type, fontSize: "3cqw", color: "#cfc6c0", marginTop: "2.5cqw", textAlign: "left" }}>
           LADO A · {nameA.toUpperCase()} &amp; {nameB.toUpperCase()}
         </div>
       </div>
@@ -572,12 +918,12 @@ function Mixtape({ L, songs, year, nameA, nameB }: { L: Look; songs: RetroSong[]
             const [nome, artista] = s.title.split(/\s+-\s+/);
             return (
               <div key={i} style={{ display: "flex", alignItems: "baseline", gap: "2.5cqw", minHeight: "7cqw", lineHeight: "7cqw" }}>
-                <span style={{ fontFamily: HAND, fontWeight: 700, fontSize: "6cqw", color: L.accent, width: "5cqw" }}>{i + 1}.</span>
-                <span style={{ fontFamily: HAND, fontSize: "6cqw", flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <span style={{ fontFamily: L.hand, fontWeight: 700, fontSize: "6cqw", color: L.accent, width: "5cqw" }}>{i + 1}.</span>
+                <span style={{ fontFamily: L.hand, fontSize: "6cqw", flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {nome}
                   {artista && <span style={{ color: L.soft, fontSize: "4.6cqw" }}> — {artista}</span>}
                 </span>
-                {i === 0 && <span style={{ fontFamily: HAND, fontSize: "4.4cqw", color: L.accent, whiteSpace: "nowrap" }}>♪ no player</span>}
+                {i === 0 && <span style={{ fontFamily: L.hand, fontSize: "4.4cqw", color: L.accent, whiteSpace: "nowrap" }}>♪ no player</span>}
               </div>
             );
           })}
@@ -593,7 +939,7 @@ function Receipt({ L, stats, year, nameA, nameB }: { L: Look; stats: RetroStat[]
   return (
     <div ref={ref} className={on ? "sc-on" : undefined} style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
       <Label L={L}>o nosso ano em números</Label>
-      <div className="sc-in" style={{ ["--d" as string]: "150ms", position: "relative", marginTop: "7cqw", width: "76cqw", background: "#FFFEFA", fontFamily: TYPE, color: "#2B2B2B", padding: "7cqw 6cqw 10cqw", boxShadow: "0 2cqw 5cqw rgba(0,0,0,.16)", transform: "rotate(-1.5deg)", clipPath: RECEIPT_CLIP }}>
+      <div className="sc-in" style={{ ["--d" as string]: "150ms", position: "relative", marginTop: "7cqw", width: "76cqw", background: "#FFFEFA", fontFamily: L.type, color: "#2B2B2B", padding: "7cqw 6cqw 10cqw", boxShadow: "0 2cqw 5cqw rgba(0,0,0,.16)", transform: "rotate(-1.5deg)", clipPath: RECEIPT_CLIP }}>
         <div style={{ fontSize: "5cqw", letterSpacing: "0.1em" }}>RECIBO DO AMOR</div>
         <div style={{ fontSize: "3.2cqw", marginTop: "1.5cqw", opacity: 0.7 }}>
           {nameA.toUpperCase()} &amp; {nameB.toUpperCase()} · {year}
@@ -632,9 +978,9 @@ function Promises({ L, promises, year }: { L: Look; promises: string[]; year: nu
           ))}
         </div>
         <Lined style={{ padding: "6cqw 5cqw 6cqw 12cqw", boxShadow: "0 1.5cqw 4cqw rgba(0,0,0,.16)" }}>
-          <div style={{ fontFamily: HAND, fontWeight: 700, fontSize: "8cqw", lineHeight: "7cqw", marginBottom: "3cqw", color: L.accent }}>Promessas pra {year + 1}</div>
+          <div style={{ fontFamily: L.hand, fontWeight: 700, fontSize: "8cqw", lineHeight: "7cqw", marginBottom: "3cqw", color: L.accent }}>Promessas pra {year + 1}</div>
           {promises.map((p, i) => (
-            <div key={i} className="sc-in" style={{ ["--d" as string]: `${300 + i * 180}ms`, display: "flex", alignItems: "flex-start", gap: "3cqw", fontFamily: HAND, fontSize: "6cqw", lineHeight: "7cqw" }}>
+            <div key={i} className="sc-in" style={{ ["--d" as string]: `${300 + i * 180}ms`, display: "flex", alignItems: "flex-start", gap: "3cqw", fontFamily: L.hand, fontSize: "6cqw", lineHeight: "7cqw" }}>
               <Heart color={L.heart} size="5cqw" style={{ flexShrink: 0, marginTop: "1cqw" }} />
               <span>{p}</span>
             </div>
@@ -655,9 +1001,9 @@ function Letter({ L, message, nameA, nameB }: { L: Look; message: string; nameA:
         <Tape L={L} w="18cqw" rot={-35} style={{ top: "-1cqw", left: "-5cqw" }} />
         <Tape L={L} w="18cqw" rot={35} style={{ top: "-1cqw", right: "-5cqw" }} color={L.tape2} />
         <Lined style={{ padding: "7cqw 5cqw 6cqw 10cqw", boxShadow: "0 1.5cqw 4cqw rgba(0,0,0,.16)" }}>
-          <div style={{ fontFamily: HAND, fontSize: "6.4cqw", lineHeight: "7cqw" }}>{nameA},</div>
-          <div style={{ fontFamily: HAND, fontSize: message.length > 300 ? "5.4cqw" : "6cqw", lineHeight: "7cqw", whiteSpace: "pre-wrap" }}>{message}</div>
-          <div style={{ fontFamily: HAND, fontSize: "6.4cqw", lineHeight: "7cqw", textAlign: "right", marginTop: "3cqw" }}>
+          <div style={{ fontFamily: L.hand, fontSize: "6.4cqw", lineHeight: "7cqw" }}>{nameA},</div>
+          <div style={{ fontFamily: L.hand, fontSize: message.length > 300 ? "5.4cqw" : "6cqw", lineHeight: "7cqw", whiteSpace: "pre-wrap" }}>{message}</div>
+          <div style={{ fontFamily: L.hand, fontSize: "6.4cqw", lineHeight: "7cqw", textAlign: "right", marginTop: "3cqw" }}>
             com amor, {nameB} <span style={{ color: L.accent }}>♥</span>
           </div>
         </Lined>
@@ -677,14 +1023,14 @@ function Final({ L, year, nameA, nameB, voucher, comVale = true }: { L: Look; ye
   const oQue = voucher?.trim() || VALE_PADRAO;
   return (
     <div ref={ref} className={on ? "sc-on" : undefined} style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-      <div className="sc-in" style={{ ["--d" as string]: "0ms", fontFamily: HAND, fontSize: "8cqw" }}>e o melhor ainda vem aí...</div>
-      <div className="sc-pop" style={{ ["--d" as string]: "200ms", fontFamily: SERIF, fontSize: "17cqw", lineHeight: 1, marginTop: "2cqw" }}>
+      <div className="sc-in" style={{ ["--d" as string]: "0ms", fontFamily: L.hand, fontSize: "8cqw" }}>e o melhor ainda vem aí...</div>
+      <div className="sc-pop" style={{ ["--d" as string]: "200ms", fontFamily: L.serif, fontSize: "17cqw", lineHeight: 1, marginTop: "2cqw" }}>
         que venha <span style={{ color: L.accent }}>{year + 1}</span>
       </div>
 
       {comVale && (
         <>
-          <div className="sc-in" style={{ ["--d" as string]: "450ms", fontFamily: HAND, fontSize: "6cqw", marginTop: "8cqw" }}>
+          <div className="sc-in" style={{ ["--d" as string]: "450ms", fontFamily: L.hand, fontSize: "6cqw", marginTop: "8cqw" }}>
             e pra começar, um presentinho:
           </div>
 
@@ -695,6 +1041,7 @@ function Final({ L, year, nameA, nameB, voucher, comVale = true }: { L: Look; ye
           style={{
             position: "relative",
             display: "flex",
+            color: L.ink,
             background: "#FFFBF2",
             boxShadow: "0 2cqw 5cqw rgba(0,0,0,.22)",
             // recortes redondos nas laterais, como ingresso destacável
@@ -705,12 +1052,12 @@ function Final({ L, year, nameA, nameB, voucher, comVale = true }: { L: Look; ye
           }}
         >
           <div style={{ flex: 1, padding: "5cqw 4cqw 5cqw 7cqw", textAlign: "left", borderRight: `0.6cqw dashed ${L.soft}55` }}>
-            <div style={{ fontFamily: TYPE, fontSize: "3.2cqw", letterSpacing: "0.2em", color: L.accent }}>FROMMYHEART · Nº 0001</div>
-            <div style={{ fontFamily: SERIF, fontSize: "11cqw", lineHeight: 1, marginTop: "1.5cqw" }}>
+            <div style={{ fontFamily: L.type, fontSize: "3.2cqw", letterSpacing: "0.2em", color: L.accent }}>FROMMYHEART · Nº 0001</div>
+            <div style={{ fontFamily: L.serif, fontSize: "11cqw", lineHeight: 1, marginTop: "1.5cqw" }}>
               Vale um <span style={{ color: L.accent }}>date</span>
             </div>
-            <div style={{ fontFamily: HAND, fontSize: "6cqw", lineHeight: 1.15, marginTop: "2.5cqw" }}>{oQue}</div>
-            <div style={{ fontFamily: TYPE, fontSize: "3.2cqw", lineHeight: 1.6, marginTop: "3cqw", color: L.soft }}>
+            <div style={{ fontFamily: L.hand, fontSize: "6cqw", lineHeight: 1.15, marginTop: "2.5cqw" }}>{oQue}</div>
+            <div style={{ fontFamily: L.type, fontSize: "3.2cqw", lineHeight: 1.6, marginTop: "3cqw", color: L.soft }}>
               válido para: {nameA.toUpperCase()}
               <br />
               emitido por: {nameB.toUpperCase()}
@@ -719,13 +1066,13 @@ function Final({ L, year, nameA, nameB, voucher, comVale = true }: { L: Look; ye
             </div>
           </div>
           <div style={{ width: "17cqw", display: "flex", alignItems: "center", justifyContent: "center", padding: "3cqw 2cqw" }}>
-            <div style={{ transform: "rotate(90deg)", whiteSpace: "nowrap", fontFamily: TYPE, fontSize: "3.4cqw", letterSpacing: "0.25em", color: L.soft }}>ADMITE 2 ♥</div>
+            <div style={{ transform: "rotate(90deg)", whiteSpace: "nowrap", fontFamily: L.type, fontSize: "3.4cqw", letterSpacing: "0.25em", color: L.soft }}>ADMITE 2 ♥</div>
           </div>
           {resgatado && (
             <div
               aria-live="polite"
               className="sc-stamp"
-              style={{ position: "absolute", left: "26%", top: "26%", padding: "1.5cqw 4cqw", border: `0.9cqw solid ${L.accent}`, color: L.accent, fontFamily: TYPE, fontSize: "7cqw", letterSpacing: "0.12em", borderRadius: "2cqw", transform: "rotate(-14deg)", background: "rgba(255,251,242,.6)" }}
+              style={{ position: "absolute", left: "26%", top: "26%", padding: "1.5cqw 4cqw", border: `0.9cqw solid ${L.accent}`, color: L.accent, fontFamily: L.type, fontSize: "7cqw", letterSpacing: "0.12em", borderRadius: "2cqw", transform: "rotate(-14deg)", background: "rgba(255,251,242,.6)" }}
             >
               RESGATADO
             </div>
@@ -737,14 +1084,14 @@ function Final({ L, year, nameA, nameB, voucher, comVale = true }: { L: Look; ye
         onClick={() => setResgatado(true)}
         disabled={resgatado}
         className="sc-in"
-        style={{ ["--d" as string]: "800ms", marginTop: "7cqw", padding: "3.4cqw 7cqw", border: "none", borderRadius: "1.5cqw", background: resgatado ? "transparent" : L.ink, color: resgatado ? L.ink : "#FFF8EE", fontFamily: resgatado ? HAND : TYPE, fontSize: resgatado ? "6cqw" : "4.2cqw", letterSpacing: resgatado ? 0 : "0.06em", cursor: resgatado ? "default" : "pointer", boxShadow: resgatado ? "none" : "0.8cqw 1cqw 0 rgba(0,0,0,.2)" }}
+        style={{ ["--d" as string]: "800ms", marginTop: "7cqw", padding: "3.4cqw 7cqw", border: "none", borderRadius: "1.5cqw", background: resgatado ? "transparent" : L.ink, color: resgatado ? L.ink : "#FFF8EE", fontFamily: resgatado ? L.hand : L.type, fontSize: resgatado ? "6cqw" : "4.2cqw", letterSpacing: resgatado ? 0 : "0.06em", cursor: resgatado ? "default" : "pointer", boxShadow: resgatado ? "none" : "0.8cqw 1cqw 0 rgba(0,0,0,.2)" }}
       >
         {resgatado ? `tira um print e me manda, ${nameA.toLowerCase()} ♥` : "resgatar meu vale ♥"}
       </button>
         </>
       )}
 
-      <Link href="/criar?estilo=retro" style={{ marginTop: "12cqw", fontFamily: HAND, fontSize: "4.6cqw", color: L.soft, textDecoration: "underline", textUnderlineOffset: "1cqw" }}>
+      <Link href="/criar?estilo=retro" style={{ marginTop: "12cqw", fontFamily: L.hand, fontSize: "4.6cqw", color: L.softBg, textDecoration: "underline", textUnderlineOffset: "1cqw" }}>
         feito com ♥ no FromMyHeart
       </Link>
     </div>
@@ -752,20 +1099,63 @@ function Final({ L, year, nameA, nameB, voucher, comVale = true }: { L: Look; ye
 }
 
 // ───────── peças de colagem ─────────
-function Sheet({ L, bg, children, edge, stickers }: { L: Look; bg: string; children: React.ReactNode; edge?: boolean; stickers?: string }) {
+function Sheet({ L, bg, children, edge, stickers, seed: seedProp }: { L: Look; bg: string; children: React.ReactNode; edge?: boolean; stickers?: string; seed?: string }) {
   const seed = bg;
   return (
-    <section style={{ position: "relative", backgroundColor: bg, backgroundImage: NOISE, padding: "18cqw 6cqw 16cqw", color: L.ink }}>
+    <section style={{ position: "relative", backgroundColor: bg, backgroundImage: NOISE, padding: "18cqw 6cqw 16cqw", color: L.onBg, overflow: L.washes ? "clip" : undefined, overflowClipMargin: L.washes ? "6cqw" : undefined }}>
+      {L.washes && <Washes L={L} seed={seedProp ?? bg} />}
       {stickers && <Stickers L={L} seed={stickers} />}
       {edge && <div aria-hidden style={{ position: "absolute", left: 0, right: 0, top: "-3.5cqw", height: "4cqw", backgroundColor: bg, backgroundImage: NOISE, clipPath: tornH(seed, true), zIndex: 1 }} />}
-      {children}
+      <div style={{ position: "relative", zIndex: 2 }}>{children}</div>
     </section>
+  );
+}
+
+// manchas de aquarela (temas premium): borda irregular via filtro SVG #sc-aq,
+// pigmento mais escuro na borda (inset shadow) e mistura com o papel
+function Washes({ L, seed }: { L: Look; seed: string }) {
+  const r = rng(seed + "aq");
+  const cores = L.washes ?? [];
+  const n = 3;
+  return (
+    <div aria-hidden style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none" }}>
+      {Array.from({ length: n }).map((_, i) => {
+        const c = cores[i % cores.length];
+        const w = 62 + r() * 40;
+        const h = w * (0.75 + r() * 0.4);
+        const left = (i % 2 ? 40 : -25) + r() * 30;
+        const top = (i / n) * 70 + r() * 18;
+        return (
+          <div
+            key={i}
+            className="sc-wash"
+            style={{
+              position: "absolute",
+              left: `${left}%`,
+              top: `${top}%`,
+              width: `${w}cqw`,
+              height: `${h}cqw`,
+              borderRadius: "50%",
+              background: `radial-gradient(ellipse at 45% 45%, ${c} 0%, ${c.replace(/[\d.]+\)$/, (a) => String(parseFloat(a) * 0.5) + ")")} 55%, transparent 72%)`,
+              boxShadow: `inset 0 0 6cqw ${c}`,
+              filter: "url(#sc-aq)",
+              mixBlendMode: L.washBlend ?? "multiply",
+              ["--d" as string]: `${-i * 2.5}s`,
+            }}
+          />
+        );
+      })}
+      {L.gold &&
+        Array.from({ length: 4 }).map((_, i) => (
+          <Star key={`s${i}`} color="#E9C877" size={`${2.4 + r() * 2}cqw`} className="sc-twinkle" style={{ position: "absolute", left: `${6 + r() * 86}%`, top: `${4 + r() * 90}%`, filter: "none", ["--d" as string]: `${-r() * 3}s` } as React.CSSProperties} />
+        ))}
+    </div>
   );
 }
 
 function Label({ L, children }: { L: Look; children: React.ReactNode }) {
   return (
-    <div className="sc-in" style={{ ["--d" as string]: "0ms", display: "inline-block", padding: "1.6cqw 5cqw", background: "#FFFDF8", fontFamily: TYPE, fontSize: "3.8cqw", letterSpacing: "0.05em", color: L.ink, boxShadow: "0 1cqw 2cqw rgba(0,0,0,.12)", transform: "rotate(-1.5deg)" }}>
+    <div className="sc-in" style={{ ["--d" as string]: "0ms", display: "inline-block", padding: "1.6cqw 5cqw", background: "#FFFDF8", fontFamily: L.type, fontSize: "3.8cqw", letterSpacing: "0.05em", color: L.ink, boxShadow: "0 1cqw 2cqw rgba(0,0,0,.12)", transform: "rotate(-1.5deg)" }}>
       {children}
     </div>
   );
@@ -776,6 +1166,7 @@ function Lined({ children, style }: { children: React.ReactNode; style?: React.C
     <div
       style={{
         position: "relative",
+        color: "var(--sc-ink)",
         background: "#FFFDF7",
         backgroundImage: "linear-gradient(90deg, transparent 6cqw, rgba(226,90,110,.45) 6cqw, rgba(226,90,110,.45) 6.3cqw, transparent 6.3cqw), repeating-linear-gradient(transparent 0, transparent calc(7cqw - 1px), rgba(120,150,200,.35) calc(7cqw - 1px), rgba(120,150,200,.35) 7cqw)",
         backgroundPosition: "0 0, 0 5cqw",
@@ -872,19 +1263,19 @@ function TornStrip({ style, seed, color = "#F8F4EC" }: { style?: React.CSSProper
 function Ransom({ text, seed, L, size }: { text: string; seed: string; L: Look; size: number }) {
   const r = rng(seed);
   const styles = [
-    { bg: "#FFFDF8", fg: L.ink, font: SERIF },
+    { bg: "#FFFDF8", fg: L.ink, font: L.serif },
     { bg: L.ink, fg: "#FFF8EE", font: BOLD },
-    { bg: L.paper2, fg: L.ink, font: TYPE },
-    { bg: "#FFFFFF", fg: L.accent, font: SERIF },
+    { bg: L.paper2, fg: L.ink, font: L.type },
+    { bg: "#FFFFFF", fg: L.accent, font: L.serif },
     { bg: L.heart2, fg: "#FFF", font: BOLD },
-    { bg: L.accent, fg: "#FFF", font: SERIF },
+    { bg: L.accent, fg: "#FFF", font: L.serif },
   ];
   const words = text.split(" ");
   return (
     <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: `${size * 0.45}cqw ${size * 0.6}cqw`, maxWidth: "88cqw" }}>
       {words.map((w, wi) =>
         w === "&" ? (
-          <span key={wi} style={{ fontFamily: HAND, fontWeight: 700, fontSize: `${size * 1.25}cqw`, color: L.accent, lineHeight: 1, alignSelf: "center" }}>
+          <span key={wi} style={{ fontFamily: L.hand, fontWeight: 700, fontSize: `${size * 1.25}cqw`, color: L.accent, lineHeight: 1, alignSelf: "center" }}>
             &amp;
           </span>
         ) : (
@@ -946,7 +1337,7 @@ function PhotoYear({ year, photos, L }: { year: number; photos: string[]; L: Loo
 
 function ScrollHint({ L }: { L: Look }) {
   return (
-    <div className="sc-in" style={{ ["--d" as string]: "900ms", marginTop: "9cqw", fontFamily: HAND, fontSize: "5cqw", color: L.soft, display: "flex", flexDirection: "column", alignItems: "center" }}>
+    <div className="sc-in" style={{ ["--d" as string]: "900ms", marginTop: "9cqw", fontFamily: L.hand, fontSize: "5cqw", color: L.softBg, display: "flex", flexDirection: "column", alignItems: "center" }}>
       role pra baixo
       <span style={{ fontSize: "6cqw", lineHeight: 1, animation: "scBounce 1.6s ease-in-out infinite" }}>↓</span>
     </div>
@@ -988,6 +1379,22 @@ const CSS = `
 @keyframes scSpin { to { transform: rotate(360deg) } }
 @keyframes scStamp { 0% { opacity: 0; scale: 2.2 } 60% { opacity: 1; scale: .92 } 100% { opacity: 1; scale: 1 } }
 .sc-stamp { animation: scStamp .45s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes scTwinkle { 0%,100% { opacity: .2; scale: .7 } 50% { opacity: 1; scale: 1 } }
+@keyframes scGold { to { background-position: 200% 50% } }
+@keyframes scFloat { 0%,100% { translate: 0 0 } 50% { translate: 0 -1.6cqw } }
+@keyframes scRise { 0% { translate: 0 0; opacity: 0 } 15% { opacity: 1 } 100% { translate: 0 -60cqw; opacity: 0 } }
+@keyframes scFly { 0%,100% { translate: 0 0; rotate: -6deg } 25% { translate: -4cqw -3cqw; rotate: 4deg } 50% { translate: -1cqw -6cqw; rotate: -2deg } 75% { translate: 3cqw -2cqw; rotate: 6deg } }
+@keyframes scWing { 0%,100% { scale: 1 1 } 50% { scale: .35 1 } }
+@keyframes scFall { 0% { translate: 0 -4cqw; rotate: 0deg; opacity: 0 } 15% { opacity: 1 } 100% { translate: 0 70cqw; rotate: 160deg; opacity: 0 } }
+@keyframes scVinil { to { rotate: 360deg } }
+.sc-twinkle { animation: scTwinkle 2.6s ease-in-out infinite; animation-delay: var(--d, 0s); }
+.sc-gold { background: linear-gradient(100deg,#B8893A 0%,#F3D58A 25%,#C9973F 50%,#F7E2A6 75%,#B8893A 100%); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: scGold 6s linear infinite; }
+.sc-float { animation: scFloat 4.5s ease-in-out infinite; animation-delay: var(--f, 0s); }
+.sc-rise { animation: scRise 5s ease-in infinite; animation-delay: var(--d, 0s); }
+.sc-fly { animation: scFly 7s ease-in-out infinite; }
+.sc-wing { transform-origin: center; animation: scWing .5s ease-in-out infinite; }
+.sc-fall { animation: scFall 6.5s linear infinite; animation-delay: var(--d, 0s); }
+.sc-vinil { animation: scVinil 6s linear infinite; }
 .sc-beat { animation: scBeat 1.6s ease-in-out infinite; }
 .sc-spin { animation: scSpin 3s linear infinite; }
 .sc-in, .sc-pop { opacity: 0; transition: opacity .8s cubic-bezier(.2,.8,.2,1), translate .8s cubic-bezier(.2,.8,.2,1), scale .8s cubic-bezier(.2,.8,.2,1); transition-delay: var(--d, 0ms); }
@@ -996,6 +1403,6 @@ const CSS = `
 .sc-on .sc-in, .sc-on .sc-pop { opacity: 1; translate: 0 0; scale: 1; }
 @media (prefers-reduced-motion: reduce) {
   .sc-in, .sc-pop { transition: none !important; opacity: 1 !important; translate: none !important; scale: none !important; }
-  .sc-beat, .sc-spin { animation: none !important; }
+  .sc-beat, .sc-spin, .sc-twinkle, .sc-gold, .sc-float, .sc-rise, .sc-fly, .sc-wing, .sc-fall, .sc-vinil { animation: none !important; }
 }
 `;
