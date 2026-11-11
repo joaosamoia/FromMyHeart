@@ -7,6 +7,7 @@
 // chapada, números gigantes). Cada produto é uma "cartela" de cor, como os
 // slides — o site inteiro parece uma retrospectiva.
 
+import Suporte from "@/components/Suporte";
 import Link from "next/link";
 import { BR, D_FONT, B_FONT, BRAND_CSS, Blobs, Logo, Kicker, Marquee } from "@/components/brand";
 import { OfertaBanner } from "@/components/Oferta";
@@ -233,6 +234,7 @@ export default function Home() {
       <footer style={{ background: BR.night, padding: "34px 20px 44px", textAlign: "center" }}>
         <Logo size={30} />
         <p style={{ fontSize: 13, color: BR.muted, marginTop: 14, letterSpacing: 0.2 }}>pagamento único · link pronto na hora · feito com ♥</p>
+        <Suporte texto="Ainda tem dúvida? Chama a gente no WhatsApp" cor={BR.blush} destaque="#3DDC97" />
       </footer>
     </main>
   );

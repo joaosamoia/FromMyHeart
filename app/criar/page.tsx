@@ -8,6 +8,7 @@
 // redireciona pro checkout certo da Kiwify (8 combinações de plano × addons)
 // → o webhook confirma o pagamento e libera a página.
 
+import Suporte from "@/components/Suporte";
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { doc, setDoc, getDoc } from "firebase/firestore";
@@ -1207,6 +1208,7 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack, irPara
 
         {error && <p style={{ color: "#c0392b", fontSize: 13, textAlign: "center", marginTop: 10 }}>{error}</p>}
         {bigBtn(saving ? "Salvando..." : "Quero meu convite", finish, saving)}
+      <Suporte mensagem="Oi! Tô fazendo o convite de date e fiquei com uma dúvida 💛" />
         <div style={{ textAlign: "center" }}>
           <button
             onClick={() => setPhase(0)}
@@ -1323,6 +1325,7 @@ function FinalStep({ d, setD, saving, setSaving, error, setError, onBack, irPara
 
       {error && <p style={{ color: "#c0392b", fontSize: 13, textAlign: "center" }}>{error}</p>}
       {bigBtn(saving ? "Salvando..." : "Ir para o pagamento", finish, saving)}
+      <Suporte mensagem="Oi! Tô fazendo a página de amor e fiquei com uma dúvida 💛" />
       <button onClick={() => setPhase(0)} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", color: P.sub, fontSize: 14, cursor: "pointer", marginTop: 12 }}>
         <ArrowLeft size={15} /> Voltar
       </button>
@@ -2004,6 +2007,7 @@ function RetroCheckout({ d, saving, error, finish, onBack, bigBtn, qrOn, setQrOn
       </div>
       {error && <p style={{ color: "#c0392b", fontSize: 13, textAlign: "center", marginTop: 10 }}>{error}</p>}
       {bigBtn(saving ? "Salvando..." : completa ? "Liberar a retrospectiva completa" : "Liberar nossa retrospectiva", finish, saving)}
+      <Suporte mensagem="Oi! Tô fazendo a retrospectiva e fiquei com uma dúvida 💛" />
       <ProvaSocial variante="clara" max={2} />
       <div style={{ textAlign: "center" }}>
         <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", color: P.sub, fontSize: 14, cursor: "pointer", marginTop: 14 }}>

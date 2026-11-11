@@ -6,6 +6,7 @@
 //
 // O texto muda conforme o produto: quem comprou um convite de date não deveria
 // receber um e-mail falando "sua página de amor está pronta".
+import { linkSuporte, WHATS_SUPORTE_EXIBIDO } from "@/lib/suporte";
 import { Resend } from "resend";
 function getResend() {
   const key = process.env.RESEND_API_KEY;
@@ -107,6 +108,9 @@ export async function sendPageReadyEmail(params: {
           <p style="text-align:center;color:#B79B95;font-size:12px;margin-top:26px;font-family:Arial,sans-serif;line-height:1.5;">
             Guarde este e-mail — é assim que você acessa seu link sempre que quiser.
           </p>
+          <p style="text-align:center;color:#9C7E78;font-size:13px;margin-top:14px;font-family:Arial,sans-serif;line-height:1.5;">
+            Precisa mudar algo na sua página? <a href="${linkSuporte("Oi! Comprei no FromMyHeart e preciso de ajuda com a minha página 💛")}" style="color:${T.accent};font-weight:bold;">Me chama no WhatsApp</a> · ${WHATS_SUPORTE_EXIBIDO}
+          </p>
         </div>
       `,
     });
@@ -148,6 +152,7 @@ export async function sendDraftEmail(params: { to: string; nome?: string; link: 
           </div>
           <p style="text-align:center;font-size:12px;color:#A07A92;word-break:break-all;margin:0;">${link}</p>
           <p style="text-align:center;font-size:12px;color:#A07A92;margin-top:22px;line-height:1.5;">Não compartilhe este link: ele abre o seu rascunho.</p>
+          <p style="text-align:center;font-size:13px;color:#7A4B6B;margin-top:14px;line-height:1.5;">Ficou com alguma dúvida? <a href="${linkSuporte("Oi! Comecei meu presente no FromMyHeart e fiquei com uma dúvida 💛")}" style="color:#E8336D;font-weight:bold;">Fala com a gente no WhatsApp</a></p>
         </div>
       `,
     });
