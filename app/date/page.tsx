@@ -11,6 +11,7 @@
 // A hero é o próprio convite jogável: quem chega tenta clicar no "NÃO" e ele
 // foge. Isso é o produto se demonstrando sozinho, sem precisar explicar.
 
+import Suporte from "@/components/Suporte";
 import { useState, useRef } from "react";
 import Link from "next/link";
 import DatePage, { DATE_TEMPLATES, type DateTemplateId } from "@/components/DatePage";
@@ -441,6 +442,7 @@ function Rodape() {
       <Link href="/" style={{ color: C.cream, fontWeight: 700 }}>
         Veja as páginas de amor personalizadas
       </Link>
+      <Suporte texto="Ainda tem dúvida? Chama a gente no WhatsApp" mensagem="Oi! Tenho uma dúvida sobre o convite de date 💛" cor={C.peach} destaque="#3DDC97" />
     </footer>
   );
 }

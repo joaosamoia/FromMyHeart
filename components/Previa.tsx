@@ -5,6 +5,7 @@
 // marca d'água "PRÉVIA" por cima, barra fixa no topo com o botão de liberar e,
 // no lugar do resto da página, o "cadeado" listando o que ficou trancado.
 
+import Suporte from "@/components/Suporte";
 import { useEffect } from "react";
 import { Lock, Heart, Music2, Hash, Sparkles, Mail, Ticket, ArrowRight, CalendarHeart } from "lucide-react";
 import RetroStories from "@/components/RetroStories";
@@ -107,6 +108,7 @@ export default function Previa({ page, trancado, href, rotulo, preco, linkFinal,
         </div>
 
         {botao(true)}
+        <Suporte texto="Dúvida antes de liberar? Fala com a gente" mensagem="Oi! Vi a prévia da minha retrospectiva e fiquei com uma dúvida 💛" cor={BR.blush} destaque="#3DDC97" />
         {cupom && (
           <div style={{ display: "inline-block", marginBottom: 12, padding: "6px 12px", borderRadius: 99, background: BR.yellow, color: BR.wine, fontSize: 13, fontWeight: 800 }}>
             🎁 Cupom {cupom} aplicado: 10% OFF no pagamento
