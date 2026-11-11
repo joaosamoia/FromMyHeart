@@ -256,8 +256,8 @@ export default function RetroScrapbook({ page, variant, compact = false, corte }
   );
   // a foto de capa (1ª etapa do quiz) vem primeiro: é ela que aparece na abertura
   const photos = useMemo(
-    () => [...new Set([page.retroCover, ...months.map((m) => m.photo), ...(page.photos ?? [])].filter(Boolean))] as string[],
-    [page.retroCover, months, page.photos]
+    () => [...new Set([page.retroCover, ...months.map((m) => m.photo), ...(page.retroMonths ?? []).map((m) => m.photo), ...(page.photos ?? [])].filter(Boolean))] as string[],
+    [page.retroCover, months, page.retroMonths, page.photos]
   );
   // Música vale se tiver nome OU link (antes, quem só colava o link perdia a
   // música). Sem nome, aparece como "Nossa música nº N".
@@ -474,7 +474,8 @@ function HeroSol({ L, year, nameA, nameB, photos, opened, compact }: { L: Look; 
 function HeroKraft({ L, year, nameA, nameB, photos, opened, compact }: { L: Look; year: number; nameA: string; nameB: string; photos: string[]; opened: boolean; compact: boolean }) {
   const [ref, inView] = useInView<HTMLElement>();
   const on = opened && inView;
-  const p = (i: number) => photos.length ? photos[i % photos.length] : undefined;
+  // cada lugar da abertura usa uma foto DIFERENTE (nunca repete); sem foto sobrando, o lugar some
+  const p = (i: number) => photos[i];
   return (
     <section ref={ref} className={on ? "sc-on" : undefined} style={{ position: "relative", minHeight: compact ? 560 : "100svh", overflow: "hidden", backgroundColor: L.paper, backgroundImage: NOISE, padding: "12cqw 6cqw 12cqw", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
       {/* tiras de papel rasgado */}
@@ -482,15 +483,21 @@ function HeroKraft({ L, year, nameA, nameB, photos, opened, compact }: { L: Look
       <TornStrip style={{ bottom: "8cqw", right: "-12cqw", width: "60cqw", transform: "rotate(-14deg)" }} seed="b" />
 
       {/* polaroids de canto */}
+      {p(1) && (
       <div className="sc-in" style={{ ["--d" as string]: "500ms", position: "absolute", right: "-6cqw", top: "16cqw" }}>
         <Polaroid src={p(1)} w="30cqw" rot={6} L={L} />
       </div>
+      )}
+      {p(2) && (
       <div className="sc-in" style={{ ["--d" as string]: "600ms", position: "absolute", left: "-5cqw", bottom: "30cqw" }}>
         <Polaroid src={p(2)} w="27cqw" rot={-7} L={L} />
       </div>
+      )}
+      {p(3) && (
       <div className="sc-in" style={{ ["--d" as string]: "700ms", position: "absolute", left: "-4cqw", top: "46cqw" }}>
         <Polaroid src={p(3)} w="22cqw" rot={-4} L={L} />
       </div>
+      )}
 
       <div style={{ position: "relative", width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div className="sc-in" style={{ ["--d" as string]: "0ms", position: "relative", zIndex: 2, marginBottom: "-4cqw", padding: "1.6cqw 6cqw", background: L.tape, fontFamily: L.hand, fontWeight: 700, fontSize: "8cqw", lineHeight: 1, transform: "rotate(-2deg)", clipPath: TAPE_CLIP }}>
@@ -547,7 +554,7 @@ function Sparkle({ color, size, style }: { color: string; size: string; style?: 
 function HeroVioleta({ L, year, nameA, nameB, photos, opened, compact }: { L: Look; year: number; nameA: string; nameB: string; photos: string[]; opened: boolean; compact: boolean }) {
   const [ref, inView] = useInView<HTMLElement>();
   const on = opened && inView;
-  const p = (i: number) => (photos.length ? photos[i % photos.length] : undefined);
+  const p = (i: number) => photos[i]; // sem repetir foto: lugar sem foto some
   return (
     <section ref={ref} className={on ? "sc-on" : undefined} style={{ position: "relative", minHeight: compact ? 560 : "100svh", overflow: "hidden", backgroundColor: L.paper, backgroundImage: NOISE, padding: "12cqw 6cqw 12cqw", display: "flex", flexDirection: "column", alignItems: "center", color: L.onBg }}>
       <Washes L={L} seed="hero-violeta" />
@@ -574,14 +581,18 @@ function HeroVioleta({ L, year, nameA, nameB, photos, opened, compact }: { L: Lo
               <Foto src={p(0)} L={L} style={{ width: "100%", height: "100%" }} />
             </div>
           </div>
+          {p(1) && (
           <div className="sc-in sc-float" style={{ ["--d" as string]: "600ms", ["--f" as string]: "0s", position: "absolute", right: 0, top: 0 } as React.CSSProperties}>
             <Polaroid src={p(1)} w="36cqw" rot={6} L={L}>
               <div style={{ fontFamily: SCRIPT, fontSize: "5.6cqw", lineHeight: 1, color: "#5B2A7A" }}>nosso começo</div>
             </Polaroid>
           </div>
+          )}
+          {p(2) && (
           <div className="sc-in sc-float" style={{ ["--d" as string]: "750ms", ["--f" as string]: "-2s", position: "absolute", right: "2cqw", top: "46cqw" } as React.CSSProperties}>
             <Polaroid src={p(2)} w="34cqw" rot={-5} L={L} />
           </div>
+          )}
           {/* lacre de cera */}
           <div className="sc-pop" style={{ ["--d" as string]: "900ms", position: "absolute", left: "40cqw", top: "66cqw", width: "16cqw", height: "16cqw", borderRadius: "50%", background: "radial-gradient(circle at 35% 30%, #9A6BC0, #4E1F70 70%)", boxShadow: "0 1.6cqw 3cqw rgba(0,0,0,.45)", display: "grid", placeItems: "center" }}>
             <div style={{ width: "11cqw", height: "11cqw", borderRadius: "50%", border: "0.4cqw solid rgba(243,213,138,.6)", display: "grid", placeItems: "center" }}>
@@ -613,7 +624,7 @@ function HeroVioleta({ L, year, nameA, nameB, photos, opened, compact }: { L: Lo
 function HeroTeAmo({ L, year, nameA, nameB, photos, opened, compact }: { L: Look; year: number; nameA: string; nameB: string; photos: string[]; opened: boolean; compact: boolean }) {
   const [ref, inView] = useInView<HTMLElement>();
   const on = opened && inView;
-  const p = (i: number) => (photos.length ? photos[i % photos.length] : undefined);
+  const p = (i: number) => photos[i]; // sem repetir foto: lugar sem foto some
   const letras = ["T", "E", " ", "A", "M", "O"];
   const recorte: React.CSSProperties = { border: "1.8cqw solid #FFFFFF", boxShadow: "0 3cqw 6cqw rgba(110,30,40,.35)", boxSizing: "border-box" };
   return (
@@ -636,9 +647,11 @@ function HeroTeAmo({ L, year, nameA, nameB, photos, opened, compact }: { L: Look
           <div className="sc-pop sc-float" style={{ ["--d" as string]: "100ms", ["--f" as string]: "0s", position: "absolute", left: 0, top: "2cqw", rotate: "-6deg" } as React.CSSProperties}>
             <Foto src={p(0)} L={L} style={{ ...recorte, width: "46cqw", height: "56cqw", borderRadius: "46% 54% 42% 58% / 52% 44% 56% 48%" }} />
           </div>
+          {p(1) && (
           <div className="sc-pop sc-float" style={{ ["--d" as string]: "250ms", ["--f" as string]: "-1.4s", position: "absolute", right: 0, top: "6cqw", rotate: "7deg" } as React.CSSProperties}>
             <Foto src={p(1)} L={L} style={{ ...recorte, width: "42cqw", height: "58cqw", borderRadius: "50% 50% 44% 56% / 40% 46% 54% 60%" }} />
           </div>
+          )}
           <Tape L={L} w="20cqw" rot={-12} style={{ top: 0, left: "34cqw" }} />
         </div>
 
@@ -698,7 +711,7 @@ function HeroTeAmo({ L, year, nameA, nameB, photos, opened, compact }: { L: Look
 function HeroAquarela({ L, year, nameA, nameB, photos, opened, compact }: { L: Look; year: number; nameA: string; nameB: string; photos: string[]; opened: boolean; compact: boolean }) {
   const [ref, inView] = useInView<HTMLElement>();
   const on = opened && inView;
-  const p = (i: number) => (photos.length ? photos[i % photos.length] : undefined);
+  const p = (i: number) => photos[i]; // sem repetir foto: lugar sem foto some
   const foto: React.CSSProperties = { border: "2cqw solid #FFFFFF", boxShadow: "0 3cqw 6.4cqw rgba(40,70,110,.24)", boxSizing: "border-box" };
   const pauta: React.CSSProperties = { background: "#FFFFFF", backgroundImage: "repeating-linear-gradient(180deg,transparent 0,transparent calc(6cqw - 1px),#DCE7F5 calc(6cqw - 1px),#DCE7F5 6cqw)", clipPath: "polygon(0 4%,6% 0,14% 3%,22% 0,31% 2%,40% 0,50% 3%,61% 0,70% 2%,80% 0,90% 3%,100% 1%,98% 30%,100% 60%,98% 100%,88% 97%,76% 100%,64% 97%,52% 100%,40% 97%,28% 100%,16% 97%,4% 100%,2% 60%,0 30%)", boxShadow: "0 2cqw 4cqw rgba(40,70,110,.12)" };
   const flores = [
@@ -739,14 +752,18 @@ function HeroAquarela({ L, year, nameA, nameB, photos, opened, compact }: { L: L
           <div className="sc-pop sc-float" style={{ ["--d" as string]: "300ms", ["--f" as string]: "0s", position: "absolute", left: 0, top: "20cqw", rotate: "-3deg" } as React.CSSProperties}>
             <Foto src={p(0)} L={L} style={{ ...foto, width: "44cqw", height: "54cqw" }} />
           </div>
+          {p(1) && (
           <div className="sc-pop sc-float" style={{ ["--d" as string]: "450ms", ["--f" as string]: "-2s", position: "absolute", right: 0, top: "44cqw", rotate: "2deg", zIndex: 2 } as React.CSSProperties}>
             <Foto src={p(1)} L={L} style={{ ...foto, width: "56cqw", height: "70cqw" }} />
           </div>
+          )}
+          {p(2) && (
           <div className="sc-pop sc-float" style={{ ["--d" as string]: "600ms", ["--f" as string]: "-1s", position: "absolute", left: "3cqw", top: "80cqw", rotate: "-4deg", zIndex: 3 } as React.CSSProperties}>
             <Tape L={L} w="16cqw" rot={-5} style={{ top: "-2cqw", left: "10cqw" }} />
             <Foto src={p(2)} L={L} style={{ ...foto, width: "36cqw", height: "30cqw" }} />
             <div style={{ fontFamily: MAO, fontSize: "3cqw", color: "#34466A", marginTop: "2cqw", textAlign: "left" }}>nós, {year}</div>
           </div>
+          )}
           {/* laço */}
           <svg aria-hidden viewBox="0 0 74 44" className="sc-in" style={{ ["--d" as string]: "800ms", position: "absolute", right: "4cqw", top: "34cqw", width: "16cqw", zIndex: 3 } as React.CSSProperties}>
             <path d="M37 22 C 24 6, 6 6, 6 18 C 6 28, 24 28, 37 22z" fill="none" stroke="#6FA0DE" strokeWidth="3" />
