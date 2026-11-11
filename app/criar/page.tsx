@@ -1505,7 +1505,13 @@ function RetroCoresStep({ d, setD, slugStatus }: any) {
       </label>
       <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", color: P.sub, margin: "0 0 8px" }}>COLAGEM</div>
       <div style={{ display: "grid", gap: 10 }}>
-        {Object.entries(SCRAP_THEMES).map(([id, t]) =>
+        {Object.entries(SCRAP_THEMES).filter(([id]) => !id.startsWith("premium-")).map(([id, t]) =>
+          card(id, d.theme === id, <span style={{ width: 66, height: 46, borderRadius: 8, background: t.preview, flexShrink: 0, boxShadow: "inset 0 0 0 1px rgba(0,0,0,.08)" }} />, t.name, t.desc)
+        )}
+      </div>
+      <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", color: P.sub, margin: "18px 0 8px" }}>NOVOS · AQUARELA E DOURADO</div>
+      <div style={{ display: "grid", gap: 10 }}>
+        {Object.entries(SCRAP_THEMES).filter(([id]) => id.startsWith("premium-")).map(([id, t]) =>
           card(id, d.theme === id, <span style={{ width: 66, height: 46, borderRadius: 8, background: t.preview, flexShrink: 0, boxShadow: "inset 0 0 0 1px rgba(0,0,0,.08)" }} />, t.name, t.desc)
         )}
       </div>
