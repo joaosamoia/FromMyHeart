@@ -1123,7 +1123,7 @@ function Final({ L, year, nameA, nameB, voucher, comVale = true }: { L: Look; ye
         onClick={() => setResgatado(true)}
         disabled={resgatado}
         className="sc-in"
-        style={{ ["--d" as string]: "800ms", marginTop: "7cqw", padding: "3.4cqw 7cqw", border: "none", borderRadius: "1.5cqw", background: resgatado ? "transparent" : L.ink, color: resgatado ? L.ink : "#FFF8EE", fontFamily: resgatado ? L.hand : L.type, fontSize: resgatado ? "6cqw" : "4.2cqw", letterSpacing: resgatado ? 0 : "0.06em", cursor: resgatado ? "default" : "pointer", boxShadow: resgatado ? "none" : "0.8cqw 1cqw 0 rgba(0,0,0,.2)" }}
+        style={{ ["--d" as string]: "800ms", marginTop: "7cqw", padding: "3.4cqw 7cqw", border: "none", borderRadius: "1.5cqw", background: resgatado ? "transparent" : L.ink, color: resgatado ? L.onBg : "#FFF8EE", fontFamily: resgatado ? L.hand : L.type, fontSize: resgatado ? "6cqw" : "4.2cqw", letterSpacing: resgatado ? 0 : "0.06em", cursor: resgatado ? "default" : "pointer", boxShadow: resgatado ? "none" : "0.8cqw 1cqw 0 rgba(0,0,0,.2)" }}
       >
         {resgatado ? `tira um print e me manda, ${nameA.toLowerCase()} ♥` : "resgatar meu vale ♥"}
       </button>
