@@ -60,15 +60,44 @@ function slugDoPedido(d: any): string | null {
   return null;
 }
 
-// Retrospectiva: "Essencial" ou "Completa" no nome. A Completa já vem com QR.
+// Ofertas da Retrospectiva na Cakto (o código do link pay.cakto.com.br/<código>).
+// É o jeito mais confiável de saber o plano: a oferta original do produto pode
+// chegar no webhook só com o nome do PRODUTO ("Retrospectiva do Casal"), sem
+// "Essencial" no nome. Ao criar uma oferta nova, adicione aqui.
+const OFERTAS_RETRO: Record<string, { plano: "essencial" | "completa"; qr: boolean }> = {
+  ciyyqj8: { plano: "essencial", qr: false }, // Essencial (oferta original)
+  uk7juim: { plano: "essencial", qr: true }, // Essencial + QR Code
+  asoi4o5: { plano: "completa", qr: true }, // Completa (já com QR)
+  bmgwo7u: { plano: "completa", qr: true }, // Completa (produto antigo)
+};
+
+function codigoDaOferta(d: any): string {
+  const doLink = String(d?.checkoutUrl ?? "").match(/pay\.cakto\.com\.br\/([A-Za-z0-9]+)/)?.[1];
+  return String(d?.offer?.id ?? doLink ?? "").split("_")[0];
+}
+
+// Plano e adicionais do pedido, nessa ordem de confiança:
+//   1. código da oferta (OFERTAS_RETRO)
+//   2. nome da oferta/produto ("Essencial", "Completa", "QR", "Mapa Estelar")
+//   3. valor pago, só pra Retrospectiva (19,99 Essencial · 24,98 Essencial+QR · 29,99 Completa)
 function adicionais(d: any) {
   const nomes = `${d?.offer?.name ?? ""} | ${d?.product?.name ?? ""}`;
-  const plano = /essencial/i.test(nomes) ? "essencial" : /completa/i.test(nomes) ? "completa" : null;
-  return {
-    qr: /\bqr\b|qr\s*code|qrcode/i.test(nomes) || plano === "completa",
-    astral: /mapa\s*estelar|astral/i.test(nomes),
-    plano,
-  };
+  const astral = /mapa\s*estelar|astral/i.test(nomes);
+  const porCodigo = OFERTAS_RETRO[codigoDaOferta(d)];
+  if (porCodigo) return { qr: porCodigo.qr, astral, plano: porCodigo.plano as string | null };
+
+  let plano: string | null = /essencial/i.test(nomes) ? "essencial" : /completa/i.test(nomes) ? "completa" : null;
+  let qr = /\bqr\b|qr\s*code|qrcode/i.test(nomes);
+  if (!plano && /retrospectiva/i.test(nomes)) {
+    const valor = Number(d?.baseAmount ?? d?.offer?.price ?? 0);
+    if (valor > 0 && valor < 22) plano = "essencial";
+    else if (valor >= 22 && valor < 27) {
+      plano = "essencial";
+      qr = true;
+    } else if (valor >= 27) plano = "completa";
+  }
+  if (plano === "completa") qr = true;
+  return { qr, astral, plano };
 }
 
 type Resultado = { slug?: string; acao: string };
