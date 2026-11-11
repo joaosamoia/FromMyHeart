@@ -26,6 +26,7 @@ import Link from "next/link";
 import type { CouplePageDoc, RetroSong, RetroStat } from "@/types/page";
 import MusicDock, { parseMusic, type MusicApi } from "@/components/MusicDock";
 import RetroStarMap, { STARMAP_COLORS } from "@/components/RetroStarMap";
+import RetroMoon, { MOON_COLORS, faseDaLua, FRASE_LUA } from "@/components/RetroMoon";
 
 type Doc = Partial<CouplePageDoc> & { slug?: string };
 export type ScrapVariant = "sol" | "kraft" | "violeta" | "teamo" | "aquarela";
@@ -312,6 +313,7 @@ export default function RetroScrapbook({ page, variant, compact = false, corte }
           <Sheet L={L} bg={variant === "sol" ? L.paper2 : L.paper} edge seed="w1" stickers={L.stickers ? "s1" : undefined}>
             <Counter L={L} days={days} year={year} startDate={page.startDate!} variant={variant} />
             <StarMapCard L={L} startDate={page.startDate!} seed={`${page.startDate}${nameA}${nameB}`} />
+            <MoonCard L={L} startDate={page.startDate!} />
           </Sheet>
         )}
 
@@ -835,6 +837,26 @@ function StarMapCard({ L, startDate, seed }: { L: Look; startDate: string; seed:
         <div style={{ fontFamily: L.type, fontSize: "3.6cqw", letterSpacing: "0.14em", marginTop: "4.5cqw", color: L.ink }}>{quando.toUpperCase()}</div>
         <div style={{ width: "30cqw", height: "0.4cqw", background: L.accent, opacity: 0.5, margin: "2.5cqw auto" }} />
         <div style={{ fontFamily: L.hand, fontSize: "5.6cqw", lineHeight: 1.15, color: L.soft }}>as nossas estrelas do dia em que tudo começou ♥</div>
+      </div>
+    </div>
+  );
+}
+
+// ───────── a lua do dia em que tudo começou ─────────
+function MoonCard({ L, startDate }: { L: Look; startDate: string }) {
+  const [ref, on] = useInView<HTMLDivElement>();
+  const fase = faseDaLua(startDate);
+  if (!fase) return null;
+  return (
+    <div ref={ref} className={on ? "sc-on" : undefined} style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginTop: "16cqw" }}>
+      <Label L={L}>e a lua daquele dia</Label>
+      <div className="sc-pop" style={{ ["--d" as string]: "150ms", position: "relative", marginTop: "7cqw", width: "70cqw", background: "#FFFDF8", color: L.ink, padding: "6cqw 5cqw 5cqw", boxShadow: "0 2cqw 5cqw rgba(0,0,0,.2)", transform: "rotate(-1.5deg)" }}>
+        <Tape L={L} w="18cqw" rot={5} style={{ top: "-2.4cqw", left: "26cqw" }} color={L.tape2} />
+        <RetroMoon date={startDate} colors={MOON_COLORS.papel} id="colagem" />
+        <div style={{ fontFamily: L.serif, fontSize: "7.4cqw", lineHeight: 1, marginTop: "4.5cqw" }}>{fase.nome}</div>
+        <div style={{ fontFamily: L.type, fontSize: "3.4cqw", letterSpacing: "0.14em", marginTop: "2cqw", color: L.soft }}>{Math.round(fase.iluminacao * 100)}% ILUMINADA</div>
+        <div style={{ width: "26cqw", height: "0.4cqw", background: L.accent, opacity: 0.5, margin: "3cqw auto" }} />
+        <div style={{ fontFamily: L.hand, fontSize: "5.4cqw", lineHeight: 1.15, color: L.soft }}>{FRASE_LUA[fase.nome]} ♥</div>
       </div>
     </div>
   );

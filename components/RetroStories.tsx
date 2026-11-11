@@ -26,6 +26,7 @@ import type { CouplePageDoc, RetroSong, RetroStat } from "@/types/page";
 import RetroScrapbook from "@/components/RetroScrapbook";
 import MusicDock, { parseMusic, type MusicApi } from "@/components/MusicDock";
 import RetroStarMap, { STARMAP_COLORS } from "@/components/RetroStarMap";
+import RetroMoon, { MOON_COLORS, faseDaLua, FRASE_LUA } from "@/components/RetroMoon";
 
 type Doc = Partial<CouplePageDoc> & { slug?: string };
 
@@ -71,7 +72,6 @@ export const RETRO_THEMES: Record<string, { name: string; preview: string; swatc
 // Visuais de colagem (scrapbook) — renderizados por components/RetroScrapbook.
 export const SCRAP_THEMES: Record<string, { name: string; desc: string; preview: string }> = {
   "scrap-kraft": { name: "Kraft Polaroid", desc: "papel pardo, polaroids e fita adesiva", preview: "linear-gradient(135deg,#C9A378,#A97F55)" },
-  "scrap-sol": { name: "Colagem Sol", desc: "cores alegres, letras recortadas e o ano com as fotos de vocês", preview: "linear-gradient(90deg,#FBF4E6 55%,#F6C453 55%)" },
   "premium-violeta": { name: "Clássico Violeta", desc: "violeta e dourado, moldura, lacre de cera e polaroids", preview: "radial-gradient(circle at 70% 30%,#F3D58A 0 12%,transparent 13%),linear-gradient(135deg,#4A2270,#2E1046)" },
   "premium-teamo": { name: "Colagem Te Amo", desc: "fotos recortadas, letras TE AMO e aquarela de pôr do sol", preview: "radial-gradient(circle at 30% 35%,#F7A078,transparent 55%),radial-gradient(circle at 75% 70%,#E86E82,transparent 55%),#FBF1E8" },
   "premium-aquarela": { name: "Aquarela Azul", desc: "aquarela azul, bilhete rasgado, florzinhas e borboleta", preview: "radial-gradient(circle at 35% 40%,#6FA0DE,transparent 55%),radial-gradient(circle at 75% 70%,#A2C3EF,transparent 55%),#F8FAFD" },
@@ -294,6 +294,23 @@ function RetroColorido({ page, compact = false, corte }: { page: Doc; compact?: 
             </div>
             <div className="rs-in" style={{ ["--d" as string]: "750ms", marginTop: "2cqw", fontSize: "4.2cqw", opacity: 0.85 }}>
               uma constelação só nossa ♥
+            </div>
+          </Section>
+        )}
+
+        {/* ───── a lua do começo ───── */}
+        {days && faseDaLua(page.startDate!) && (
+          <Section sw={S[0]} center blobs={2}>
+            <Kicker>e a lua daquele dia</Kicker>
+            <Title d={120}>{faseDaLua(page.startDate!)!.nome}</Title>
+            <div className="rs-pop" style={{ ["--d" as string]: "300ms", marginTop: "8cqw", width: "72cqw", filter: "drop-shadow(0 3cqw 6cqw rgba(0,0,0,.35))" }}>
+              <RetroMoon date={page.startDate!} colors={MOON_COLORS.vivo} id="colorido" />
+            </div>
+            <div className="rs-in" style={{ ["--d" as string]: "600ms", marginTop: "6cqw", fontSize: "3.4cqw", fontWeight: 800, letterSpacing: "0.2em" }}>
+              {Math.round(faseDaLua(page.startDate!)!.iluminacao * 100)}% ILUMINADA
+            </div>
+            <div className="rs-in" style={{ ["--d" as string]: "750ms", marginTop: "2cqw", fontSize: "4.2cqw", opacity: 0.85 }}>
+              {FRASE_LUA[faseDaLua(page.startDate!)!.nome]} ♥
             </div>
           </Section>
         )}
